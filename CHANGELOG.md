@@ -14,3 +14,4 @@ Alle wichtigen Änderungen an diesem Projekt. Format nach [Keep a Changelog](htt
 - Bot-Start mit `--dry-run` (Probelauf ohne Tastendrücke) und `--hold-test` (hält W gedrückt, um den Not-Aus zu testen)
 - Log-Dateien pro Tag unter `logs/<Datum>/`, bei einem Sicherheits-Stopp zusätzlich ein Screenshot
 - Aufnahme-Tool `tools/record.py`: nimmt Spielbild und alle Eingaben synchron auf (Start/Stopp mit F9, Beenden mit F2). Anleitung in `docs/RECORDING.md`
+- Analyse-Tools: `tools/extract_frames.py` speichert Einzelbilder aus Videos (zu Zeitpunkten oder in Abständen, optional zugeschnitten), `tools/replay.py` zeigt, welche Zustände der Bot in einem Video erkennt. Beide funktionieren auch mit OBS-Videos

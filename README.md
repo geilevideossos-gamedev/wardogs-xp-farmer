@@ -41,6 +41,28 @@ Beendet wird mit **F2** (oder Strg+C im Konsolenfenster).
 
 **F9** startet und stoppt eine Aufnahme, **F2** beendet das Tool. Sequenzen: `join`, `team`, `buy_heli`, `board`, `buy_crate`, `fly_to_zone`, `drop`, `fly_to_base`, `land`, `full_loop`, `death`. Was du wie oft aufnehmen sollst: `docs/RECORDING.md`.
 
+## Videos auswerten
+
+Funktioniert mit Aufnahmen des Aufnahme-Tools und mit normalen OBS-Videos (MP4, 1920×1080).
+
+Einzelbilder als PNG speichern (landen in `debug/frames/…`):
+
+```powershell
+.venv\Scripts\python -m tools.extract_frames <video.mp4> --at 12.5 30
+.venv\Scripts\python -m tools.extract_frames <video.mp4> --every 2
+.venv\Scripts\python -m tools.extract_frames <video.mp4> --at 12.5 --crop 800 900 300 100
+```
+
+`--at`: Bilder zu diesen Sekunden. `--every`: alle N Sekunden ein Bild. `--crop X Y BREITE HÖHE`: nur diesen Ausschnitt speichern. `--out <ordner>`: anderer Zielordner.
+
+Erkannte Zustände über ein Video anzeigen (Tabelle landet in `debug/replay/…`):
+
+```powershell
+.venv\Scripts\python -m tools.replay <video.mp4>
+```
+
+`--step 10` prüft nur jedes 10. Bild (schneller).
+
 ## Tasten
 
 | Taste | Wirkung |

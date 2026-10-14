@@ -73,3 +73,15 @@ Dateiformate:
 | `frames.csv` | `frame,t` – Frame-Index im Video, Sekunden seit `t0` (Zeitpunkt vor `grab`) |
 | `inputs.jsonl` | je Zeile JSON, `t` in Sekunden seit `t0`, monoton. `{"type":"key","key":<key_name>,"action":"down"\|"up"}`, `{"type":"button","button":"left"\|"right"\|"middle"\|…,"action":…,"x":…,"y":…}`, `{"type":"move","x":…,"y":…}` (Bildschirmkoordinaten, nicht regionsrelativ) |
 | `meta.json` | `region`, `fps`, `scale`, `video_size`, `started`, `clock` |
+
+### `video.py` – gemeinsames Video-Lesen
+
+`iter_frames(video, select)` → `(index, t, frame)`. `t` aus `frames.csv` neben dem Video, falls vorhanden (eigene Aufnahmen), sonst `CAP_PROP_POS_MSEC` (OBS). `select(index, t) -> bool` entscheidet vor dem Dekodieren des Bildes (`grab` vs. `retrieve`).
+
+### `extract_frames.py`
+
+`extract(video, out_dir, select, crop)` → PNGs `t<sekunden:09.3f>.png`. Selektoren: `at_times([..])` (erstes Frame mit `t >= ziel`), `every(s)`. `crop = (x, y, w, h)` in Video-Pixeln. Standardziel `debug/frames/<ordner>_<stem>/`.
+
+### `replay.py`
+
+`timeline(video, region, detectors, step)` skaliert jedes Frame auf `game_region`-Größe (wie zur Laufzeit), ruft `detect` + `classify` auf und liefert Zeilen `frame, t, <detektor>…, layer`. CSV nach `debug/replay/<ordner>_<stem>.csv`, Konsole zeigt zusammenhängende Segmente (`segments`). Der Watchdog läuft hier nicht.
