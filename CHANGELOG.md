@@ -9,3 +9,5 @@ Alle wichtigen Änderungen an diesem Projekt. Format nach [Keep a Changelog](htt
 - Projekt-Grundgerüst: Python-Projekt mit Prüfwerkzeugen (Ruff) und automatischen Tests (Pytest)
 - Einstellungsdatei `config.yaml` mit neutralen Standardwerten (Spielbereich 1920×1080, Tasten F2/B/G/F9, Zeitlimits). Eigene Werte kommen in `config.local.yaml`, die nicht hochgeladen wird
 - Not-Aus mit F2: stoppt sofort und lässt alle gedrückten Tasten und Maustasten los (Ziel unter 100 ms)
+- Ablaufsteuerung in Ebenen (Server → Team → Heli → Crate-Schleife): prüft bei jedem Schritt von außen nach innen und fällt automatisch auf die äußere Ebene zurück. Bilderkennung ist noch ein Platzhalter
+- Sicherheits-Stopp: Ist der Bildschirmzustand länger als 30 Sekunden unbekannt, stoppt das Programm
