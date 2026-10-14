@@ -1,0 +1,30 @@
+game_region:
+  left: 0
+  top: 0
+  width: 1920
+  height: 1080
+
+keys:
+  stop: f2
+  shop: b
+  drop: g
+  record: f9
+
+loop:
+  tick_s: 0.1
+
+timeouts:
+  unknown_state_s: 30
+
+hold_test:
+  key: w
+  repeat_s: 0.03
+
+recording:
+  root: recordings
+  fps: 20
+  scale: 1.0
+
+logging:
+  root: logs
+  level: INFO
