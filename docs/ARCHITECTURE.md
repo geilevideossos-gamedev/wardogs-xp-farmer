@@ -56,3 +56,20 @@ flowchart LR
 ```
 
 Schleife: `grab` → `tick` → `wait(stop, loop.tick_s)`. `Stopped` aus `wait`/`Input` beendet mit Exit 0. `finally` ruft immer `release_all()`.
+
+## Tools (`tools/`, Aufruf `python -m tools.<name>` aus dem Repo-Root)
+
+### `record.py` – Aufnahme
+
+- Hauptprozess: pynput-Keyboard- und Maus-Listener. `keys.record` toggelt (Start/Stopp im Hauptthread, nicht im Hook), `keys.stop` beendet. Key-Down wird nur beim ersten Down geloggt (OS-Autorepeat gefiltert). Steuertasten werden nicht geloggt
+- `Recorder.start()`: legt `recordings/<map>/<seq>_<YYYYmmdd_HHMMSS>/` an, schreibt `meta.json`, setzt `t0 = time.perf_counter()`, startet Kindprozess `record_video`
+- Kindprozess: Capture-Thread (`ScreenCapture`, Takt `recording.fps`, Frame-Drop bei voller Queue) → Queue → Writer (`cv2.VideoWriter`, `mp4v`, Größe `video_size(region, scale)`, gerade Kantenlängen) + `frames.csv`
+- Uhr: beide Prozesse nutzen `time.perf_counter() - t0` (QPC, systemweit). Zeilen in `frames.csv` = Frames im Video in gleicher Reihenfolge
+
+Dateiformate:
+
+| Datei | Format |
+|---|---|
+| `frames.csv` | `frame,t` – Frame-Index im Video, Sekunden seit `t0` (Zeitpunkt vor `grab`) |
+| `inputs.jsonl` | je Zeile JSON, `t` in Sekunden seit `t0`, monoton. `{"type":"key","key":<key_name>,"action":"down"\|"up"}`, `{"type":"button","button":"left"\|"right"\|"middle"\|…,"action":…,"x":…,"y":…}`, `{"type":"move","x":…,"y":…}` (Bildschirmkoordinaten, nicht regionsrelativ) |
+| `meta.json` | `region`, `fps`, `scale`, `video_size`, `started`, `clock` |

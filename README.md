@@ -33,11 +33,20 @@ Immer aus dem Projektordner heraus:
 
 Beendet wird mit **F2** (oder Strg+C im Konsolenfenster).
 
+## Aufnahmen für Testdaten
+
+```powershell
+.venv\Scripts\python -m tools.record --map <mapname> --seq <sequenz>
+```
+
+**F9** startet und stoppt eine Aufnahme, **F2** beendet das Tool. Sequenzen: `join`, `team`, `buy_heli`, `board`, `buy_crate`, `fly_to_zone`, `drop`, `fly_to_base`, `land`, `full_loop`, `death`. Was du wie oft aufnehmen sollst: `docs/RECORDING.md`.
+
 ## Tasten
 
 | Taste | Wirkung |
 |---|---|
-| **F2** | Not-Aus: stoppt sofort und lässt alle Tasten los |
+| **F2** | Not-Aus: stoppt sofort und lässt alle Tasten los. Im Aufnahme-Tool: beenden |
+| **F9** | Aufnahme-Tool: Aufnahme starten/stoppen |
 
 ## Einstellungen
 
@@ -60,6 +69,9 @@ game_region:
 | `hold_test.key` | Taste für den Hold-Test | `w` |
 | `hold_test.repeat_s` | Wie oft der Hold-Test die Taste erneut sendet (Sekunden) | 0.03 |
 | `hold_test.start_delay_s` | Wartezeit vor dem Hold-Test, um ins Zielfenster zu wechseln (Sekunden) | 5 |
+| `recording.root` | Ordner für Aufnahmen | `recordings` |
+| `recording.fps` | Bilder pro Sekunde der Aufnahme | 20 |
+| `recording.scale` | Größe des Aufnahmevideos (1.0 = volle Auflösung, 0.5 = halbe) | 1.0 |
 | `logging.root` | Ordner für Log-Dateien | `logs` |
 | `logging.level` | Wie viel geloggt wird (`INFO` oder `DEBUG`) | `INFO` |
 

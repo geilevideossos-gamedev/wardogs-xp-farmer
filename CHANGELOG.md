@@ -13,3 +13,4 @@ Alle wichtigen Änderungen an diesem Projekt. Format nach [Keep a Changelog](htt
 - Sicherheits-Stopp: Ist der Bildschirmzustand länger als 30 Sekunden unbekannt, stoppt das Programm
 - Bot-Start mit `--dry-run` (Probelauf ohne Tastendrücke) und `--hold-test` (hält W gedrückt, um den Not-Aus zu testen)
 - Log-Dateien pro Tag unter `logs/<Datum>/`, bei einem Sicherheits-Stopp zusätzlich ein Screenshot
+- Aufnahme-Tool `tools/record.py`: nimmt Spielbild und alle Eingaben synchron auf (Start/Stopp mit F9, Beenden mit F2). Anleitung in `docs/RECORDING.md`
