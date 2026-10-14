@@ -11,3 +11,5 @@ Alle wichtigen Änderungen an diesem Projekt. Format nach [Keep a Changelog](htt
 - Not-Aus mit F2: stoppt sofort und lässt alle gedrückten Tasten und Maustasten los (Ziel unter 100 ms)
 - Ablaufsteuerung in Ebenen (Server → Team → Heli → Crate-Schleife): prüft bei jedem Schritt von außen nach innen und fällt automatisch auf die äußere Ebene zurück. Bilderkennung ist noch ein Platzhalter
 - Sicherheits-Stopp: Ist der Bildschirmzustand länger als 30 Sekunden unbekannt, stoppt das Programm
+- Bot-Start mit `--dry-run` (Probelauf ohne Tastendrücke) und `--hold-test` (hält W gedrückt, um den Not-Aus zu testen)
+- Log-Dateien pro Tag unter `logs/<Datum>/`, bei einem Sicherheits-Stopp zusätzlich ein Screenshot

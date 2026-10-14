@@ -19,6 +19,7 @@ timeouts:
 hold_test:
   key: w
   repeat_s: 0.03
+  start_delay_s: 5
 
 recording:
   root: recordings

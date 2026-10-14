@@ -7,6 +7,9 @@
 | `config.py` | `load_config(path)`: lädt `config.yaml`, merged `config.local.yaml` (gleiches Verzeichnis, optional) rekursiv darüber |
 | `killswitch.py` | `Killswitch`: pynput-Keyboard-Listener, bei `keys.stop` → `stop.set()` + `on_stop()` (= `Input.release_all`). `wait(stop, s)` wirft `Stopped`. `key_name(key)` normalisiert pynput-Keys auf Strings (`"f2"`, `"w"`, `"space"`, `"vk<n>"`) |
 | `inputs.py` | `Input`: `key_down/key_up/mouse_down/mouse_up` über pydirectinput (`SendInput`, Scan-Codes). Merkt gedrückte Tasten/Buttons, `release_all()`. Nach Stop wirft Drücken `Stopped`. `dry_run=True` loggt statt zu senden |
+| `capture.py` | `ScreenCapture(region).grab()` → BGR `np.ndarray` (H×W×3, uint8) der Spielregion via `mss`. mss-Instanz pro Thread/Prozess erzeugen |
+| `logs.py` | `setup_logging(root, level, name)` → `logs/<YYYY-MM-DD>/<name>_<HHMMSS>.log` + Konsole, gibt Run-Verzeichnis zurück. `save_debug_screenshot(run_dir, frame, reason)` → `<run_dir>/screenshots/<HHMMSS_ffffff>_<reason>.png` |
+| `main.py` | CLI `python -m heli_farmer.main [--dry-run] [--hold-test] [--config]`. Startet Killswitch, dann `hold_test` oder `bot_loop`. Exit-Codes: 0 Stopp, 1 Fehler, 2 Watchdog |
 | `detectors.py` | Detektoren `frame -> bool \| None` (`None` = nicht erkennbar). Aktuell Stubs, die `None` liefern |
 | `states.py` | Hierarchische State Machine: `detect`, `classify`, `Watchdog`, `StateMachine` |
 
@@ -40,3 +43,16 @@ stateDiagram-v2
 ```
 
 Neue Detektoren: Funktion in `detectors.py`, Feld in `Detectors`, ggf. Eintrag in `LAYER_CHECKS`. Handler: `Callable[[np.ndarray], None]`, müssen für jedes Warten `killswitch.wait` nutzen und Eingaben nur über `Input` senden, damit F2 sie abbricht.
+
+## Datenfluss Bot (`main.py`)
+
+```mermaid
+flowchart LR
+    F2[F2 / pynput-Thread] -->|stop.set + release_all| Input
+    Capture[ScreenCapture.grab] -->|frame| SM[StateMachine.tick]
+    SM -->|Layer| Handler
+    Handler -->|key_down/mouse_down| Input -->|SendInput| Spiel
+    SM -->|UnknownStateTimeout| Safe[Killswitch.trigger + Debug-Screenshot, Exit 2]
+```
+
+Schleife: `grab` → `tick` → `wait(stop, loop.tick_s)`. `Stopped` aus `wait`/`Input` beendet mit Exit 0. `finally` ruft immer `release_all()`.
