@@ -10,6 +10,7 @@ dist/
 logs/
 *.log
 recordings/
+wardogs_daten/
 debug/
 *.mp4
 *.mkv
