@@ -62,6 +62,13 @@ Jeder State ist einzeln testbar. Detektoren sind Funktionen `frame -> Ergebnis`,
 - **Kein Bloat:** nur schreiben, was für die aktuelle Aufgabe gebraucht wird. Keine spekulativen Abstraktionen, keine ungenutzten Parameter, keine Platzhalter für spätere Features, keine Wrapper ohne Mehrwert, keine doppelte Doku. Weniger Code ist besser. Daniels Tokens nicht verschwenden
 - Neue Dependencies nur mit Begründung im Commit-Body und Eintrag in `docs/DECISIONS.md`
 
+## Token sparen
+
+- Dateien gezielt lesen (Suche + Zeilenbereiche), nicht ganze Ordner oder große Dateien auf Verdacht
+- Videos, Logs und Aufnahmen nie direkt einlesen. Nur über `tools/extract_frames.py` (zugeschnittene Einzelbilder) oder `tools/replay.py` (CSV-Timeline) auswerten
+- Bei Änderungen gezielt editieren statt ganze Dateien neu zu schreiben
+- Antworten knapp: nichts wiederholen, was im Diff oder in Commits steht
+
 ## Online-Hilfe
 
 - Für Library-Doku (APIs, Versionen, Beispiele) **Context7 MCP** verwenden, bevor du aus dem Gedächtnis schreibst

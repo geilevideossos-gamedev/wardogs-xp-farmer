@@ -14,7 +14,7 @@ Es soll **autonom über Nacht** laufen, bis der Hotkey **F2** gedrückt wird.
 5. **B** drücken → **Ammo Crate** kaufen
 6. Abheben und **ohne Crash** in die Zone fliegen
 7. Crate mit **G** abwerfen
-8. Zurück zur **blauen Base** fliegen und auf dem **grünen quadratischen Landeplatz** landen
+8. Zurück zur **blauen Base** fliegen und auf der **rechteckigen Grasfläche** landen (dort erscheint „[B] BUY AMMO / SUPPLIES“)
 9. Weiter bei Schritt 5
 10. **F2** stoppt das Programm jederzeit sofort, alle gedrückten Tasten werden losgelassen
 
@@ -38,12 +38,63 @@ Fehlerfälle, die das Programm abfangen soll:
 |---|---|
 | Plattform | WARDOGS auf Steam |
 | Auflösung | 1920 × 1080, Fenster-Vollbild (borderless) |
-| Maps | 3 Maps, rotieren |
-| Landeplatz Base | immer ein grüner quadratischer Platz |
+| Maps | `bakurani`, `ozeti`, `zestafona` (rotieren) |
+| Landeplatz Base | rechteckige Grasfläche in der Base, dort erscheint „[B] BUY AMMO / SUPPLIES“ |
 | Match joinen | Serverliste → Server wählen → „Join Match“ |
-| Crate abwerfen | Taste **G** |
+| Hotkeys Bot | F2 (Stopp) und F9 (Aufnahme) sind im Spiel nicht belegt |
 
 Voraussetzungen im Spiel: Pilot-Level 10 und Z20 Lakota freigeschaltet (einmalig $35.000, danach ca. $7.400 pro Kauf), genug Geld für Heli + Crates.
+
+## Steuerung
+
+Zu Fuß: **F** beim Händler öffnet das Kaufmenü für den Heli.
+
+Im Heli ist die **Maus irrelevant**, nur Tastatur:
+
+| Taste | Wirkung |
+|---|---|
+| W | Nase runter (vorwärts) |
+| S | Nase hoch (bremsen/rückwärts) |
+| A / D | nach links / rechts neigen |
+| Q / E | um die eigene Achse links / rechts drehen |
+| Shift | Höhe gewinnen |
+| Strg | Höhe verlieren |
+| B | Kaufmenü im Heli → große Ammo-Palette kaufen |
+| G | Palette in der Luft über der Zone abwerfen |
+| Tab | irrelevant (in den Videos ignorieren) |
+
+## Flugverhalten Z20 Lakota
+
+- Keine Taste gedrückt: Heli schwebt und hält die Höhe
+- W ohne Shift: fliegt vorwärts und verliert Höhe
+- **Reiseflug:** ca. 20° Nase nach vorne + Shift halten → Höhe bleibt konstant
+- Hauptgefahr: zu schnell und zu tief über Bäumen (Crash bei 215 km/h und AGL 28 m)
+
+## Navigation
+
+- **Goldener CZ-Marker** = Richtung zur Zone, mit Entfernung in m/km daneben
+- CZ-Marker nicht sichtbar beim Start: mit Shift ein paar Meter steigen, dann nur Q/E drehen, bis der CZ-Marker im Bild ist
+- **In der Zone:** Heli-Symbol auf der Minimap liegt im Zonen-Kreis (Kreis blau, grün, rot oder weiß) und der CZ-Marker wird durch HZ ersetzt → 3 s warten → G
+- Heli-Symbol nicht im Kreis = noch nicht in der Zone, weiter Richtung CZ
+- Nach „SUPPLIES DELIVERED“ umdrehen. In der Zone ist der HQ-Marker (blauer Kreis) nicht sichtbar → erst aus der Zone rausfliegen, dann HQ-Marker suchen und zur Base fliegen
+
+## Spielverhalten (aus Daniels Notizen)
+
+- **Ladebildschirm und Serverliste können die alte Map zeigen:** Nach Rundenende läuft der Server weiter, der Map-Name wird erst verzögert aktualisiert. Die Map daher nie aus dem Ladebildschirm bestimmen, sondern im Spiel (z. B. Minimap)
+- Während „Waiting for world to load“ oder „Waiting for player x of 66“ (weiß, oben) nichts drücken
+- Team-Hintergrund leicht grau und nach 30 s kein Join möglich → Esc → mit der Maus „Yes“ → zurück im Hauptmenü, neuen Server suchen
+- Beim Händler kann der falsche Heli gekauft werden → Kauf prüfen
+- Crash im Spawnbereich: man stirbt nicht, wird aber aus dem Heli geworfen → zurück zum Händler, neuen Heli kaufen
+- Abgeschossen oder zu schnell in Bäume gecrasht → Erste-Hilfe-Symbol erscheint → **F 7 s halten** → wieder in der Base ohne Heli
+- Rakete zerstört den Rotor → nicht weiterfliegen, W halten, in den Boden crashen, wie Tod behandeln
+- Bäume sind die Hauptgefahr beim Fliegen → genug Höhe halten
+
+## Daniels Testdaten
+
+Ordner `wardogs_daten/` (lokal, nie committen):
+
+- `Video/join+<Map>.mp4`: alle drei Videos sind auf der Map im Dateinamen. `join+Zestafona.mp4` ist Zestafona, obwohl der Ladebildschirm Ozeti zeigt (siehe Spielverhalten). OBS-Aufnahmen 1920×1080, 60 fps, 7–9 min pro Map, vom Joinen bis zu mehreren Crate-Runden. Oben links ist ein **Tasten-Overlay** eingeblendet (TAB Q W E R / SHIFT A S D F / CTRL + Maus): gedrückte Tasten leuchten **gelb**. B und G sind darin **nicht** sichtbar. Das Overlay gibt es nur in den Videos, nicht im echten Spiel
+- `Images/*.png`: Screenshots wichtiger Situationen, der **Dateiname ist Daniels Erklärung** dazu
 
 ## Technischer Ansatz
 
@@ -66,5 +117,4 @@ Hinweis: Automatisierung verstößt sehr wahrscheinlich gegen die Nutzungsbeding
 
 ## Offene Fragen
 
-- Heli-Steuerung: Standard-Tastenbelegung? Steuerung über Maus oder nur Tastatur?
-- Woran erkennt man im Bild, dass man in der Zone ist und die Crate abgeworfen wurde? (klärt sich über die Aufnahmen)
+- Schwebetest (20 s ohne Tasten auf 100 m, dann W tippen) steht noch aus, Ergebnis laut Daniel siehe „Flugverhalten“
