@@ -65,7 +65,7 @@ Format je Eintrag: Datum, Entscheidung, Grund, verworfene Alternativen.
 
 ## 2026-10-15 – Navigation über Weltmarker
 
-- **Entscheidung:** Ziel Zone = Zonen-Marker (Ring „CZ“/„HZ“), Ziel Base = HQ-Marker. Richtung = x-Abstand zur Bildmitte, Ankunft = Marker tief im Bild (`zone_arrive_y`, `hq_approach_y`) bzw. Kauf-Hinweis. Suche über das ganze Band mit Template, dessen maskierter Rand mit dem Mittelwert gefüllt ist.
+- **Entscheidung:** Ziel Zone = Zonen-Marker (Ring „CZ“/„HZ“), Ziel Base = HQ-Marker. Richtung = x-Abstand zur Bildmitte, Ankunft an der Base = HQ-Marker tief im Bild (`hq_approach_y`) bzw. Kauf-Hinweis (Ankunft an der Zone siehe „Zonen-Eintritt über HZ-Marker und Minimap“). Suche über das ganze Band mit Template, dessen maskierter Rand mit dem Mittelwert gefüllt ist.
 - **Grund:** Zonen-Marker immer vorhanden (außerhalb des Bildes am Rand), HQ-Marker sichtbar sobald voraus. Keine absolute Position nötig. Mittelwert-Füllung erlaubt die schnelle FFT-Suche (~40/60 ms statt ~150 ms mit Maske) bei gleicher Trefferquote.
 - **Verworfen:** Position über Minimap-Abgleich (braucht Kartenbilder pro Map), Kompass (in den Videos vom Overlay verdeckt, nicht validierbar; Erweiterung möglich), Suche in halber Auflösung (Marker zu klein, viele Fehltreffer), Zonen-Eintritt über Banner „CONTROL ZONE“ oder Minimap-Farbe (kurzlebig bzw. unzuverlässig).
 
@@ -101,13 +101,19 @@ Format je Eintrag: Datum, Entscheidung, Grund, verworfene Alternativen.
 
 ## 2026-10-15 – Layer 1 als Schrittfolge mit Prüfung pro Tick
 
-- **Entscheidung:** `CrateLoop` führt die Schritte `buy, climb, turn, drop, turn, land` prozedural aus. Jeder Tick läuft durch `observe()`, das Erste-Hilfe-Symbol, Heli-Schaden und fehlendes HUD prüft und dann `LeaveLayer` wirft. Fehlgeschlagene Schritte werfen `StepFailed` → sicherer Stopp mit Screenshot.
+- **Entscheidung:** `CrateLoop` führt die Schritte `buy, climb, turn, drop, leave, turn, land` prozedural aus. Jeder Tick läuft durch `observe()`, das Erste-Hilfe-Symbol, Heli-Schaden und fehlendes HUD prüft und dann `LeaveLayer` wirft. Fehlgeschlagene Schritte werfen `StepFailed` → sicherer Stopp mit Screenshot.
 - **Grund:** Einfach zu lesen und einzeln testbar (`--step`), äußere Bedingungen werden trotzdem jeden Tick geprüft. `has_heli` liefert `None` bei fehlendem HUD, damit kurze Aussetzer nicht sofort stoppen; nach `unknown_state_s` greift der Watchdog.
 - **Verworfen:** Tick-basierter Unterautomat pro Schritt (mehr Zustandsverwaltung für Menüfolgen ohne Mehrwert).
 - **Entscheidung:** Abwurf erst unter `drop_agl` (Standard 70 m), Landung dort, wo der Kauf-Hinweis erscheint.
 - **Grund:** Spieltext: Palette zerbricht ab ca. 90 m freiem Fall. Ein markierter grüner Landeplatz ist in keinem Video zu sehen; Daniel landet auf freien Flächen im Kaufbereich.
 - **Entscheidung:** `timeouts.max_hold_s` (20 s) gilt für jede Taste; der Regler drückt sie im nächsten Tick neu.
 - **Grund:** Vorgabe „keine Taste länger als Timeout am Stück“. Daniel hält Shift bis zu 59 s, ein kurzes Loslassen kostet nur wenige Meter.
+
+## 2026-10-15 – Ablauf nach Daniels Navigationsregeln
+
+- **Entscheidung:** `climb` nur bis `turn_agl` (15 m), dann nur gieren; Steigen auf Reiseflughöhe erzwingt danach die Mindesthöhe im Regler. Bremsen vor der Zone über den Median der CZ-Entfernungen (`brake_distance`). Abwurf `drop_delay_s` (3 s) nach „HZ + Minimap“ und erst unter `drop_max_agl`. Neuer Schritt `leave`: zeitgesteuert umdrehen (`turnaround_s`), geradeaus raus bis CZ bzw. Minimap ohne Färbung, erst dann HQ suchen (`turn`).
+- **Grund:** Daniels Regeln aus PROJECT.md „Navigation“. HQ-Marker ist in der Zone nie sichtbar (0 von 7 Anflügen), daher erst raus. Die Drehrate von Q/E ist unbekannt, eine zeitgesteuerte Kehrtwende ist einfach einzustellen. Median, weil ~3 % der Entfernungen falsch gelesen werden.
+- **Verworfen:** Kehrtwende bis der Marker am Rand klebt (dreht nur ~45°), Steigen auf volle Reiseflughöhe vor dem Drehen (Daniel: ein paar Meter reichen, kostet Zeit pro Runde).
 
 ## 2026-10-15 – Video-Abgleich als eigener Test-Marker
 

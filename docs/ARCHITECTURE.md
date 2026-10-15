@@ -73,20 +73,22 @@ Handler in `main.build_machine`:
 
 ## Layer 1: `CrateLoop`
 
-Startzustand: Pilot im Z20 Lakota, gelandet im Kaufbereich der blauen Base. Eine Runde = `ROUND = (buy, climb, turn, drop, turn, land)`. `run(steps, once)`: Dauerlauf, eine Runde oder nur die angegebenen Schritte. Am Ende jedes Schritts `Pilot.release()`, am Ende von `run` `Input.release_all()`.
+Startzustand: Pilot im Z20 Lakota, gelandet im Kaufbereich der blauen Base. Eine Runde = `ROUND = (buy, climb, turn, drop, leave, turn, land)`. `run(steps, once)`: Dauerlauf, eine Runde oder nur die angegebenen Schritte. Am Ende jedes Schritts `Pilot.release()`, am Ende von `run` `Input.release_all()`.
 
 ```mermaid
 stateDiagram-v2
     [*] --> buy
     buy --> climb: G-Feld sichtbar
-    climb --> turn: AGL >= cruise_agl - agl_band
+    climb --> turn: AGL >= turn_agl
     turn --> drop: Zonen-Marker mittig
-    drop --> turn2: Marker y >= zone_arrive_y, AGL/Tempo tief genug, G, G-Feld weg
+    drop --> leave: HZ + Minimap, drop_delay_s gewartet, AGL <= drop_max_agl, G, G-Feld weg
+    leave --> turn2: turnaround_s gedreht, Marker CZ bzw. Minimap ohne Färbung
     turn2 --> land: HQ-Marker mittig
     land --> buy: gelandet, Kauf-Hinweis sichtbar
     buy --> StepFailed: kein Kauf-Hinweis / Kauf erfolglos
     climb --> StepFailed: Timeout
-    drop --> StepFailed: Timeout / G-Feld bleibt
+    drop --> StepFailed: Timeout / zu hoch in der Zone / G-Feld bleibt
+    leave --> StepFailed: Timeout
     land --> StepFailed: Timeout / kein Kauf-Hinweis
 ```
 
@@ -103,10 +105,11 @@ stateDiagram-v2
 | Schritt | Ablauf |
 |---|---|
 | `buy` | Kiste schon geladen → fertig. Sonst Kauf-Hinweis nötig → B → warten auf Menü (`main` oder `logistics`) → ggf. Klick `logistics` → Klick `pallets` → Klick `ammo_pallet` → warten auf `main` → Klick `confirm` → warten auf G-Feld. `buy.attempts` Versuche, dann `StepFailed` |
-| `climb` | `Pilot.fly` mit Tempo 0 bis `cruise_agl` |
-| `turn` | Ziel = Zonen-Marker wenn Kiste geladen, sonst HQ-Marker. Höhe halten, Tempo 0. Kein Marker → `Pilot.search()` (Puls rechts). Fertig wenn `|x − center_x| ≤ yaw_deadband` |
-| `drop` | Reiseflug (`cruise_agl`, `cruise_speed`, Gieren zum Marker) bis Marker nicht am Rand und `y ≥ zone_arrive_y`. Dann `drop_agl`/`drop_speed` halten; sobald erreicht: G tippen, warten bis G-Feld `vision.confirm`-mal weg, danach bis `delivered_wait_s` auf „SUPPLIES DELIVERED“ |
-| `land` | Reiseflug zum HQ-Marker bis Marker `y ≥ hq_approach_y` oder Kauf-Hinweis → bremsen (Tempo 0, Höhe halten) bis `approach_speed` → `Pilot.descend` bis AGL ≤ `landed_agl` und Tempo ≤ `landed_speed` für `landed_hold_s` → Kauf-Hinweis prüfen |
+| `climb` | `Pilot.fly` mit Tempo 0 bis AGL ≥ `turn_agl` („ein paar Meter“, am Boden wirkt Gieren nicht) |
+| `turn` | Hinflug (Kiste geladen): Ziel Zonen-Marker, Höhe `turn_agl`. Rückflug: Ziel HQ-Marker, Höhe `cruise_agl`. Tempo 0, nur Q/E. Kein Marker → `Pilot.search()`. Fertig wenn `|x − center_x| ≤ yaw_deadband` |
+| `drop` | Gieren zum Zonen-Marker. Reiseflug (`_cruise`: `cruise_agl`, `cruise_speed`, `floor = min_agl`), bis der Median der letzten `distance_history` CZ-Entfernungen ≤ `brake_distance` → Anflug (`_approach`: `drop_agl`, `drop_speed`, `floor = drop_agl − agl_band`, bleibt an). Zone erreicht = `kind == "HZ"` und `minimap_in_zone` in `vision.confirm` Bildern in Folge. Danach Anflug halten, nach `drop_delay_s` G, sobald AGL ≤ `drop_max_agl`; nach `drop_wait_s` ohne passende Höhe `StepFailed`. G-Druck: warten bis G-Feld `vision.confirm`-mal weg, dann bis `delivered_wait_s` auf „SUPPLIES DELIVERED“; dabei wird weiter geflogen (`wait_for(each=…)`) |
+| `leave` | Drehrichtung weg vom Marker (Marker rechts → Q, sonst E). `turnaround_s` lang `Pilot.search(Richtung)` bei Tempo 0, Höhe `cruise_agl`. Dann Reiseflug geradeaus, bis „draußen“ `vision.confirm`-mal in Folge: Marker sichtbar → `kind == "CZ"`, sonst Minimap ohne Färbung |
+| `land` | Reiseflug zum HQ-Marker bis Marker `y ≥ hq_approach_y` oder Kauf-Hinweis → bremsen (Tempo 0, `cruise_agl`) bis `approach_speed` → `Pilot.descend` bis AGL ≤ `landed_agl` und Tempo ≤ `landed_speed` für `landed_hold_s` → Kauf-Hinweis prüfen |
 
 Statistik `CrateLoop.stats` (`Counter`): `bought`, `dropped`, `delivered`, `rounds`. Wird pro Runde und beim Beenden geloggt.
 
@@ -137,7 +140,7 @@ flowchart LR
     SM -->|UnknownStateTimeout / SafeStop / StepFailed| Safe[Killswitch.trigger + Screenshot]
 ```
 
-CLI: `python -m heli_farmer.main [--config] [--dry-run] [--hold-test] [--layer 1] [--once] [--step buy|climb|turn|drop|land] [--map NAME]`. `--once`/`--step` nur mit `--layer 1`. `--map` wählt `maps.<NAME>`, gemerged über `maps.default`.
+CLI: `python -m heli_farmer.main [--config] [--dry-run] [--hold-test] [--layer 1] [--once] [--step buy|climb|turn|drop|leave|land] [--map NAME]`. `--once`/`--step` nur mit `--layer 1`. `--map` wählt `maps.<NAME>`, gemerged über `maps.default`.
 
 Exit-Codes: 0 Stopp/fertig, 1 unerwarteter Fehler, 2 Watchdog (unbekannter Zustand), 3 sicherer Stopp (`SafeStop`, `StepFailed`).
 
@@ -152,7 +155,7 @@ Exit-Codes: 0 Stopp/fertig, 1 unerwarteter Fehler, 2 Watchdog (unbekannter Zusta
 | `vision` | `Vision`; `confirm` = gleiche Messungen in Folge für Zustandswechsel der Kiste |
 | `buy` | Klickpunkte und Wartezeiten des Kaufs |
 | `flight` | `Pilot` und Schritt-Timeouts, `tick_s` = Takt in Layer 1 |
-| `maps.default` + `maps.<name>` | Flugparameter pro Map: `cruise_agl, cruise_speed, zone_arrive_y, drop_agl, drop_speed, approach_speed, hq_approach_y` |
+| `maps.default` + `maps.<name>` | Flugparameter pro Map: `turn_agl, min_agl, cruise_agl, cruise_speed, brake_distance, drop_agl, drop_max_agl, drop_speed, approach_speed, hq_approach_y` |
 | `overlay` | nur `tools/overlay_inputs.py` |
 | `recording`, `hold_test`, `logging` | Aufnahme, Hold-Test, Logs |
 

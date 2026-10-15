@@ -27,6 +27,7 @@ Alle wichtigen Änderungen an diesem Projekt. Format nach [Keep a Changelog](htt
 
 - `tools/replay.py` zeigt jetzt den Ablauf der Crate-Schleife pro Video (Kaufmenü, Flug zur Zone, Rückflug, gelandet, beschädigt, tot) und die Abwurfzeitpunkte. `python -m pytest -m videos` gleicht das mit `docs/ANALYSIS.md` ab
 - Flugregler nach Daniels Flugmodell: Die Höhe wird nur noch mit Shift gehalten (Strg nur beim Landen). Das Tempo regelt der Bot über kurze W/S-Tipps. Neu sind Sicherheitsgrenzen: eine Mindesthöhe im Reiseflug (80 m) und ein Höchsttempo je Höhe. Ist der Heli zu tief oder zu schnell, steigt er zuerst mit Shift und nimmt die Nase hoch. Sinkt der Heli trotz Shift, nimmt er die Nase ebenfalls hoch
+- Crate-Schleife nach Daniels Navigationsregeln: Nach dem Kauf steigt der Bot nur ein paar Meter und dreht dann nur mit Q/E zur Zone. Er steigt auf mindestens 80 m, bevor er Fahrt aufnimmt. Ab 400 m vor der Zone (Zahl am CZ-Marker) bremst er und sinkt auf Abwurfhöhe. In der Zone (Minimap und HZ) wartet er 3 Sekunden und wirft dann ab, aber nur unter 85 m. Danach dreht er um, fliegt aus der Zone und sucht erst dann den HQ-Marker. Neuer Einzelschritt `--step leave`
 
 ### Behoben
 

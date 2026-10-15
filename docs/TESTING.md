@@ -57,59 +57,71 @@ Wenn die Figur nicht läuft: melden. Dann ignoriert das Spiel die simulierten Ta
 
 ## Layer 1 – Crate-Schleife
 
-Erst die einzelnen Schritte, dann eine Runde, dann den Dauerlauf. Nach jedem Test: kurz notieren, was passiert ist, und bei Problemen die Log-Datei aus `logs/<Datum>/` (und den Screenshot aus `screenshots/`) in den Planungschat geben.
+Erst die Erkennung ohne Tastendrücke, dann die einzelnen Schritte, dann eine Runde. Nach jedem Test kurz notieren, was passiert ist, und bei Problemen die Log-Datei aus `logs/<Datum>/` (und den Screenshot aus `screenshots/`) in den Planungschat geben.
 
 **Vorbereitung**
 
 - Spiel in 1920×1080, randloses Fenster, auf dem Hauptmonitor (sonst `game_region` in `config.local.yaml`)
 - Genug Geld für mehrere Paletten ($400 pro Stück) und einen Ersatz-Heli
-- Du sitzt als Pilot im Z20 Lakota, gelandet in der blauen Base, unten mittig steht „[B] BUY AMMO / SUPPLIES“
-- Optional: Name der Map dazuschreiben, z. B. `--map bakurani`
-- **F2** stoppt jederzeit. Nach jedem Schritt lässt der Bot alle Tasten los: Der Heli fliegt dann ohne Eingabe weiter. Sofort den nächsten Schritt starten oder selbst übernehmen
+- Du sitzt als Pilot im Z20 Lakota, gelandet auf der Grasfläche in der blauen Base, unten mittig steht „[B] BUY AMMO / SUPPLIES“
+- Map dazuschreiben, z. B. `--map zestafona` (im Spiel prüfen, nicht im Ladebildschirm)
+- **F2** stoppt jederzeit. Nach jedem Schritt lässt der Bot alle Tasten los. Der Heli behält dann seine Neigung: steht die Nase vorn, fliegt er weiter und sinkt. Sofort den nächsten Schritt starten oder selbst übernehmen
+- **Sofort F2**, wenn der Heli schnell und tief über Bäume fliegt (z. B. über 100 km/h unter 40 m). Das darf nie passieren
 
-**Schritt 0 – Erkennung ohne Tastendruck**
+**Schritt 0 – Erkennung ohne Tastendruck (du fliegst selbst)**
 
-1. Im Heli auf dem Landeplatz: `.venv\Scripts\python -m heli_farmer.main --layer 1 --step climb --dry-run`
-2. Ins Spiel wechseln, ~10 Sekunden warten, F2
-3. **Erwartet:** im Log `Layer None -> CRATE_LOOP`, `Schritt climb` und die Zeile `dry-run: keyDown shift`. Steht dort stattdessen `UNKNOWN`: Screenshot und Log schicken (dann erkennt der Bot „Z20 LAKOTA“ unten rechts nicht)
+1. Palette kaufen, abheben. Dann: `.venv\Scripts\python -m heli_farmer.main --layer 1 --step drop --dry-run`
+2. Selbst normal zur Zone fliegen, nicht abwerfen
+3. **Erwartet im Log:** ca. 400 m vor dem Zonenrand `Zone in … m: bremsen und sinken`, beim Einflug (HZ-Marker und Kreis auf der Minimap) `In der Zone (HZ + Minimap), Abwurf in 3 s`, gut 3 Sekunden später `dry-run: keyDown g`. Danach stoppt das Programm mit `Crate nach G noch geladen`, das ist im Probelauf richtig
+4. Jetzt selbst G drücken und weiterfliegen
+5. Melden: Kam die Meldung `Zone in …` ungefähr an der richtigen Stelle? Kam `In der Zone` zur richtigen Zeit (nicht zu früh, nicht zu spät)? Welche Farbe hatte der Kreis auf der Minimap?
 
 **Schritt 1 – Palette kaufen**
 
-1. `.venv\Scripts\python -m heli_farmer.main --layer 1 --step buy`, sofort ins Spiel wechseln
+1. Gelandet: `.venv\Scripts\python -m heli_farmer.main --layer 1 --step buy`, sofort ins Spiel wechseln
 2. **Erwartet:** Bot drückt B, klickt LOGISTICS (falls nötig), PALLETS, die grüne Ammo-Palette (2. von links) und CONFIRM & EXIT. Danach ist unten rechts das „G“-Feld mit Kisten-Symbol zu sehen. Log: `Crate gekauft`, Programm endet
 3. Melden, falls ein Klick daneben geht (dann stimmen die Punkte in `buy.clicks` nicht)
 
-**Schritt 2 – Steigen**
+**Schritt 2 – Abheben**
 
 1. `… --layer 1 --step climb`
-2. **Erwartet:** Heli steigt senkrecht (Shift) auf ca. 100 m (AGL unten mittig), Log `Sichere Höhe erreicht`, Programm endet, Heli fliegt ohne Eingabe weiter
-3. Melden: Steigt er gerade hoch oder driftet er? Wie hoch schießt er über 100 m hinaus? Sinkt er nach dem Loslassen?
+2. **Erwartet:** Heli steigt nur mit Shift senkrecht auf ca. 15 m (AGL unten mittig), Log `Abgehoben: 15 m`, Programm endet. Danach schwebt er ohne Taste auf der Höhe
+3. Melden: Steigt er gerade hoch oder driftet er? Hält er danach die Höhe?
 
-**Schritt 3 – Drehen**
+**Schritt 3 – Zur Zone drehen**
 
-1. In der Luft (z. B. direkt nach Schritt 2), Palette geladen: `… --layer 1 --step turn`
-2. **Erwartet:** Heli dreht mit Q/E auf der Stelle, bis der Zonen-Marker („CZ“-Ring) etwa in der Bildmitte steht. Log `Zielrichtung erreicht`
-3. Ohne Palette dreht er stattdessen zum HQ-Marker (blaues Quadrat „HQ“). Ist der nicht zu sehen, dreht er nach rechts, bis er auftaucht
-4. Melden: Dreht er zu weit hin und her (dann `flight.yaw_s_per_px` kleiner)?
+1. Schwebend mit Palette (direkt nach Schritt 2): `… --layer 1 --step turn`
+2. **Erwartet:** Heli dreht nur mit Q/E auf der Stelle, bis der goldene CZ-Marker etwa in der Bildmitte steht. Log `Zielrichtung erreicht`
+3. Melden: Pendelt er hin und her (dann `flight.yaw_s_per_px` kleiner)? Findet er den Marker, wenn er anfangs nicht im Bild ist?
 
 **Schritt 4 – Zur Zone fliegen und abwerfen**
 
-1. In der Luft, Palette geladen, Nase grob Richtung Zone: `… --layer 1 --step drop`
-2. **Erwartet:** Heli beschleunigt auf ca. 200 km/h, hält ca. 100 m Höhe und korrigiert die Richtung zum Marker. Wenn der Marker weit unten im Bild ist (über der Zone), bremst er, sinkt auf ca. 60 m, drückt G. Log `Crate abgeworfen` und meist `Lieferung bestätigt` („SUPPLIES DELIVERED +$2,500“)
-3. Melden: Tempo stabil oder wird er immer schneller/langsamer? Wirft er zu früh/spät ab (`maps.<map>.zone_arrive_y` anpassen)? Gefährliche Höhe über Bäumen/Häusern?
+1. Schwebend, Nase zum CZ-Marker (direkt nach Schritt 3): `… --layer 1 --step drop`
+2. **Erwartet:**
+   - Zuerst steigt er senkrecht (nur Shift, kein W) bis ca. 80 m
+   - Dann nimmt er mit kurzen W-Tipps Fahrt auf bis ca. 200 km/h und hält ca. 100 m. Shift ist dabei die meiste Zeit gedrückt
+   - Log `Zone in … m: bremsen und sinken` → er wird langsamer (ca. 120 km/h) und sinkt auf ca. 70 m
+   - Log `In der Zone (HZ + Minimap) …`, ca. 3 Sekunden später G, Log `Crate abgeworfen` und `Lieferung bestätigt`
+3. Melden: Sinkt er im Reiseflug trotz Shift (dann nimmt er die Nase hoch, das sollte man an S-Tipps sehen)? Wird er immer schneller oder schaukelt das Tempo? Wirft er in der Zone ab und kommt „SUPPLIES DELIVERED“? Wie hoch war er beim Abwurf?
 
-**Schritt 5 – Zurück und landen**
+**Schritt 5 – Umdrehen und raus aus der Zone**
 
-1. In der Luft ohne Palette: zuerst `… --layer 1 --step turn` (Richtung Base), dann `… --layer 1 --step land`
-2. **Erwartet:** Flug zum HQ-Marker, beim Kauf-Hinweis oder nahe der Base Bremsen, dann langsames Sinken, Aufsetzen, Log `Gelandet im Kaufbereich`
-3. Melden: Wo setzt er auf (frei, auf Dach, in Bäumen)? Zu hart (`flight.sink_rate` kleiner)? Hört er zu früh/spät auf zu fliegen?
+1. Direkt nach Schritt 4: `… --layer 1 --step leave`
+2. **Erwartet:** Log `Umdrehen mit Q` (oder E), er bremst und dreht ca. 4 Sekunden, dann fliegt er geradeaus aus der Zone, Log `Zone verlassen`
+3. Melden: Wie weit hat er sich ungefähr gedreht (z. B. halbe Drehung, Viertel)? Danach wird `flight.turnaround_s` eingestellt: für eine halbe Drehung soll er ungefähr zurück Richtung Base zeigen
 
-**Schritt 6 – Eine Runde**
+**Schritt 6 – Base suchen und landen**
 
-1. Auf dem Landeplatz: `… --layer 1 --once`
-2. **Erwartet:** kaufen → steigen → drehen → Zone → abwerfen → drehen → zurück → landen, danach Ende. Zusammenfassung im Log: `bought 1, dropped 1, delivered 1, rounds 1`
+1. Direkt nach Schritt 5: `… --layer 1 --step turn`, danach `… --layer 1 --step land`
+2. **Erwartet:** `turn` dreht nur mit Q/E, bis der blaue HQ-Marker mittig ist. `land`: Flug zum HQ-Marker, beim Kauf-Hinweis oder nahe der Base bremsen, dann langsam senkrecht sinken (Strg nur hier), aufsetzen, Log `Gelandet im Kaufbereich`
+3. Melden: Wo setzt er auf (Grasfläche mit „[B] BUY AMMO / SUPPLIES“, Dach, Bäume)? Zu hart (`flight.sink_rate` kleiner)? Bremst er zu früh oder zu spät (`maps.<map>.hq_approach_y`)?
 
-**Schritt 7 – Dauerlauf**
+**Schritt 7 – Eine Runde**
+
+1. Gelandet auf der Grasfläche: `… --layer 1 --once`
+2. **Erwartet:** kaufen → abheben → drehen → steigen und zur Zone → bremsen → abwerfen → umdrehen → raus → Base suchen → zurück → landen, danach Ende. Zusammenfassung im Log: `bought 1, dropped 1, delivered 1, rounds 1`
+
+**Schritt 8 – Dauerlauf (erst wenn Schritt 7 mehrmals klappt)**
 
 1. `… --layer 1` und zuschauen, mindestens 3 Runden
 2. **Erwartet:** Runden laufen ohne Eingriff, nach jeder Runde `Runde fertig` im Log
@@ -118,4 +130,5 @@ Erst die einzelnen Schritte, dann eine Runde, dann den Dauerlauf. Nach jedem Tes
 **Sicherheit (bei Gelegenheit, nicht absichtlich crashen)**
 
 - Wird der Heli beschädigt (Heli-Symbol unten mittig rot) oder stirbst du: Bot lässt alle Tasten los und stoppt mit Screenshot, Log `Layer 1 verlassen` und `Layer VEHICLE ist noch nicht gebaut`
+- Bleibt der Kreis auf der Minimap weiß, wirft der Bot nicht ab und stoppt nach einiger Zeit mit `Zone nicht rechtzeitig erreicht`. Bitte dann melden (mit Screenshot)
 - Steht im Log `Taste 'shift' länger als 20 s gedrückt`: normal, der Bot drückt sie gleich wieder

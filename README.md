@@ -8,7 +8,7 @@ Das Programm liest nur den Bildschirm und drückt Tasten/Maus wie ein Mensch. Es
 
 ## Stand
 
-- Fertig: **Fundament** (Not-Aus mit F2, Tastensteuerung, Bildschirmaufnahme, Log-Dateien, Ablaufsteuerung) und **Layer 1 – Crate-Schleife**: Palette kaufen, steigen, zur Zone drehen und fliegen, abwerfen, zurück zur Base, landen
+- Fertig: **Fundament** (Not-Aus mit F2, Tastensteuerung, Bildschirmaufnahme, Log-Dateien, Ablaufsteuerung) und **Layer 1 – Crate-Schleife**: Palette kaufen, ein paar Meter steigen, zur Zone drehen und fliegen, vor der Zone bremsen, in der Zone abwerfen, umdrehen, aus der Zone raus, Base suchen, zurückfliegen, landen
 - Die Bilderkennung wurde an deinen Videos getestet. Das Fliegen selbst ist noch **nicht im Spiel getestet**, die Werte in `config.yaml` sind Startwerte
 - Noch nicht gebaut: Heli kaufen (Layer 2), Team (Layer 3), Server (Layer 4). Braucht der Bot einen davon (z. B. nach einem Absturz), hält er sicher an und speichert einen Screenshot
 
@@ -31,7 +31,7 @@ Immer aus dem Projektordner heraus. Spiel in 1920×1080, randloses Fenster.
 |---|---|
 | `.venv\Scripts\python -m heli_farmer.main --layer 1` | Crate-Schleife im Dauerlauf. Start: du sitzt als Pilot im Z20 Lakota, gelandet in der blauen Base (Hinweis „BUY AMMO / SUPPLIES“ sichtbar) |
 | `… --layer 1 --once` | Genau eine Runde, dann Ende |
-| `… --layer 1 --step buy` | Nur einen Schritt: `buy` (Palette kaufen), `climb` (auf sichere Höhe steigen), `turn` (zur Zone bzw. zur Base drehen), `drop` (zur Zone fliegen und abwerfen), `land` (zur Base fliegen und landen) |
+| `… --layer 1 --step buy` | Nur einen Schritt: `buy` (Palette kaufen), `climb` (ein paar Meter abheben), `turn` (zur Zone bzw. zur Base drehen), `drop` (zur Zone fliegen und abwerfen), `leave` (umdrehen und aus der Zone fliegen), `land` (zur Base fliegen und landen) |
 | `… --layer 1 --map ozeti` | Flugwerte für eine Map aus `config.yaml` → `maps` verwenden (`bakurani`, `ozeti`, `zestafona`) |
 | `… --dry-run` | Probelauf: drückt keine Tasten, schreibt nur ins Log, was er drücken würde |
 | `.venv\Scripts\python -m heli_farmer.main --hold-test` | Test für den Not-Aus: hält nach 5 Sekunden die Taste W gedrückt, bis du F2 drückst |
@@ -112,7 +112,11 @@ Die wichtigsten Einstellungen:
 | `maps.<map>.cruise_speed` | Reisetempo (km/h) | 200 |
 | `maps.<map>.min_agl` | Mindesthöhe im Reiseflug (m). Darunter steigt der Bot erst mit Shift und nimmt die Nase hoch, bevor er weiter beschleunigt | 80 |
 | `maps.<map>.drop_agl` / `drop_speed` | Zielhöhe (m) und Tempo (km/h) beim Abwurf. Über ca. 90 m zerbricht die Palette | 70 / 120 |
-| `maps.<map>.zone_arrive_y` | Abwurf, wenn der Zonen-Marker so weit unten im Bild ist (Pixel von oben). Kleiner = früher abwerfen | 620 |
+| `maps.<map>.turn_agl` | So hoch (m) steigt der Bot vor dem Drehen | 15 |
+| `maps.<map>.brake_distance` | Ab dieser Entfernung zum Zonenrand (m, Zahl am CZ-Marker) bremst und sinkt der Bot auf Abwurf-Tempo und -Höhe | 400 |
+| `maps.<map>.drop_max_agl` | G wird nur gedrückt, wenn der Heli höchstens so hoch ist (m) | 85 |
+| `flight.drop_delay_s` | Wartezeit nach dem Erreichen der Zone (Minimap + HZ) bis G | 3 |
+| `flight.turnaround_s` | So lange (s) dreht der Bot nach dem Abwurf, bevor er aus der Zone fliegt. Mehr = weiter umdrehen | 4 |
 | `maps.<map>.hq_approach_y` | Bremsen, wenn der HQ-Marker so weit unten ist (oder der Kauf-Hinweis erscheint) | 560 |
 | `maps.<map>.approach_speed` | Ab diesem Tempo (km/h) beginnt der Sinkflug zur Landung | 60 |
 | `buy.clicks` | Klickpunkte im Kaufmenü (Logistics, Pallets, Ammo-Palette, Confirm & Exit) | |
