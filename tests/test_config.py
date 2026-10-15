@@ -29,6 +29,8 @@ def test_repo_config_has_required_sections():
         "shift",
         "ctrl",
     }
+    assert config["timeouts"]["max_hold_s"] > 0
+    assert {"bakurani", "ozeti", "zestafona"} <= config["maps"].keys()
     assert config["game_region"]["width"] == 1920
     assert config["game_region"]["height"] == 1080
     assert config["timeouts"]["unknown_state_s"] > 0

@@ -6,7 +6,6 @@ from enum import IntEnum
 
 import numpy as np
 
-from heli_farmer import detectors
 from heli_farmer.detectors import Detection
 
 log = logging.getLogger(__name__)
@@ -25,9 +24,9 @@ class Layer(IntEnum):
 
 @dataclass(frozen=True)
 class Detectors:
-    on_server: Detector = detectors.on_server
-    in_team_blue: Detector = detectors.in_team_blue
-    has_heli: Detector = detectors.has_heli
+    on_server: Detector
+    in_team_blue: Detector
+    has_heli: Detector
 
 
 LAYER_CHECKS = (
@@ -39,6 +38,17 @@ LAYER_CHECKS = (
 
 class UnknownStateTimeout(Exception):
     pass
+
+
+class SafeStop(Exception):
+    pass
+
+
+def not_built(layer: Layer) -> Handler:
+    def handler(frame: np.ndarray) -> None:
+        raise SafeStop(f"Layer {layer.name} ist noch nicht gebaut")
+
+    return handler
 
 
 def detect(frame: np.ndarray, detectors: Detectors) -> dict[str, Detection]:

@@ -16,10 +16,6 @@ def in_team_blue(frame: np.ndarray) -> Detection:
     return None
 
 
-def has_heli(frame: np.ndarray) -> Detection:
-    return None
-
-
 @dataclass(frozen=True)
 class Marker:
     x: int

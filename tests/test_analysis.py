@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 import pytest
 
+from heli_farmer.config import load_config
 from tools import extract_frames, replay
 from tools.video import iter_frames
 
@@ -62,27 +63,56 @@ def test_replay_writes_timeline(obs_video, tmp_path, capsys):
     with open(out, newline="", encoding="utf-8") as file:
         rows = list(csv.DictReader(file))
     assert len(rows) == 15
-    assert rows[0].keys() == {"frame", "t", "on_server", "in_team_blue", "has_heli", "layer"}
-    assert {row["layer"] for row in rows} == {"UNKNOWN"}
-    assert "UNKNOWN" in capsys.readouterr().out
+    assert list(rows[0].keys()) == replay.COLUMNS
+    assert {row["situation"] for row in rows} == {"NO_HELI"}
+    printed = capsys.readouterr().out
+    assert "NO_HELI" in printed and "Abwürfe bei: keine" in printed
 
 
-def test_replay_scales_frames_to_game_region(obs_video):
+def test_replay_scales_frames_to_game_region(obs_video, monkeypatch):
     seen = []
-    detectors = replay.Detectors(
-        on_server=lambda frame: seen.append(frame.shape) or True,
-        in_team_blue=lambda frame: True,
-        has_heli=lambda frame: False,
-    )
-    rows = replay.timeline(obs_video, {"width": 1920, "height": 1080}, detectors, step=10)
+    monkeypatch.setattr(replay, "readings", lambda vision, frame: seen.append(frame.shape) or ROW)
+    rows = replay.timeline(obs_video, load_config("config.yaml"), step=10)
     assert seen == [(1080, 1920, 3)] * 3
-    assert [row["layer"] for row in rows] == ["VEHICLE"] * 3
+    assert [row["situation"] for row in rows] == ["TO_ZONE"] * 3
 
 
-def test_segments_group_consecutive_layers():
-    rows = [
-        {"t": 0.0, "layer": "UNKNOWN"},
-        {"t": 0.1, "layer": "UNKNOWN"},
-        {"t": 0.2, "layer": "VEHICLE"},
-    ]
-    assert replay.segments(rows) == [(0.0, 0.1, "UNKNOWN", 2), (0.2, 0.2, "VEHICLE", 1)]
+ROW = {
+    "lakota": True,
+    "menu": None,
+    "crate": True,
+    "speed": 200,
+    "agl": 80,
+    "buy_prompt": False,
+    "delivered": False,
+    "first_aid": False,
+    "damaged": False,
+}
+
+
+@pytest.mark.parametrize(
+    ("change", "expected"),
+    [
+        ({}, "TO_ZONE"),
+        ({"crate": False}, "TO_BASE"),
+        ({"speed": 0, "agl": 0}, "LANDED"),
+        ({"speed": 0, "agl": 1, "buy_prompt": True}, "LANDED_BASE"),
+        ({"damaged": True}, "DAMAGED"),
+        ({"lakota": False}, "NO_HELI"),
+        ({"lakota": False, "menu": "main"}, "BUY_MENU"),
+        ({"lakota": False, "first_aid": True}, "DEAD"),
+    ],
+)
+def test_situation(change, expected):
+    assert replay.situation({**ROW, **change}, landed_agl=1, landed_speed=3) == expected
+
+
+def test_segments_merge_short_blips():
+    rows = [{"t": i / 10, "situation": s} for i, s in enumerate("AAAABAAACCCC")]
+    assert replay.segments(rows, min_rows=2) == [(0.0, 0.7, "A", 8), (0.8, 1.1, "C", 4)]
+
+
+def test_drops_need_confirmation():
+    crates = [True, True, True, False, False, True, True, True, False, False, False, None, False]
+    rows = [{"t": float(i), "crate": c} for i, c in enumerate(crates)]
+    assert replay.drops(rows, confirm=3) == [10.0]

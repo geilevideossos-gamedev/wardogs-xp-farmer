@@ -4,18 +4,34 @@ import sys
 import threading
 from pathlib import Path
 
+from heli_farmer import detectors
 from heli_farmer.capture import ScreenCapture
 from heli_farmer.config import load_config
+from heli_farmer.crate_loop import STEPS, CrateLoop, LeaveLayer, StepFailed
+from heli_farmer.detectors import Vision
 from heli_farmer.inputs import Input
 from heli_farmer.killswitch import Killswitch, Stopped, wait
 from heli_farmer.logs import save_debug_screenshot, setup_logging
-from heli_farmer.states import Detectors, StateMachine, UnknownStateTimeout, Watchdog
+from heli_farmer.states import (
+    Detectors,
+    Layer,
+    SafeStop,
+    StateMachine,
+    UnknownStateTimeout,
+    Watchdog,
+    not_built,
+)
 
 log = logging.getLogger(__name__)
 
 EXIT_STOPPED = 0
 EXIT_ERROR = 1
 EXIT_UNKNOWN_STATE = 2
+EXIT_SAFE_STOP = 3
+
+
+class Finished(Exception):
+    pass
 
 
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
@@ -23,7 +39,14 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--config", default="config.yaml")
     parser.add_argument("--dry-run", action="store_true", help="keine Eingaben senden, nur loggen")
     parser.add_argument("--hold-test", action="store_true", help="hält eine Taste bis zum Stopp")
-    return parser.parse_args(argv)
+    parser.add_argument("--layer", type=int, choices=[1], help="nur bis zu diesem Layer arbeiten")
+    parser.add_argument("--once", action="store_true", help="genau eine Runde")
+    parser.add_argument("--step", choices=STEPS, help="nur diesen einen Schritt")
+    parser.add_argument("--map", default="default", help="Kartenname für Parameter aus maps")
+    args = parser.parse_args(argv)
+    if (args.once or args.step) and args.layer is None:
+        parser.error("--once und --step brauchen --layer 1")
+    return args
 
 
 def hold_test(
@@ -41,20 +64,63 @@ def hold_test(
         wait(stop, repeat_s)
 
 
-def bot_loop(config: dict, stop: threading.Event, killswitch: Killswitch, run_dir: Path) -> int:
+def build_machine(
+    config: dict, args: argparse.Namespace, vision: Vision, loop: CrateLoop, inp: Input
+) -> StateMachine:
+    handlers = {Layer.UNKNOWN: lambda frame: inp.release_all()}
+    if args.layer == 1:
+        steps = (args.step,) if args.step else ()
+
+        def crate_loop(frame) -> None:
+            loop.run(steps, args.once)
+            if steps or args.once:
+                raise Finished
+
+        def assumed(frame) -> bool:
+            return True
+
+        found = Detectors(on_server=assumed, in_team_blue=assumed, has_heli=vision.has_heli)
+        handlers[Layer.CRATE_LOOP] = crate_loop
+        for layer in (Layer.VEHICLE, Layer.TEAM, Layer.SERVER):
+            handlers[layer] = not_built(layer)
+    else:
+        found = Detectors(detectors.on_server, detectors.in_team_blue, vision.has_heli)
+    return StateMachine(found, handlers, Watchdog(config["timeouts"]["unknown_state_s"]))
+
+
+def bot_loop(
+    config: dict,
+    args: argparse.Namespace,
+    stop: threading.Event,
+    inp: Input,
+    killswitch: Killswitch,
+    run_dir: Path,
+) -> int:
     capture = ScreenCapture(config["game_region"])
-    machine = StateMachine(Detectors(), {}, Watchdog(config["timeouts"]["unknown_state_s"]))
+    vision = Vision(config["vision"])
+    loop = CrateLoop(vision, inp, capture.grab, stop, config, args.map)
+    machine = build_machine(config, args, vision, loop, inp)
     try:
         while True:
             frame = capture.grab()
             try:
                 machine.tick(frame)
-            except UnknownStateTimeout as error:
+            except LeaveLayer as error:
+                log.warning("Layer 1 verlassen: %s", error)
+                inp.release_all()
+            except Finished:
+                log.info("Fertig")
+                return EXIT_STOPPED
+            except (UnknownStateTimeout, SafeStop, StepFailed) as error:
                 killswitch.trigger(str(error))
-                save_debug_screenshot(run_dir, frame, "unknown_state")
-                return EXIT_UNKNOWN_STATE
+                save_debug_screenshot(run_dir, capture.grab(), type(error).__name__)
+                return (
+                    EXIT_UNKNOWN_STATE if isinstance(error, UnknownStateTimeout) else EXIT_SAFE_STOP
+                )
             wait(stop, config["loop"]["tick_s"])
     finally:
+        if args.layer:
+            log.info("Zusammenfassung: %s", dict(loop.stats) or "nichts erledigt")
         capture.close()
 
 
@@ -71,7 +137,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.hold_test:
             settings = config["hold_test"]
             hold_test(inp, stop, settings["key"], settings["repeat_s"], settings["start_delay_s"])
-        return bot_loop(config, stop, killswitch, run_dir)
+        return bot_loop(config, args, stop, inp, killswitch, run_dir)
     except Stopped:
         log.info("Beendet durch Stopp")
         return EXIT_STOPPED

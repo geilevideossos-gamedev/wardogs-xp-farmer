@@ -34,3 +34,5 @@ select = ["E", "F", "W", "I", "B", "UP"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+markers = ["videos: Abgleich mit Daniels Videos in wardogs_daten/ (langsam, nur lokal)"]
+addopts = "-m 'not videos'"

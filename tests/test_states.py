@@ -3,13 +3,16 @@ from unittest.mock import Mock
 import numpy as np
 import pytest
 
+from heli_farmer import detectors
 from heli_farmer.states import (
     Detectors,
     Layer,
+    SafeStop,
     StateMachine,
     UnknownStateTimeout,
     Watchdog,
     classify,
+    not_built,
 )
 
 FRAME = np.zeros((1080, 1920, 3), np.uint8)
@@ -56,9 +59,19 @@ def test_classify_checks_outside_in(on_server, in_team_blue, has_heli, layer):
     assert classify(results) == layer
 
 
-def test_default_detectors_are_stubs():
-    machine = StateMachine(Detectors(), {}, Watchdog(30), FakeClock())
+def test_outer_detectors_are_stubs():
+    found = Detectors(detectors.on_server, detectors.in_team_blue, lambda frame: True)
+    machine = StateMachine(found, {}, Watchdog(30), FakeClock())
     assert machine.tick(FRAME) == Layer.UNKNOWN
+
+
+def test_not_built_layer_stops_safely():
+    handlers = {Layer.VEHICLE: not_built(Layer.VEHICLE)}
+    machine = StateMachine(
+        FakeWorld(has_heli=False).detectors(), handlers, Watchdog(30), FakeClock()
+    )
+    with pytest.raises(SafeStop, match="VEHICLE"):
+        machine.tick(FRAME)
 
 
 def test_falls_back_to_outer_layer_and_runs_its_handler():

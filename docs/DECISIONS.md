@@ -74,3 +74,18 @@ Format je Eintrag: Datum, Entscheidung, Grund, verworfene Alternativen.
 - **Entscheidung:** `Pilot` regelt jede Achse getrennt pro Tick: Höhe als Zweipunktregler mit Hysterese und Vorhersage (Shift/Ctrl halten), Tempo über eine Soll-Beschleunigung mit kurzen W/S-Pulsen, Gieren mit Q/E-Pulsen proportional zum Marker-Abstand, Landung über Soll-Sinkrate. Pulse sind nicht blockierend.
 - **Grund:** Tastatur ist binär; Daniel fliegt genauso (Shift lange gehalten, W/S/A/D kurz getippt, Median 0,22 s). Unbekanntes Flugmodell (hält der Heli die Neigung? sinkt er ohne Shift?) wird durch Messen der Änderungsrate nachgeregelt statt angenommen. Alle Parameter in `flight` und `maps`.
 - **Verworfen:** Abspielen aufgenommener Tastenfolgen (bricht bei jeder Abweichung, laut Vorgabe verboten), stufenlose PID-Ausgabe (nicht mit Tasten umsetzbar).
+
+## 2026-10-15 – Layer 1 als Schrittfolge mit Prüfung pro Tick
+
+- **Entscheidung:** `CrateLoop` führt die Schritte `buy, climb, turn, drop, turn, land` prozedural aus. Jeder Tick läuft durch `observe()`, das Erste-Hilfe-Symbol, Heli-Schaden und fehlendes HUD prüft und dann `LeaveLayer` wirft. Fehlgeschlagene Schritte werfen `StepFailed` → sicherer Stopp mit Screenshot.
+- **Grund:** Einfach zu lesen und einzeln testbar (`--step`), äußere Bedingungen werden trotzdem jeden Tick geprüft. `has_heli` liefert `None` bei fehlendem HUD, damit kurze Aussetzer nicht sofort stoppen; nach `unknown_state_s` greift der Watchdog.
+- **Verworfen:** Tick-basierter Unterautomat pro Schritt (mehr Zustandsverwaltung für Menüfolgen ohne Mehrwert).
+- **Entscheidung:** Abwurf erst unter `drop_agl` (Standard 60 m), Landung dort, wo der Kauf-Hinweis erscheint.
+- **Grund:** Spieltext: Palette zerbricht ab ca. 90 m freiem Fall. Ein markierter grüner Landeplatz ist in keinem Video zu sehen; Daniel landet auf freien Flächen im Kaufbereich.
+- **Entscheidung:** `timeouts.max_hold_s` (20 s) gilt für jede Taste; der Regler drückt sie im nächsten Tick neu.
+- **Grund:** Vorgabe „keine Taste länger als Timeout am Stück“. Daniel hält Shift bis zu 59 s, ein kurzes Loslassen kostet nur wenige Meter.
+
+## 2026-10-15 – Video-Abgleich als eigener Test-Marker
+
+- **Entscheidung:** `tests/test_replay_videos.py` mit Marker `videos`, per `addopts` im Standardlauf abgewählt; Aufruf `pytest -m videos`.
+- **Grund:** Videos liegen nur lokal (1,1 GB, nicht im Repo) und der Lauf dauert ~2 min.
