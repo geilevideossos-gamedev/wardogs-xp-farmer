@@ -49,7 +49,7 @@ Wenn die Figur nicht läuft: melden. Dann ignoriert das Spiel die simulierten Ta
 ### 6. Analyse-Tools
 
 1. `.venv\Scripts\python -m tools.extract_frames wardogs_daten\Video\join+Bakurani.mp4 --every 30`
-2. **Erwartet:** Meldung `N Bilder gespeichert in debugrames\…`, die PNGs zeigen das Spielbild
+2. **Erwartet:** Meldung `N Bilder gespeichert in debug\frames\…`, die PNGs zeigen das Spielbild
 3. `.venv\Scripts\python -m tools.replay wardogs_daten\Video\join+Bakurani.mp4`
 4. **Erwartet:** nach 1–2 Minuten eine Liste mit Abschnitten wie `BUY_MENU`, `TO_ZONE`, `TO_BASE`, `LANDED_BASE` und die Zeile `Abwürfe bei: 173.8s, 316.5s`
 5. `.venv\Scripts\python -m tools.overlay_inputs wardogs_daten\Video\join+Bakurani.mp4`
