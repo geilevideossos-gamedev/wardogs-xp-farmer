@@ -9,7 +9,8 @@ Stand 2026-10-15. Grundlage für Detektoren und Layer 1. Alle Koordinaten in Pix
 | `Video/join+Bakurani.mp4` | 403 s, 60 fps, Map **BAKURANI**, Server Official EU Central #9, 2 komplette Crate-Runden |
 | `Video/join+Ozeti.mp4` | 512 s, Map **OZETI**, 1 Fehl-Join (Team nicht wählbar), 2 Runden, 1 Crash in der Base |
 | `Video/join+Zestafona.mp4` | 503 s, Map **ZESTAFONA** (Server #80). Ladebildschirm und Serverliste zeigen fälschlich „Ozeti“ (Server zeigt nach Rundenende die alte Map). 3 Runden, 1 Absturz in Bäume mit Tod |
-| `Images/*.png` | Kommentierte Screenshots (Dateiname = Kommentar): Kauf-Hinweis, falscher Heli, Crash in der Base, Erste-Hilfe-Symbol, Team ausgegraut → ESC → Leave, Baum-Crash, Warten auf Welt, Leave-Dialog, Raketentreffer |
+| `Images/*.png` | Kommentierte Screenshots (Dateiname = Kommentar): Kauf-Hinweis, falscher Heli, Crash in der Base, Erste-Hilfe-Symbol, Team ausgegraut → ESC → Leave, Baum-Crash, Warten auf Welt, Leave-Dialog, Raketentreffer. Neu am 15.10.: CZ-Marker mit Entfernung, Heli außerhalb/innerhalb des Zonenkreises, HQ in der Zone unsichtbar, SUPPLIES DELIVERED, Landefläche (Auswertung siehe unten) |
+| `Images/chat_2026-10-15/01–09` | 01–05 und 07–09 sind Kopien der Bilder oben (gleicher Bildinhalt), 06 ist eine allgemeine Physik-Skizze (Kräfte am geneigten Heli), keine Spieldaten |
 | `Audio/*.mp3` | Raketenwarnung: nach 0,66 s Dauerpiepen mit **V** Flares werfen (nicht ausgewertet, braucht Audio-Capture) |
 
 Jede Map hat eine eigene Base (Ozeti: Beton/Industrie, bewölkt; Zestafona: Wiese, sonnig). Die Map wird nie aus Ladebildschirm oder Serverliste abgeleitet (zeigen nach Rundenende die alte Map), Fixture-Namen folgen dem Video.
@@ -61,7 +62,10 @@ Positionen sind bildschirmfest (geprüft über alle 1.420 Sekundenbilder). Templ
 | Gelandet | SPD „00“ und AGL „0“ | SPD rechts x≈862, AGL rechts x≈1126, Zeile y 923–933 | Ziffernleser (siehe unten) |
 | Heli beschädigt | Heli-Silhouette in der Lageanzeige rot statt grau | Bereich x 955–966, y 908–932 | Median `R − max(G,B)` ≥ 60 (normal < 20, rot > 120) |
 | Spieler tot | Erste-Hilfe-Stern im roten Ring, „GIVE UP [F]“, „[E] CALL FOR HELP“, „TOTAL BRIBE“ | Stern x 926, y 938 (68×68) | `first_aid.png` ≥ 0,65 (Treffer ≥ 0,8) |
-| In einer Kontrollzone | Banner „CONTROL ZONE“ oben mittig unter dem Kompass (nur einige Sekunden nach Eintritt), Minimap eingefärbt, Leiste „CONTROL: <Fraktion>“ unter der Minimap, Belohnung „CONTROL ZONE ENTERED +$250“ oben rechts | – | Nicht zuverlässig: Banner kurzlebig und unter dem Overlay, Leiste bleibt auch außerhalb stehen. Bot nutzt stattdessen den Zonen-Marker (siehe unten) |
+| In der Zielzone | Zonen-Marker zeigt „HZ“ statt „CZ“ **und** Minimap um das Heli-Symbol eingefärbt (Kreis blau, grün, rot oder weiß) | Marker: Buchstabenfeld x 6–15, y 9–22 im Template. Minimap: Ring r 12–30 px um x 160, y 862 | HZ/CZ: TM_CCOEFF_NORMED des Buchstabenfelds gegen `marker_zone_hz.png` und `marker_zone.png`, höherer gewinnt (1.940/1.940 Marker richtig, Abstand ≥ 0,28). Minimap: Median-Farbe im Ring, Buntheit `max − min` ≥ 14 (innen 15–47, außen ohne Zone ≤ 10) |
+| In einer Kontrollzone (Banner) | Banner „CONTROL ZONE“ oben mittig, Leiste „CONTROL: <Fraktion>“ unter der Minimap, „CONTROL ZONE ENTERED +$250“ oben rechts | – | nicht verwendet: Banner kurzlebig und unter dem Overlay, Leiste bleibt auch außerhalb stehen |
+| Höhe über Meer | ASL unter AGL | rechts x≈1126, Zeile y 945–955 | Ziffernleser wie AGL (9/9 Fixtures, 93 % lesbar im Video). Steig-/Sinkrate unabhängig vom Gelände |
+| Lageanzeige unten mittig | Heli-Silhouette fest; zwei kurze Horizont-Striche links/rechts kippen mit der **Querneigung**; die Bögen links/rechts sind weiß oben bei Shift, weiß unten bei Strg (= **Kollektiv**) | x 880–1040, y 880–975 | nicht verwendet: Mittelwert der Horizont-Striche bleibt bei 0, 300 km/h und Vollbremsung gleich (y ≈ 65 im Ausschnitt) → **Nickwinkel ist nicht ablesbar** |
 | Base / Safe Zone | Banner „SAFE ZONE“ oben mittig, Basisfläche auf der Minimap blau | – | nicht verwendet |
 
 Weitere HUD-Teile: Geld oben rechts (`-$7,400 | $226,507`, auch im Flug sichtbar), Steuerhinweise rechts (INTERACT F, CHANGE SEAT O, TOGGLE CAMERA C, FREE LOOK ALT, COLLECTIVE LIFT L-SHIFT, COLLECTIVE DESCENT CTRL, DEPLOY FLARES V, LOCKED L), darunter der eigene Spielername (nie in Fixtures).
@@ -77,10 +81,11 @@ Weitere HUD-Teile: Geld oben rechts (`-$7,400 | $226,507`, auch im Flug sichtbar
 
 | Quelle | Befund | Nutzung |
 |---|---|---|
-| **Zonen-Marker** (Ring mit „CZ“, innerhalb der Zone „HZ“) | Weltmarker über dem Zonenzentrum mit Entfernung („2.2 km“, „328 m“). Liegt die Zone außerhalb des Bildes, klebt der Marker am Rand (x≈120 links, y 200–550). Gefunden in allen Flügen zur Zone und als Randmarker auf dem Rückweg | Richtung: x-Abstand zur Bildmitte. Nähe: y wächst beim Anflug (Horizont ≈ y 390–420) |
+| **Zonen-Marker** (gelber Ring mit „CZ“, innerhalb der Zone „HZ“) | Weltmarker über dem Zonenzentrum mit Entfernung darüber. **CZ-Entfernung = Abstand zum Zonenrand** (fällt beim Anflug auf ~0), **HZ-Entfernung = Abstand zur Zonenmitte** (166–323 m beim Eintritt, also Radius ~170–330 m). Nach dem Verlassen zählt CZ wieder ab 0 hoch. Anzeige springt nur 1× pro Sekunde. Liegt die Zone außerhalb des Bildes, klebt der Marker am Rand (x≈120 links, y 200–550) | Richtung: x-Abstand zur Bildmitte. Bremsen: CZ-Entfernung (Median der letzten Lesungen) |
+| Entfernung am Marker | Text „744 m“, „1.6 km“, „3 km“ zentriert über dem Marker, weiß mit dunklem Rand, 10 px hoch, Ziffernabstand 8 px. Formate `d m`, `dd m`, `ddd m`, `d km`, `d.d km` | Leser: Glyphen 0–9 . k m (`distance_glyphs.png`, aus 53 von Hand gelesenen Video-Ausschnitten). Pro Format Glyphen an festen Positionen (zentriert, ±1 px) per TM_CCOEFF_NORMED, Format mit größter Summe `score − 0,7` gewinnt, schwächste Glyphe ≥ 0,6. Ergebnis: Code = Analyse in 1.930/1.940 Markern, ~3 % Fehllesungen (fehlende führende „1“, 6/8/9) → im Regler nur gefiltert nutzen |
 | **HQ-Marker** (hellblaues Quadrat + „HQ“ + Entfernung) | Sichtbar, wenn die Base vor einem liegt (Rückflug, Score 0,8–0,9). Hinter dem Heli nicht gefunden (kein Randmarker erkannt). In den letzten ~20 s vor der Landung nicht mehr gefunden | Richtung zur Base. Ist er nicht sichtbar: nach rechts drehen bis er auftaucht |
 | Kompass oben mittig | Kurs als Zahl im Kasten („347 N“, „211 SW“) bei x≈925–995, y≈22–45, Skala alle 15° | Im Spiel lesbar, in den Videos vom Overlay verdeckt → noch nicht genutzt |
-| Minimap unten links (x 33–288, y 755–970) | Nordausgerichtet, dreht nicht mit. Spieler-Symbol mittig dreht sich. Stark gezoomt (nur Umgebung), Zonen als Kreise mit Nummern-Icons, Base als blaues Rechteck | nicht genutzt |
+| Minimap unten links (x 33–288, y 755–970) | Nordausgerichtet, dreht nicht mit. Spieler-Symbol mittig (x 160, y 862). Stark gezoomt, Zonen als große eingefärbte Kreise mit hellem Rand (größer als die Minimap, innen ist die ganze Karte getönt), Base ebenfalls blau getönt, kleine gelbe Ringe = andere Objekte. Färbung beginnt 0–12 s **vor** dem HZ-Wechsel, auch Base und andere Zonen färben | nur zusammen mit HZ: „in der Zielzone“ |
 
 Template-Suche für Marker: Graustufen, TM_CCOEFF_NORMED, außerhalb der Maske mit Mittelwert gefüllt (schnell, ~40 ms Zone, ~60 ms HQ für das ganze Bild). Schwelle 0,6 / 0,62. Gegen die Erkennung mit Maske verglichen: Zone 92–144 Treffer bei 3–16 Fehltreffern je Video, HQ 27–31 von 28–33 bei 0–8 Fehltreffern. Halbe Auflösung ist schlechter (verworfen).
 
@@ -136,21 +141,42 @@ Klickpositionen in `config.yaml` → `buy.clicks`.
 - **Steigen:** Shift 2–3 s nach Menü-Ende, erstes W nach 2–6 s. AGL ≥ 40 m nach 5–17 s, ≥ 80 m nach 11–40 s. Daniel steigt und beschleunigt gleichzeitig
 - **Drehen:** wenig Gieren; Kurs meist über kurze A/D-Rollen korrigiert. Nach dem Abwurf Kehrtwende mit E (0,6–5,6 s in 20 s) plus A/D
 - **Reiseflug:** 160–260 km/h, tief: AGL-Median 41–130 m, oft 40–60 m
-- **Abwurf:** beim Einflug in die Zone, nicht über dem Zentrum. Vorher Ctrl (1–7 s) und S zum Bremsen. Bedingungen beim G-Druck: AGL 37–75 m, 75–284 km/h. Grenze laut Spiel 90 m freier Fall
-- **Landeanflug:** letzte 30 s: Tempo von ~290 auf ~35 km/h in ~15 s (S 3–6 s gesamt), Ctrl 12–19 s, AGL von ~50 auf 0 in ~10 s (~5 m/s). Aufsetzen mit 0–35 km/h. Gelandet wird auf freien Flächen nahe dem Fahrzeug-/Garagenbereich der Base, nicht auf einem markierten grünen Feld (in keinem Video zu sehen)
+- **Abwurf:** 0,1–10,8 s nach dem Wechsel CZ → HZ. Vorher Ctrl (1–7 s) und S zum Bremsen. Bedingungen beim G-Druck: AGL 37–75 m, 75–284 km/h. Grenze laut Spiel 90 m freier Fall
+- **Nach dem Abwurf:** Daniel bremst fast bis zum Schweben (Zestafona 172 → 179 s: 157 → 38 km/h), dreht mit E und fliegt raus. HZ bleibt 12–28 s nach Eintritt, dann wieder CZ. Der HQ-Marker wurde in keinem der 7 Anflüge erkannt, solange HZ stand; 1–8 s nach dem Rausfliegen ist er da
+- **Landeanflug:** letzte 30 s: Tempo von ~290 auf ~35 km/h in ~15 s (S 3–6 s gesamt), Ctrl 12–19 s, AGL von ~50 auf 0 in ~10 s (~5 m/s). Aufsetzen mit 0–35 km/h. Landefläche ist laut Daniel eine rechteckige Grasfläche in der Base (von Mauern umgeben), dort erscheint „[B] BUY AMMO / SUPPLIES“
+- **Neigung:** W/S verstellen die Neigung, sie bleibt nach dem Loslassen stehen. Netto-Tippzeit W − S im Reiseflug schwankt stark (−0,2 bis +3,4 s bei 250–300 km/h), taugt also nicht als Neigungsmaß. Messbar ist die Folge: Bakurani 133–163 s mit Shift dauernd gedrückt, 250–317 km/h → ASL sinkt von 232 auf 113 m (~4 m/s). Bei ~200–250 km/h hält Shift die Höhe. **Sinkt der Heli trotz Shift, ist die Nase zu weit unten** (Daniel: ~20° + Shift = Höhe konstant)
+
+## Daniels Screenshots vom 15.10. (Dateiname = Erklärung)
+
+| Bild | Befund | Folge für den Bot |
+|---|---|---|
+| „das golden ct ist imme die richtung …“ | Goldener CZ-Marker mit „2.9 km“ beim Start in der Base, Hinweis „[B] BUY AMMO / SUPPLIES“ im Bild | Richtung = CZ-Marker, Entfernung lesen (`zone_marker().distance`) |
+| „heli symbol nicht im kreis …“ (= chat 01, Zestafona 163 s) | Heli-Symbol knapp außerhalb eines weißen Zonenkreises, noch CZ | weiter Richtung CZ |
+| „auf der minimap sollte das heli symbol …“ (Zestafona 166 s) | Heli im blauen Kreis, Marker zeigt HZ | Zone erreicht = Minimap eingefärbt **und** HZ, dann 3 s warten, dann G |
+| „umdrehen sobald supplys deliverd …“ (= chat 04) | „SUPPLIES DELIVERED +$2,500“ unter dem Heli und oben rechts | nach der Bestätigung umdrehen |
+| „sobald abgworfen und zone sieht man hq …“ (= chat 03, Zestafona 183 s) | Nach dem Abwurf: HZ-Marker mit „100 m“ am Rand, kein HQ-Marker | erst raus aus der Zone, dann HQ suchen |
+| „das die landungs zone immer so eine 4eckige grass fläche …“ | Rechteckige Grasfläche mit Mauern in der Base, Anflug mit 188 km/h, AGL 57 | Landen, wo „[B] BUY AMMO / SUPPLIES“ erscheint |
+| chat 02 (Baum-Crash) | 215 km/h bei AGL 28 m, 0,1 s vor dem Crash, Heli-Symbol rot | Tempo-Grenze je Höhe und Mindesthöhe im Reiseflug |
+| chat 05 (Rakete) | Rotor abgeschossen, Heli-Symbol rot, AGL 75, 204 km/h | Bot stoppt bei rotem Symbol (Layer 1). „W halten, Crash, wie Tod behandeln“ gehört zu Layer 2 |
+| chat 06 | Physik-Skizze: geneigter Rotor teilt Auftrieb in Hub und Vortrieb | erklärt „20° + Shift = Höhe konstant“ |
+
+Für spätere Layer (nur vermerkt): chat 07 Team-Auswahl, Blau links (Layer 3); chat 08 „Waiting for world to load“, weiß oben, nichts drücken (Layer 3); chat 09 Dialog „Leave match?“ mit „Yes“ nach Esc (Layer 4).
 
 ## Ableitungen für Layer 1
 
 - Zustände über Templates und Ziffernleser, nicht über das Overlay
-- Ziel Zone = Zonen-Marker, Ziel Base = HQ-Marker; Drehen mit Q/E, bis der Marker mittig ist
-- Höhe mit Shift/Ctrl regeln, Tempo mit kurzen W/S-Tipps; Reiseflug etwas höher als Daniel (Standard 100 m) wegen Bäumen
-- Abwurf unter 90 m AGL; Erfolg = G-Feld weg, Bestätigung „SUPPLIES DELIVERED“
+- Ziel Zone = Zonen-Marker, Ziel Base = HQ-Marker; Drehen nur mit Q/E (nach ein paar Metern Steigen), bis der Marker mittig ist
+- Höhe nur über die Shift-Dauer regeln (Strg nur bei der Landung). Tempo mit W/S-Tipps nach Beschleunigung. Neigungsgrenze: sinkt der Heli trotz Shift (ASL-Rate), Nase hoch (S)
+- Sicherheit: Mindesthöhe im Reiseflug (Standard 80 m), Höchsttempo abhängig von der AGL. Darunter erst Shift und Nase hoch, nie weiter beschleunigen
+- Bremsen vor der Zone über die CZ-Entfernung (Abstand zum Rand), Abwurf 3 s nach „Minimap + HZ“, unter 90 m AGL; Erfolg = G-Feld weg, Bestätigung „SUPPLIES DELIVERED“
+- Danach umdrehen, raus aus der Zone (CZ oder Minimap ohne Färbung), erst dann HQ suchen
 - Landung im Kaufbereich: Hinweis „BUY AMMO / SUPPLIES“ = nahe genug, dann bremsen und sinken
 - Sicherheitsfälle mit Bildmerkmal: Erste-Hilfe-Stern, rotes Heli-Symbol, HUD weg (aus dem Heli geworfen)
 
 ## Offene Punkte
 
-- Zonen-Marker „CZ“ vs. „HZ“: Bedeutung unklar (vermutlich außerhalb/innerhalb oder Kontrollstatus). Beide werden als Zonen-Marker behandelt
-- Unbekannt: Fällt der Heli ohne Shift im Schwebeflug? Hält er die Neigung nach einem W-Tipp? Regler sind darauf ausgelegt, beides zu messen und nachzuregeln
+- Weißer Zonenkreis: Minimap-Färbung ist dort kaum bunt (Bakurani 172 s: Buntheit 8). In den Videos wurde der Kreis nach ≤ 1 s blau, dann klappt die Erkennung. Bleibt er weiß, wirft der Bot nicht ab und stoppt nach dem Zeitlimit
+- Drehrate von Q/E in Grad pro Sekunde unbekannt (Kehrtwende ist zeitgesteuert, `flight.turnaround_s`)
+- Wie viele W-Tipps „20°“ sind, ist unbekannt; der Regler misst stattdessen Beschleunigung und Sinkrate
 - Raketenwarnung (Audio) und Flares (V) nicht umgesetzt
 - Ob B auch in der Luft funktioniert, ist nicht geprüft (Bot landet vorher)

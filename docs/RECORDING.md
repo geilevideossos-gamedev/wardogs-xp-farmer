@@ -46,14 +46,14 @@ Jede Sequenz auf **jeder der 3 Maps**. Mehrere Durchgänge, weil Licht, Wetter, 
 
 ### Priorität 1 – Crate-Schleife (Layer 1, wird als Erstes gebaut)
 
-Startpunkt: Du sitzt als Pilot im Z20 Lakota auf dem grünen Landeplatz in der blauen Base.
+Startpunkt: Du sitzt als Pilot im Z20 Lakota auf der rechteckigen Grasfläche in der blauen Base, auf der „[B] BUY AMMO / SUPPLIES“ erscheint.
 
 | Sequenz | Was genau | Pro Map |
 |---|---|---|
-| `full_loop` | Kompletter Ablauf: B → Ammo Crate kaufen → Menü zu → abheben → in die Zone fliegen → mit G abwerfen → zurückfliegen → auf dem grünen Landeplatz landen | 3× |
+| `full_loop` | Kompletter Ablauf: B → Ammo Crate kaufen → Menü zu → abheben → in die Zone fliegen → mit G abwerfen → zurückfliegen → auf der Grasfläche landen | 3× |
 | `buy_crate` | Nur: B drücken → Ammo Crate kaufen → Menü schließen | 3× |
 | `drop` | Anflug auf die Zone (letzte ca. 20 s) → G drücken → Crate fällt → kurz weiterfliegen | 3× |
-| `land` | Anflug auf die Base (letzte ca. 30 s) → auf dem grünen Landeplatz aufsetzen → 3 s stehen | 3× |
+| `land` | Anflug auf die Base (letzte ca. 30 s) → auf der Grasfläche aufsetzen → 3 s stehen | 3× |
 | `fly_to_zone` | Abheben bis zur Zone, ohne Abwurf | 2× |
 | `fly_to_base` | Nach dem Abwurf von der Zone zurück bis über die Base | 2× |
 
@@ -98,4 +98,4 @@ Details: `docs/ANALYSIS.md`.
 | Was | Warum | Wie |
 |---|---|---|
 | 3–4 Screenshots im Flug **ohne Overlay** | Kompass und Zonen-Banner („CONTROL ZONE“) sind in den Videos verdeckt | Overlay ausblenden, je einen Screenshot beim Anflug auf die Zone, in der Zone und über der Base |
-| 20 s **Schwebeflug ohne Tasten** in ca. 100 m Höhe | Zeigt, ob der Heli ohne Shift sinkt und ob er nach W/S die Neigung hält. Hilft beim Einstellen der Regler | OBS mit Overlay: steigen, alle Tasten los, warten; dann einmal kurz W tippen und 10 s warten |
+| **Drehen auf der Stelle**: im Schweben auf ca. 50 m 5 s lang E halten, dann 5 s Q | Daraus lässt sich die Drehrate in Grad pro Sekunde ablesen. Damit wird die Kehrtwende nach dem Abwurf (`flight.turnaround_s`) eingestellt | OBS mit Overlay, Kompass oben mittig sichtbar lassen (Overlay dafür kurz ausblenden) |
