@@ -162,11 +162,11 @@ class CrateLoop:
         raise StepFailed("Steigen dauert zu lange")
 
     def turn(self) -> None:
-        frame = self.observe()
-        outbound = self._vision.crate_loaded(frame)
+        outbound = self._vision.crate_loaded(self.observe())
         target = self._map["turn_agl"] if outbound else self._map["cruise_agl"]
         deadline = self._clock() + self._flight["turn_timeout_s"]
         while self._clock() < deadline:
+            frame = self.observe()
             self._fly(frame, target, 0)
             marker = self._vision.zone_marker(frame) if outbound else self._vision.hq_marker(frame)
             if marker is None:
@@ -174,7 +174,6 @@ class CrateLoop:
             elif self._pilot.yaw(marker.x):
                 log.info("Zielrichtung erreicht: Marker bei x=%d", marker.x)
                 return
-            frame = self.observe()
         raise StepFailed("Drehen zum Ziel dauert zu lange")
 
     def drop(self) -> None:
@@ -221,8 +220,7 @@ class CrateLoop:
         raise StepFailed("Zone nicht rechtzeitig erreicht")
 
     def leave(self) -> None:
-        frame = self.observe()
-        marker = self._vision.zone_marker(frame)
+        marker = self._vision.zone_marker(self.observe())
         right = marker is not None and marker.x > self._flight["center_x"]
         away = "yaw_left" if right else "yaw_right"
         log.info("Umdrehen mit %s", self._keys[away].upper())
@@ -231,16 +229,15 @@ class CrateLoop:
         outside_hits = 0
         left: float | None = None
         while self._clock() < deadline:
+            frame = self.observe()
             if self._clock() < turned:
                 self._fly(frame, self._map["cruise_agl"], 0)
                 self._pilot.search(away)
-                frame = self.observe()
                 continue
             self._cruise(frame)
             if left is not None:
                 if self._clock() - left >= self._flight["leave_margin_s"]:
                     return
-                frame = self.observe()
                 continue
             marker = self._vision.zone_marker(frame)
             if marker is not None:
@@ -251,7 +248,6 @@ class CrateLoop:
             if outside_hits >= self._confirm:
                 left = self._clock()
                 log.info("Zone verlassen, noch %s s weiter", self._flight["leave_margin_s"])
-            frame = self.observe()
         raise StepFailed("Zone nicht verlassen")
 
     def land(self) -> None:
