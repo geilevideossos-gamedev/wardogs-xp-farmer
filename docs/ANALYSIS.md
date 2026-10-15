@@ -146,6 +146,20 @@ Klickpositionen in `config.yaml` → `buy.clicks`.
 - **Landeanflug:** letzte 30 s: Tempo von ~290 auf ~35 km/h in ~15 s (S 3–6 s gesamt), Ctrl 12–19 s, AGL von ~50 auf 0 in ~10 s (~5 m/s). Aufsetzen mit 0–35 km/h. Landefläche ist laut Daniel eine rechteckige Grasfläche in der Base (von Mauern umgeben), dort erscheint „[B] BUY AMMO / SUPPLIES“
 - **Neigung:** W/S verstellen die Neigung, sie bleibt nach dem Loslassen stehen. Netto-Tippzeit W − S im Reiseflug schwankt stark (−0,2 bis +3,4 s bei 250–300 km/h), taugt also nicht als Neigungsmaß. Messbar ist die Folge: Bakurani 133–163 s mit Shift dauernd gedrückt, 250–317 km/h → ASL sinkt von 232 auf 113 m (~4 m/s). Bei ~200–250 km/h hält Shift die Höhe. **Sinkt der Heli trotz Shift, ist die Nase zu weit unten** (Daniel: ~20° + Shift = Höhe konstant)
 
+## Offline-Abgleich der Zonen-Erkennung (`tools/replay.py`, `pytest -m videos`)
+
+Marker und Minimap mit 2 Bildern/s, Bestätigung 3 Bilder in Folge, Bremsen bei Median der letzten 5 CZ-Entfernungen ≤ 400 m.
+
+| Video | Abwürfe (Daniel) | „In der Zone“ erkannt | Bremspunkt |
+|---|---|---|---|
+| Bakurani | 173,7 · 316,4 | 173,5–195,0 · 321,0–340,5 | 169,5 (4 s vor Eintritt) · keiner |
+| Ozeti | 216,2 · 434,8 | 213,0–225,5 · 428,0–442,0 | keiner · keiner |
+| Zestafona | 172,3 · 307,0 · 439,4 | 170,0–194,5 · 305,5–327,0 · 436,0–456,0 | 164,0 (6 s vor Eintritt) · keiner · keiner |
+
+- Alle 7 Abwürfe liegen in einem erkannten Besuch. Bakurani 316,4: Daniel warf 0,1 s nach dem HZ-Wechsel ab, die Erkennung kam 4,6 s später (Marker unter dem Overlay)
+- HQ-Marker nie zusammen mit HZ, nach dem Verlassen 0–7,5 s bis zum ersten HQ-Treffer
+- Bremspunkte nur in 2 von 7 Anflügen: Die Entfernung steht knapp über dem Marker und damit in den Videos meist unter dem Overlay-Rand (y ≤ 370); Marker gefunden, Entfernung `None`. Im Spiel ohne Overlay zu prüfen (TESTING Layer 1, Schritt 0)
+
 ## Daniels Screenshots vom 15.10. (Dateiname = Erklärung)
 
 | Bild | Befund | Folge für den Bot |

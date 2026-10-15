@@ -67,6 +67,7 @@ def test_replay_writes_timeline(obs_video, tmp_path, capsys):
     assert {row["situation"] for row in rows} == {"NO_HELI"}
     printed = capsys.readouterr().out
     assert "NO_HELI" in printed and "Abwürfe bei: keine" in printed
+    assert "In der Zone: nie" in printed
 
 
 def test_replay_scales_frames_to_game_region(obs_video, monkeypatch):
@@ -116,3 +117,39 @@ def test_drops_need_confirmation():
     crates = [True, True, True, False, False, True, True, True, False, False, False, None, False]
     rows = [{"t": float(i), "crate": c} for i, c in enumerate(crates)]
     assert replay.drops(rows, confirm=3) == [10.0]
+
+
+def marker_rows(spec: str, distances: list | None = None) -> list[dict]:
+    codes = {"C": ("CZ", False), "c": ("CZ", True), "H": ("HZ", True), "h": ("HZ", False)}
+    codes |= {"-": ("", False), "m": ("", True)}
+    rows = []
+    for i, code in enumerate(spec):
+        zone, minimap = codes[code]
+        distance = distances[i] if distances else None
+        rows.append({"t": float(i), "zone": zone, "minimap": minimap, "distance": distance})
+    return rows
+
+
+def test_zone_visits_need_hz_and_minimap_to_enter():
+    rows = marker_rows("CchhHHHHHmmHHCCC--")
+    assert replay.zone_visits(rows, confirm=2) == [(5.0, 14.0)]
+
+
+def test_zone_visits_leave_on_untinted_minimap_without_marker():
+    rows = marker_rows("HHH----") + [{"t": 9.0, "zone": None, "minimap": None, "distance": None}]
+    assert replay.zone_visits(rows, confirm=2) == [(1.0, 4.0)]
+
+
+def test_zone_visits_open_at_end():
+    assert replay.zone_visits(marker_rows("CHHH"), confirm=2) == [(2.0, None)]
+
+
+def test_brake_times_use_median_once_per_leg():
+    distances = [900, 700, 380, 999, 350, 300, 30, 0, 0]
+    rows = [{**row, "crate": True} for row in marker_rows("CCCCCCCHH", distances)]
+    rows += [{"t": 9.0, "crate": False, "zone": "CZ", "minimap": False, "distance": 5}]
+    rows += [
+        {"t": 10.0 + i, "crate": True, "zone": "CZ", "minimap": False, "distance": 100}
+        for i in range(3)
+    ]
+    assert replay.brake_times(rows, history=3, brake_distance=400) == [4.0, 12.0]

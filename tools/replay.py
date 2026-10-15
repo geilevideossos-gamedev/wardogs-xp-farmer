@@ -1,6 +1,8 @@
 import argparse
 import csv
+import statistics
 import sys
+from collections import deque
 from pathlib import Path
 
 import cv2
@@ -22,8 +24,13 @@ COLUMNS = [
     "delivered",
     "first_aid",
     "damaged",
+    "zone",
+    "distance",
+    "minimap",
+    "hq",
     "situation",
 ]
+MARKER_COLUMNS = ("zone", "distance", "minimap", "hq")
 
 
 def readings(vision: Vision, frame: np.ndarray) -> dict:
@@ -38,6 +45,16 @@ def readings(vision: Vision, frame: np.ndarray) -> dict:
         "delivered": vision.delivered(frame),
         "first_aid": vision.first_aid(frame),
         "damaged": vision.heli_damaged(frame) if lakota else None,
+    }
+
+
+def marker_readings(vision: Vision, frame: np.ndarray) -> dict:
+    zone = vision.zone_marker(frame)
+    return {
+        "zone": zone.kind if zone else "",
+        "distance": zone.distance if zone else None,
+        "minimap": vision.minimap_in_zone(frame),
+        "hq": vision.hq_marker(frame) is not None,
     }
 
 
@@ -56,7 +73,7 @@ def situation(row: dict, landed_agl: int, landed_speed: int) -> str:
     return "TO_ZONE" if row["crate"] else "TO_BASE"
 
 
-def timeline(video: Path, config: dict, step: int) -> list[dict]:
+def timeline(video: Path, config: dict, step: int, marker_every: int = 5) -> list[dict]:
     vision = Vision(config["vision"])
     region = config["game_region"]
     size = (region["width"], region["height"])
@@ -66,6 +83,10 @@ def timeline(video: Path, config: dict, step: int) -> list[dict]:
         if (frame.shape[1], frame.shape[0]) != size:
             frame = cv2.resize(frame, size, interpolation=cv2.INTER_LINEAR)
         row = {"frame": index, "t": round(t, 3), **readings(vision, frame)}
+        if row["lakota"] and len(rows) % marker_every == 0:
+            row |= marker_readings(vision, frame)
+        else:
+            row |= dict.fromkeys(MARKER_COLUMNS)
         row["situation"] = situation(row, flight["landed_agl"], flight["landed_speed"])
         rows.append(row)
     return rows
@@ -101,6 +122,48 @@ def drops(rows: list[dict], confirm: int) -> list[float]:
     return times
 
 
+def zone_visits(rows: list[dict], confirm: int) -> list[tuple[float, float | None]]:
+    visits: list[tuple[float, float | None]] = []
+    inside, hits, entered = False, 0, 0.0
+    for row in rows:
+        if row["minimap"] is None:
+            continue
+        if inside:
+            ok = row["zone"] == "CZ" or (not row["zone"] and not row["minimap"])
+        else:
+            ok = row["zone"] == "HZ" and row["minimap"]
+        hits = hits + 1 if ok else 0
+        if hits < confirm:
+            continue
+        hits = 0
+        if inside:
+            visits.append((entered, row["t"]))
+        else:
+            entered = row["t"]
+        inside = not inside
+    if inside:
+        visits.append((entered, None))
+    return visits
+
+
+def brake_times(rows: list[dict], history: int, brake_distance: int) -> list[float]:
+    times: list[float] = []
+    recent: deque[int] = deque(maxlen=history)
+    braking = False
+    for row in rows:
+        if row["crate"] is False:
+            recent.clear()
+            braking = False
+            continue
+        if braking or row["zone"] != "CZ" or row["distance"] is None:
+            continue
+        recent.append(row["distance"])
+        if len(recent) == history and statistics.median(recent) <= brake_distance:
+            times.append(row["t"])
+            braking = True
+    return times
+
+
 def write_csv(rows: list[dict], path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", newline="", encoding="utf-8") as file:
@@ -114,6 +177,9 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("video", type=Path)
     parser.add_argument("--step", type=int, default=6, help="nur jedes n-te Frame prüfen")
     parser.add_argument("--min-rows", type=int, default=3, help="kürzere Abschnitte zusammenlegen")
+    parser.add_argument(
+        "--marker-every", type=int, default=5, help="Marker und Minimap nur in jeder n-ten Zeile"
+    )
     parser.add_argument("--out", type=Path)
     parser.add_argument("--config", default="config.yaml")
     return parser.parse_args(argv)
@@ -122,13 +188,19 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     config = load_config(args.config)
-    rows = timeline(args.video, config, args.step)
+    rows = timeline(args.video, config, args.step, args.marker_every)
     out = args.out or Path("debug") / "replay" / f"{args.video.parent.name}_{args.video.stem}.csv"
     write_csv(rows, out)
     for start, end, name, count in segments(rows, args.min_rows):
         print(f"{start:9.2f}s - {end:9.2f}s  {name:<12}  {count} Frames")
     dropped = drops(rows, config["vision"]["confirm"])
     print("Abwürfe bei:", ", ".join(f"{t:.1f}s" for t in dropped) or "keine")
+    visits = zone_visits(rows, config["vision"]["confirm"])
+    shown = [f"{a:.1f}s-{b:.1f}s" if b is not None else f"{a:.1f}s-Ende" for a, b in visits]
+    print("In der Zone:", ", ".join(shown) or "nie")
+    brake = config["maps"]["default"]["brake_distance"]
+    brakes = brake_times(rows, config["flight"]["distance_history"], brake)
+    print(f"Bremsen ({brake} m vor der Zone) bei:", ", ".join(f"{t:.1f}s" for t in brakes) or "nie")
     print(f"Timeline gespeichert: {out}")
     return 0
 

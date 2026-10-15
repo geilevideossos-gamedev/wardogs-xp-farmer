@@ -62,7 +62,7 @@ Tasten aus einem OBS-Video mit Tasten-Overlay auslesen (schreibt `<video>.inputs
 .venv\Scripts\python -m tools.overlay_inputs wardogs_daten\Video\join+Bakurani.mp4
 ```
 
-Ablauf der Crate-Schleife über ein Video anzeigen (Kaufmenü, Flug zur Zone, Rückflug, gelandet, Abwürfe; Tabelle landet in `debug/replay/…`):
+Ablauf der Crate-Schleife über ein Video anzeigen (Kaufmenü, Flug zur Zone, Rückflug, gelandet, Abwürfe, wann der Bot „in der Zone“ erkannt hätte und wo er bremsen würde; Tabelle landet in `debug/replay/…`):
 
 ```powershell
 .venv\Scripts\python -m tools.replay wardogs_daten\Video\join+Bakurani.mp4

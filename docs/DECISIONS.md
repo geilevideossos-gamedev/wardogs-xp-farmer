@@ -130,4 +130,4 @@ Format je Eintrag: Datum, Entscheidung, Grund, verworfene Alternativen.
 ## 2026-10-15 – Video-Abgleich als eigener Test-Marker
 
 - **Entscheidung:** `tests/test_replay_videos.py` mit Marker `videos`, per `addopts` im Standardlauf abgewählt; Aufruf `pytest -m videos`.
-- **Grund:** Videos liegen nur lokal (1,1 GB, nicht im Repo) und der Lauf dauert ~2 min.
+- **Grund:** Videos liegen nur lokal (1,1 GB, nicht im Repo) und der Lauf dauert einige Minuten. Marker und Minimap werden nur in jeder 5. Zeile (2 Bilder/s) gelesen, weil die Marker-Suche ~100 ms pro Bild kostet.

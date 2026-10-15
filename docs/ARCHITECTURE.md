@@ -191,7 +191,7 @@ Exit-Codes: 0 Stopp/fertig, 1 unerwarteter Fehler, 2 Watchdog (unbekannter Zusta
 
 ### `replay.py` – Layer-1-Timeline
 
-`timeline(video, config, step)`: jedes `step`-te Frame auf `game_region` skalieren, `readings(vision, frame)` (lakota, menu, crate, speed, agl, buy_prompt, delivered, first_aid, damaged), dazu `situation(row, landed_agl, landed_speed)`:
+`timeline(video, config, step, marker_every)`: jedes `step`-te Frame auf `game_region` skalieren, `readings(vision, frame)` (lakota, menu, crate, speed, agl, buy_prompt, delivered, first_aid, damaged). In jeder `marker_every`-ten Zeile mit Heli zusätzlich `marker_readings` (zone = `"CZ"`/`"HZ"`/`""`, distance, minimap, hq), sonst `None` (Marker-Suche ~100 ms/Bild). Dazu `situation(row, landed_agl, landed_speed)`:
 
 | Situation | Bedingung (in dieser Reihenfolge) |
 |---|---|
@@ -202,10 +202,10 @@ Exit-Codes: 0 Stopp/fertig, 1 unerwarteter Fehler, 2 Watchdog (unbekannter Zusta
 | `LANDED_BASE` / `LANDED` | AGL ≤ `landed_agl` und Tempo ≤ `landed_speed`, mit/ohne Kauf-Hinweis |
 | `TO_ZONE` / `TO_BASE` | in der Luft mit/ohne Kiste |
 
-`segments(rows, min_rows)` fasst gleiche Situationen zusammen und schluckt kürzere Abschnitte. `drops(rows, confirm)` = Abwurfzeitpunkte. CSV nach `debug/replay/<ordner>_<stem>.csv`. `tests/test_replay_videos.py` (Marker `videos`, nur lokal mit Videos) vergleicht Abwürfe, Kaufmenüs, Schaden und Tod mit `docs/ANALYSIS.md`.
+`segments(rows, min_rows)` fasst gleiche Situationen zusammen und schluckt kürzere Abschnitte. `drops(rows, confirm)` = Abwurfzeitpunkte. `zone_visits(rows, confirm)` = (Eintritt, Austritt) nach den Regeln von `CrateLoop.drop`/`leave` (rein: HZ + Minimap, raus: CZ oder kein Marker und Minimap ohne Färbung, je `confirm` Marker-Zeilen in Folge). `brake_times(rows, history, brake_distance)` = erster Zeitpunkt pro Hinflug (Kiste geladen), an dem der Median der letzten `history` CZ-Entfernungen ≤ `brake_distance` ist. CSV nach `debug/replay/<ordner>_<stem>.csv`. `tests/test_replay_videos.py` (Marker `videos`, nur lokal mit Videos) vergleicht Abwürfe, Kaufmenüs, Schaden und Tod mit `docs/ANALYSIS.md` und prüft für jeden Abwurf: Zonen-Besuch erkannt, Bremspunkt vor dem Eintritt, kein HQ-Marker in der Zone, HQ-Marker kurz nach dem Verlassen.
 
 ## Tests
 
 - `tests/fixtures/`: zugeschnittene Frames aus allen drei Videos + `fixtures.json` (`file`, `x`, `y` = Position des Ausschnitts im 1920×1080-Frame, erwartete Werte). Tests setzen den Ausschnitt in ein schwarzes Vollbild und rufen den Detektor auf
-- `tests/test_crate_loop.py`: simulierte Welt (Höhe, Tempo, Marker reagieren auf Tasten) für jeden Schritt und eine ganze Runde
+- `tests/test_crate_loop.py`: simulierte Welt nach Daniels Flugmodell (Neigung bleibt nach W/S stehen, Shift hält bei 20° die Höhe, ohne Taste Schweben), 2D-Position mit Kurs, Zone mit Radius (CZ-Entfernung zum Rand, HZ innen, Minimap-Färbung), HQ in der Zone unsichtbar, Kauf-Hinweis nur nah an der Base und tief. Tests für jeden Schritt und eine ganze Runde; `assert_never_low_and_fast` prüft das Höchsttempo je Höhe über den ganzen Flug
 - `pytest -m videos`: langsamer Abgleich mit den Videos (Standardlauf überspringt ihn)
