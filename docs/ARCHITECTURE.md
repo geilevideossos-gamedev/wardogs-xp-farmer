@@ -11,6 +11,7 @@
 | `logs.py` | `setup_logging(root, level, name)` → `logs/<YYYY-MM-DD>/<name>_<HHMMSS>.log` + Konsole, gibt Run-Verzeichnis zurück. `save_debug_screenshot(run_dir, frame, reason)` → `<run_dir>/screenshots/<HHMMSS_ffffff>_<reason>.png` |
 | `main.py` | CLI `python -m heli_farmer.main [--dry-run] [--hold-test] [--config]`. Startet Killswitch, dann `hold_test` oder `bot_loop`. Exit-Codes: 0 Stopp, 1 Fehler, 2 Watchdog |
 | `detectors.py` | `Vision(config["vision"])`: Detektoren `frame → Ergebnis` (siehe unten). Stubs `on_server`, `in_team_blue` (→ `None`) für Layer 3/4 |
+| `flight.py` | `Trend` (Änderungsrate über `history_s`), `Pilot`: Regler für Höhe (Shift/Ctrl), Tempo (W/S-Tipps), Gieren (Q/E-Pulse), Sinkrate |
 | `states.py` | Hierarchische State Machine: `detect`, `classify`, `Watchdog`, `StateMachine` |
 
 ## Detektoren (`Vision`)

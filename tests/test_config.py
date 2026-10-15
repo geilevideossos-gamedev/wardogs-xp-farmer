@@ -22,7 +22,13 @@ def test_without_local_config(tmp_path):
 def test_repo_config_has_required_sections():
     config = load_config("config.yaml")
 
-    assert config["keys"] == {"stop": "f2", "shop": "b", "drop": "g", "record": "f9"}
+    assert config["keys"]["stop"] == "f2"
+    assert {config["keys"][k] for k in ("shop", "drop", "up", "down")} == {
+        "b",
+        "g",
+        "shift",
+        "ctrl",
+    }
     assert config["game_region"]["width"] == 1920
     assert config["game_region"]["height"] == 1080
     assert config["timeouts"]["unknown_state_s"] > 0

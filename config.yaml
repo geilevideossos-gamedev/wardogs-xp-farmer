@@ -9,6 +9,12 @@ keys:
   shop: b
   drop: g
   record: f9
+  up: shift
+  down: ctrl
+  forward: w
+  back: s
+  yaw_left: q
+  yaw_right: e
 
 loop:
   tick_s: 0.1
@@ -124,3 +130,34 @@ vision:
     band: [60, 1000]
     anchor: [16, 16]
     min_score: 0.62
+
+flight:
+  tick_s: 0.05
+  center_x: 960
+  edge_margin: 200
+  tap_s: 0.2
+  history_s: 1.0
+  agl_band: 8
+  agl_lookahead_s: 1.5
+  speed_band: 15
+  speed_gain: 0.2
+  accel_max: 15
+  accel_band: 6
+  speed_tap_interval_s: 0.7
+  yaw_deadband: 40
+  yaw_s_per_px: 0.0015
+  yaw_min_s: 0.08
+  yaw_max_s: 0.6
+  yaw_interval_s: 0.4
+  climb_timeout_s: 30
+  turn_timeout_s: 25
+  leg_timeout_s: 240
+  drop_timeout_s: 3
+  delivered_wait_s: 3
+  landed_agl: 1
+  landed_speed: 3
+  landed_hold_s: 2
+  land_timeout_s: 90
+  sink_rate: 4
+  sink_rate_min: 1.5
+  sink_band: 1

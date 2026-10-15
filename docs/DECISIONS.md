@@ -68,3 +68,9 @@ Format je Eintrag: Datum, Entscheidung, Grund, verworfene Alternativen.
 - **Entscheidung:** Ziel Zone = Zonen-Marker (Ring „CZ“/„HZ“), Ziel Base = HQ-Marker. Richtung = x-Abstand zur Bildmitte, Ankunft = Marker tief im Bild (`zone_arrive_y`, `hq_approach_y`) bzw. Kauf-Hinweis. Suche über das ganze Band mit Template, dessen maskierter Rand mit dem Mittelwert gefüllt ist.
 - **Grund:** Zonen-Marker immer vorhanden (außerhalb des Bildes am Rand), HQ-Marker sichtbar sobald voraus. Keine absolute Position nötig. Mittelwert-Füllung erlaubt die schnelle FFT-Suche (~40/60 ms statt ~150 ms mit Maske) bei gleicher Trefferquote.
 - **Verworfen:** Position über Minimap-Abgleich (braucht Kartenbilder pro Map), Kompass (in den Videos vom Overlay verdeckt, nicht validierbar; Erweiterung möglich), Suche in halber Auflösung (Marker zu klein, viele Fehltreffer), Zonen-Eintritt über Banner „CONTROL ZONE“ oder Minimap-Farbe (kurzlebig bzw. unzuverlässig).
+
+## 2026-10-15 – Flug als Regelkreis mit Pulsen
+
+- **Entscheidung:** `Pilot` regelt jede Achse getrennt pro Tick: Höhe als Zweipunktregler mit Hysterese und Vorhersage (Shift/Ctrl halten), Tempo über eine Soll-Beschleunigung mit kurzen W/S-Pulsen, Gieren mit Q/E-Pulsen proportional zum Marker-Abstand, Landung über Soll-Sinkrate. Pulse sind nicht blockierend.
+- **Grund:** Tastatur ist binär; Daniel fliegt genauso (Shift lange gehalten, W/S/A/D kurz getippt, Median 0,22 s). Unbekanntes Flugmodell (hält der Heli die Neigung? sinkt er ohne Shift?) wird durch Messen der Änderungsrate nachgeregelt statt angenommen. Alle Parameter in `flight` und `maps`.
+- **Verworfen:** Abspielen aufgenommener Tastenfolgen (bricht bei jeder Abweichung, laut Vorgabe verboten), stufenlose PID-Ausgabe (nicht mit Tasten umsetzbar).
