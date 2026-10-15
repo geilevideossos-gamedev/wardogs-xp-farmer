@@ -126,3 +126,41 @@ def test_dry_run_only_logs(caplog):
 )
 def test_key_name(key, name):
     assert key_name(key) == name
+
+
+def test_hold_sends_only_on_change():
+    _, backend, inp, _ = make()
+    inp.hold("shift", True)
+    inp.hold("shift", True)
+    inp.hold("shift", False)
+    inp.hold("shift", False)
+    assert backend.keyDown.call_args_list == [call("shift")]
+    assert backend.keyUp.call_args_list == [call("shift")]
+
+
+def test_tap_presses_and_releases():
+    _, backend, inp, _ = make()
+    inp.tap("b", 0)
+    backend.keyDown.assert_called_once_with("b")
+    backend.keyUp.assert_called_once_with("b")
+    assert not inp.is_down("b")
+
+
+def test_click_moves_then_clicks():
+    _, backend, inp, _ = make()
+    inp.click(955, 520)
+    backend.moveTo.assert_called_once_with(955, 520)
+    backend.mouseDown.assert_called_once_with(button="left")
+    backend.mouseUp.assert_called_once_with(button="left")
+
+
+def test_release_overdue_lets_go_of_long_holds():
+    now = [0.0]
+    backend = Mock()
+    inp = Input(threading.Event(), backend=backend, clock=lambda: now[0])
+    inp.key_down("shift")
+    now[0] = 5.0
+    inp.key_down("w")
+    now[0] = 21.0
+    assert inp.release_overdue(20) == ["shift"]
+    assert inp.is_down("w") and not inp.is_down("shift")
