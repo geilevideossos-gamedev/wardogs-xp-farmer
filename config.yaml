@@ -29,3 +29,76 @@ recording:
 logging:
   root: logs
   level: INFO
+
+vision:
+  assets: assets
+  confirm: 3
+  digits:
+    template: digits.png
+    tophat: 45
+    min_ink: 6
+    min_score: 0.8
+    search: 2
+  speed:
+    right: 857.5
+    top: 921
+    slots: 3
+  agl:
+    right: 1121.5
+    top: 921
+    slots: 4
+  lakota:
+    template: label_lakota.png
+    x: 1788
+    y: 903
+    search: 8
+    min_score: 0.55
+  crate:
+    template: badge_g.png
+    x: 1784
+    y: 921
+    search: 8
+    min_score: 0.55
+  buy_prompt:
+    template: prompt_buy.png
+    x: 866
+    y: 804
+    search: 8
+    min_score: 0.6
+  delivered:
+    template: popup_delivered.png
+    x: 866
+    y: 806
+    search: 10
+    min_score: 0.6
+  first_aid:
+    template: first_aid.png
+    x: 926
+    y: 938
+    search: 14
+    min_score: 0.65
+  menu_main:
+    template: menu_garage.png
+    x: 220
+    y: 22
+    search: 8
+    min_score: 0.8
+  menu_logistics:
+    template: menu_logistics.png
+    x: 221
+    y: 31
+    search: 8
+    min_score: 0.8
+  damage:
+    region: [955, 908, 11, 24]
+    min_red: 60
+  zone_marker:
+    template: marker_zone.png
+    band: [60, 1000]
+    anchor: [15, 15]
+    min_score: 0.6
+  hq_marker:
+    template: marker_hq.png
+    band: [60, 1000]
+    anchor: [16, 16]
+    min_score: 0.62

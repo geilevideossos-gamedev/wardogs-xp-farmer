@@ -1,0 +1,274 @@
+[
+ {
+  "file": "hud_bakurani_149.png",
+  "x": 780,
+  "y": 905,
+  "speed": 262,
+  "agl": 178
+ },
+ {
+  "file": "hud_bakurani_244.png",
+  "x": 780,
+  "y": 905,
+  "speed": 50,
+  "agl": 50
+ },
+ {
+  "file": "hud_bakurani_343.png",
+  "x": 780,
+  "y": 905,
+  "speed": 278,
+  "agl": 38
+ },
+ {
+  "file": "hud_ozeti_a_196.png",
+  "x": 780,
+  "y": 905,
+  "speed": 317,
+  "agl": 53
+ },
+ {
+  "file": "hud_ozeti_a_347.png",
+  "x": 780,
+  "y": 905,
+  "speed": 0,
+  "agl": 0
+ },
+ {
+  "file": "hud_ozeti_a_454.png",
+  "x": 780,
+  "y": 905,
+  "speed": 236,
+  "agl": 56
+ },
+ {
+  "file": "hud_ozeti_b_158.png",
+  "x": 780,
+  "y": 905,
+  "speed": 297,
+  "agl": 59
+ },
+ {
+  "file": "hud_ozeti_b_383.png",
+  "x": 780,
+  "y": 905,
+  "speed": 44,
+  "agl": 10
+ },
+ {
+  "file": "hud_ozeti_b_443.png",
+  "x": 780,
+  "y": 905,
+  "speed": 95,
+  "agl": 40
+ },
+ {
+  "file": "badges_bakurani_149.png",
+  "x": 1700,
+  "y": 895,
+  "lakota": true,
+  "crate": true
+ },
+ {
+  "file": "badges_bakurani_200.png",
+  "x": 1700,
+  "y": 895,
+  "lakota": true,
+  "crate": false
+ },
+ {
+  "file": "badges_ozeti_a_196.png",
+  "x": 1700,
+  "y": 895,
+  "lakota": true,
+  "crate": true
+ },
+ {
+  "file": "badges_ozeti_a_250.png",
+  "x": 1700,
+  "y": 895,
+  "lakota": true,
+  "crate": false
+ },
+ {
+  "file": "badges_ozeti_b_158.png",
+  "x": 1700,
+  "y": 895,
+  "lakota": true,
+  "crate": true
+ },
+ {
+  "file": "badges_ozeti_b_221.png",
+  "x": 1700,
+  "y": 895,
+  "lakota": true,
+  "crate": false
+ },
+ {
+  "file": "badges_bakurani_104.png",
+  "x": 1700,
+  "y": 895,
+  "lakota": false,
+  "crate": false
+ },
+ {
+  "file": "damage_ozeti_a_250.png",
+  "x": 940,
+  "y": 900,
+  "damaged": true
+ },
+ {
+  "file": "damage_ozeti_a_196.png",
+  "x": 940,
+  "y": 900,
+  "damaged": false
+ },
+ {
+  "file": "damage_ozeti_b_330.png",
+  "x": 940,
+  "y": 900,
+  "damaged": true
+ },
+ {
+  "file": "damage_bakurani_149.png",
+  "x": 940,
+  "y": 900,
+  "damaged": false
+ },
+ {
+  "file": "prompt_bakurani_110.png",
+  "x": 850,
+  "y": 795,
+  "buy_prompt": true,
+  "delivered": false
+ },
+ {
+  "file": "prompt_ozeti_a_150.png",
+  "x": 850,
+  "y": 795,
+  "buy_prompt": true,
+  "delivered": false
+ },
+ {
+  "file": "prompt_ozeti_b_110.png",
+  "x": 850,
+  "y": 795,
+  "buy_prompt": true,
+  "delivered": false
+ },
+ {
+  "file": "prompt_bakurani_149.png",
+  "x": 850,
+  "y": 795,
+  "buy_prompt": false,
+  "delivered": false
+ },
+ {
+  "file": "prompt_bakurani_175.png",
+  "x": 850,
+  "y": 795,
+  "buy_prompt": false,
+  "delivered": true
+ },
+ {
+  "file": "prompt_ozeti_a_219.png",
+  "x": 850,
+  "y": 795,
+  "buy_prompt": false,
+  "delivered": true
+ },
+ {
+  "file": "prompt_ozeti_b_174.png",
+  "x": 850,
+  "y": 795,
+  "buy_prompt": false,
+  "delivered": true
+ },
+ {
+  "file": "first_aid_ozeti_b_344.png",
+  "x": 900,
+  "y": 925,
+  "first_aid": true
+ },
+ {
+  "file": "first_aid_bakurani_149.png",
+  "x": 900,
+  "y": 925,
+  "first_aid": false
+ },
+ {
+  "file": "menu_bakurani_104.png",
+  "x": 200,
+  "y": 10,
+  "menu": "main"
+ },
+ {
+  "file": "menu_bakurani_105.png",
+  "x": 200,
+  "y": 10,
+  "menu": "logistics"
+ },
+ {
+  "file": "menu_ozeti_a_144.png",
+  "x": 200,
+  "y": 10,
+  "menu": "logistics"
+ },
+ {
+  "file": "menu_ozeti_b_248.png",
+  "x": 200,
+  "y": 10,
+  "menu": "main"
+ },
+ {
+  "file": "menu_ozeti_a_126.png",
+  "x": 200,
+  "y": 10,
+  "menu": null
+ },
+ {
+  "file": "zone_bakurani_145.png",
+  "x": 854,
+  "y": 370
+ },
+ {
+  "file": "zone_bakurani_199.png",
+  "x": 60,
+  "y": 266
+ },
+ {
+  "file": "zone_ozeti_a_371.png",
+  "x": 1007,
+  "y": 436
+ },
+ {
+  "file": "zone_ozeti_a_261.png",
+  "x": 60,
+  "y": 262
+ },
+ {
+  "file": "zone_ozeti_b_118.png",
+  "x": 856,
+  "y": 476
+ },
+ {
+  "file": "zone_ozeti_b_307.png",
+  "x": 60,
+  "y": 377
+ },
+ {
+  "file": "hq_bakurani_224.png",
+  "x": 590,
+  "y": 360
+ },
+ {
+  "file": "hq_ozeti_a_251.png",
+  "x": 785,
+  "y": 359
+ },
+ {
+  "file": "hq_ozeti_b_216.png",
+  "x": 1037,
+  "y": 363
+ }
+]
