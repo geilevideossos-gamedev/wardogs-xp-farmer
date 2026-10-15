@@ -86,4 +86,17 @@ Bitte bei `full_loop` möglichst die Route fliegen, die du für sicher hältst �
 
 ## Eigene OBS-Videos
 
-Normale OBS-Aufnahmen (MP4, 1920×1080) funktionieren auch mit den Analyse-Tools, aber ohne Tasten-Log. Für Priorität 1 bitte das Aufnahme-Tool verwenden.
+OBS-Aufnahmen (MP4, 1920×1080, 60 fps) funktionieren genauso gut, wenn das **Tasten-Overlay** eingeblendet ist (Tasten oben, gedrückt = gelb). `tools/overlay_inputs.py` liest daraus die Tasten aus, B und G erkennt es am Bild. Lege die Videos in `wardogs_daten/Video/` (wird nicht hochgeladen).
+
+- Overlay an derselben Stelle und in derselben Größe lassen wie in den bisherigen Videos. Wenn du es verschiebst: Bescheid geben, dann muss `overlay` in `config.yaml` angepasst werden
+- Das Overlay verdeckt oben mittig den Kompass und die Zonen-Anzeige. Für einzelne Aufnahmen ohne Overlay (siehe unten) bitte ausblenden
+
+## Was noch fehlt (Stand nach der ersten Auswertung)
+
+Details: `docs/ANALYSIS.md`.
+
+| Was | Warum | Wie |
+|---|---|---|
+| **Zestafona**: 2 komplette Runden vom Kaufen bis zur Landung | Das Video `join+Zestafona.mp4` spielt laut Ladebildschirm auf Ozeti, für Zestafona gibt es keine Daten | OBS mit Overlay, Map-Name in den Dateinamen |
+| 3–4 Screenshots im Flug **ohne Overlay** | Kompass und Zonen-Banner („CONTROL ZONE“) sind in den Videos verdeckt | Overlay ausblenden, je einen Screenshot beim Anflug auf die Zone, in der Zone und über der Base |
+| 20 s **Schwebeflug ohne Tasten** in ca. 100 m Höhe | Zeigt, ob der Heli ohne Shift sinkt und ob er nach W/S die Neigung hält. Hilft beim Einstellen der Regler | OBS mit Overlay: steigen, alle Tasten los, warten; dann einmal kurz W tippen und 10 s warten |
