@@ -13,9 +13,9 @@ Aufnahmen bleiben auf deinem Rechner im Ordner `recordings/` und werden **nicht*
 ## So nimmst du auf
 
 1. PowerShell im Projektordner öffnen
-2. Tool starten, z. B. für die Map „harbor“ und den kompletten Crate-Ablauf:
+2. Tool starten, z. B. für die Map „bakurani“ und den kompletten Crate-Ablauf:
    ```powershell
-   .venv\Scripts\python -m tools.record --map harbor --seq full_loop
+   .venv\Scripts\python -m tools.record --map bakurani --seq full_loop
    ```
    Im Fenster steht dann `Bereit: F9 startet/stoppt eine Aufnahme, F2 beendet`
 3. Ins Spiel wechseln, an den Startpunkt des Ablaufs gehen
@@ -25,7 +25,7 @@ Aufnahmen bleiben auf deinem Rechner im Ordner `recordings/` und werden **nicht*
 7. Für eine weitere Aufnahme derselben Sequenz einfach wieder **F9** (neuer Ordner)
 8. **F2** beendet das Tool (eine laufende Aufnahme wird vorher gespeichert)
 
-Map-Namen: kurz, klein, ohne Leerzeichen und für jede Map immer gleich (z. B. `harbor`, `desert`, `forest`).
+Map-Namen: kurz, klein, ohne Leerzeichen und für jede Map immer gleich (`bakurani`, `ozeti`, `zestafona`). Die Map erst im Spiel bestimmen (Minimap, Base), nicht im Ladebildschirm oder in der Serverliste: die zeigen nach Rundenende oft noch die alte Map.
 
 Ergebnis pro Aufnahme: `recordings/<map>/<sequenz>_<datum>_<uhrzeit>/` mit
 
@@ -77,7 +77,7 @@ Bitte bei `full_loop` möglichst die Route fliegen, die du für sicher hältst �
 
 | Sequenz | Was genau | Wie oft |
 |---|---|---|
-| `join` | Vom Hauptmenü → Serverliste → EU Central Server mit 20–80 Spielern → Join Match, bis zur Team-Auswahl. Als `--map` den Namen der Map nehmen, die geladen wird | 3× insgesamt |
+| `join` | Vom Hauptmenü → Serverliste → EU Central Server mit 20–80 Spielern → Join Match, bis zur Team-Auswahl. Als `--map` die Map nehmen, die du danach im Spiel siehst (nicht die aus dem Ladebildschirm) | 3× insgesamt |
 
 ## Bekannte Grenzen
 
@@ -97,6 +97,5 @@ Details: `docs/ANALYSIS.md`.
 
 | Was | Warum | Wie |
 |---|---|---|
-| **Zestafona**: 2 komplette Runden vom Kaufen bis zur Landung | Das Video `join+Zestafona.mp4` spielt laut Ladebildschirm auf Ozeti, für Zestafona gibt es keine Daten | OBS mit Overlay, Map-Name in den Dateinamen |
 | 3–4 Screenshots im Flug **ohne Overlay** | Kompass und Zonen-Banner („CONTROL ZONE“) sind in den Videos verdeckt | Overlay ausblenden, je einen Screenshot beim Anflug auf die Zone, in der Zone und über der Base |
 | 20 s **Schwebeflug ohne Tasten** in ca. 100 m Höhe | Zeigt, ob der Heli ohne Shift sinkt und ob er nach W/S die Neigung hält. Hilft beim Einstellen der Regler | OBS mit Overlay: steigen, alle Tasten los, warten; dann einmal kurz W tippen und 10 s warten |

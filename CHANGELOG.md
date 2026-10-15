@@ -25,3 +25,7 @@ Alle wichtigen Änderungen an diesem Projekt. Format nach [Keep a Changelog](htt
 ### Geändert
 
 - `tools/replay.py` zeigt jetzt den Ablauf der Crate-Schleife pro Video (Kaufmenü, Flug zur Zone, Rückflug, gelandet, beschädigt, tot) und die Abwurfzeitpunkte. `python -m pytest -m videos` gleicht das mit `docs/ANALYSIS.md` ab
+
+### Behoben
+
+- Das Video `join+Zestafona.mp4` wird jetzt richtig als Zestafona geführt (Doku und Testbilder). Der Ladebildschirm hatte fälschlich Ozeti gezeigt, weil der Server nach Rundenende noch die alte Map anzeigt

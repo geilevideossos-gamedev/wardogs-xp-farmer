@@ -8,11 +8,11 @@ Stand 2026-10-15. Grundlage für Detektoren und Layer 1. Alle Koordinaten in Pix
 |---|---|
 | `Video/join+Bakurani.mp4` | 403 s, 60 fps, Map **BAKURANI**, Server Official EU Central #9, 2 komplette Crate-Runden |
 | `Video/join+Ozeti.mp4` | 512 s, Map **OZETI**, 1 Fehl-Join (Team nicht wählbar), 2 Runden, 1 Crash in der Base |
-| `Video/join+Zestafona.mp4` | 503 s, Map laut Ladebildschirm und Serverliste **OZETI** (Server #80), nicht Zestafona. 3 Runden, 1 Absturz in Bäume mit Tod |
+| `Video/join+Zestafona.mp4` | 503 s, Map **ZESTAFONA** (Server #80). Ladebildschirm und Serverliste zeigen fälschlich „Ozeti“ (Server zeigt nach Rundenende die alte Map). 3 Runden, 1 Absturz in Bäume mit Tod |
 | `Images/*.png` | Kommentierte Screenshots (Dateiname = Kommentar): Kauf-Hinweis, falscher Heli, Crash in der Base, Erste-Hilfe-Symbol, Team ausgegraut → ESC → Leave, Baum-Crash, Warten auf Welt, Leave-Dialog, Raketentreffer |
 | `Audio/*.mp3` | Raketenwarnung: nach 0,66 s Dauerpiepen mit **V** Flares werfen (nicht ausgewertet, braucht Audio-Capture) |
 
-Für Zestafona gibt es **keine** Aufnahme. Ozeti A/B haben unterschiedliche Basen (A: Beton/Industrie, bewölkt; B: Wiese, sonnig).
+Jede Map hat eine eigene Base (Ozeti: Beton/Industrie, bewölkt; Zestafona: Wiese, sonnig). Die Map wird nie aus Ladebildschirm oder Serverliste abgeleitet (zeigen nach Rundenende die alte Map), Fixture-Namen folgen dem Video.
 
 Analyse-Werkzeuge: `tools/overlay_inputs.py` (Tasten), `tools/replay.py` (Layer-1-Timeline), Einzelbilder per `tools/extract_frames.py`. Zwischenergebnisse liegen nur lokal (`debug/`).
 
@@ -28,7 +28,7 @@ Analyse-Werkzeuge: `tools/overlay_inputs.py` (Tasten), `tools/replay.py` (Layer-
 
 Zeiten in Sekunden. Tasten B/G aus `*.inputs.jsonl` (aus dem Bild abgeleitet).
 
-| Phase | Bakurani | Ozeti A | Ozeti B |
+| Phase | Bakurani | Ozeti | Zestafona |
 |---|---|---|---|
 | Spielstart, Hauptmenü | 0–30 | 0–12 | 0–6 |
 | Serverliste → Join | 33–41 | 18–36, nochmal 78–96 | 6–12 |
@@ -56,7 +56,7 @@ Positionen sind bildschirmfest (geprüft über alle 1.420 Sekundenbilder). Templ
 | Im Heli (Z20) | Text „Z20 LAKOTA“ unten rechts | x 1788, y 903 (101×17) | Template `label_lakota.png`, TM_CCOEFF_NORMED ≥ 0,55 (Treffer ≥ 0,7, sonst ≤ 0,3) |
 | Palette geladen | weißes „G“-Feld über dem Kisten-Symbol, Zähler „001“ | x 1784, y 921 (26×27) | `badge_g.png` ≥ 0,55. Ohne Kiste fehlen G-Feld und Symbol, Zähler „000“ blass. Vor hellem Hintergrund sinkt der Wert kurz auf ~0,57 → Zustandswechsel erst nach 3 gleichen Messungen (`vision.confirm`) |
 | Abwurf erfolgt | G-Feld verschwindet; zusätzlich Hinweis „SUPPLIES DELIVERED“ + „+$2,500“ mittig unter dem Heli, oben rechts „SUPPLIES DELIVERED +$2,500“ | Hinweis x 866, y 806 | `popup_delivered.png` ≥ 0,6, ca. 3–4 s sichtbar |
-| Kaufbereich der Base | Hinweis „[B] BUY AMMO / SUPPLIES“ | x 866, y 804 (190×25) | `prompt_buy.png` ≥ 0,6. Erscheint schon im Tiefflug nahe der Base (Ozeti B 239 s), nicht nur am Boden |
+| Kaufbereich der Base | Hinweis „[B] BUY AMMO / SUPPLIES“ | x 866, y 804 (190×25) | `prompt_buy.png` ≥ 0,6. Erscheint schon im Tiefflug nahe der Base (Zestafona 239 s), nicht nur am Boden |
 | Kaufmenü offen | Titel „GARAGE VENDOR“ (Hauptseite) bzw. „// Garage Vendor / LOGISTICS“ | x 220, y 22 / x 221, y 31 | `menu_garage.png` ≥ 0,8, `menu_logistics.png` ≥ 0,8. Fahrzeughändler („VEHICLE VENDOR“) erreicht nur 0,6–0,7 |
 | Gelandet | SPD „00“ und AGL „0“ | SPD rechts x≈862, AGL rechts x≈1126, Zeile y 923–933 | Ziffernleser (siehe unten) |
 | Heli beschädigt | Heli-Silhouette in der Lageanzeige rot statt grau | Bereich x 955–966, y 908–932 | Median `R − max(G,B)` ≥ 60 (normal < 20, rot > 120) |
@@ -100,7 +100,7 @@ Template-Suche für Marker: Graustufen, TM_CCOEFF_NORMED, außerhalb der Maske m
 | V | Flares | Steuerhinweis, Audio-Notiz |
 | F | Einsteigen; 7 s halten im Erste-Hilfe-Bildschirm = aufgeben und neu spawnen | Bild-Notiz |
 
-Am Boden bewirkt Gieren nichts (Ozeti A 353–360 s: E gehalten, Marker steht).
+Am Boden bewirkt Gieren nichts (Ozeti 353–360 s: E gehalten, Marker steht).
 
 ## Kaufablauf (Ammo-Palette)
 
@@ -121,15 +121,15 @@ Klickpositionen in `config.yaml` → `buy.clicks`.
 | Bakurani zurück 1 | 79 s | 216 | 103 | 75 % | 20 % | 25 / 28 / 24 / 29 / 11 |
 | Bakurani hin 2 | 64 s | 260 | 64 | 79 % | 5 % | 21 / 21 / 13 / 13 / 5 |
 | Bakurani zurück 2 | 78 s | 246 | 50 | 64 % | 16 % | 21 / 44 / 32 / 41 / 1 |
-| Ozeti A hin 1 | 73 s | 178 | 52 | 70 % | 12 % | 20 / 26 / 25 / 27 / 6 |
-| Ozeti A zurück 1 (beschädigt) | 84 s | 163 | 58 | 0 % | 8 % | 19 / 28 / 24 / 19 / 1 |
-| Ozeti A hin 2 | 93 s | 167 | 52 | 30 % | 20 % | 19 / 20 / 12 / 31 / 20 |
-| Ozeti A zurück 2 | 69 s | 228 | 57 | 60 % | 28 % | 9 / 21 / 18 / 32 / 2 |
-| Ozeti B hin 1 | 69 s | 230 | 58 | 70 % | 8 % | 35 / 39 / 8 / 18 / 1 |
-| Ozeti B zurück 1 | 75 s | 213 | 51 | 58 % | 26 % | 22 / 37 / 24 / 45 / 3 |
-| Ozeti B hin 2 | 59 s | 253 | 64 | 82 % | 12 % | 19 / 23 / 14 / 20 / 0 |
-| Ozeti B hin 3 | 69 s | 228 | 41 | 77 % | 6 % | 36 / 37 / 28 / 31 / 2 |
-| Ozeti B zurück 3 | 64 s | 241 | 43 | 59 % | 23 % | 25 / 35 / 27 / 30 / 5 |
+| Ozeti hin 1 | 73 s | 178 | 52 | 70 % | 12 % | 20 / 26 / 25 / 27 / 6 |
+| Ozeti zurück 1 (beschädigt) | 84 s | 163 | 58 | 0 % | 8 % | 19 / 28 / 24 / 19 / 1 |
+| Ozeti hin 2 | 93 s | 167 | 52 | 30 % | 20 % | 19 / 20 / 12 / 31 / 20 |
+| Ozeti zurück 2 | 69 s | 228 | 57 | 60 % | 28 % | 9 / 21 / 18 / 32 / 2 |
+| Zestafona hin 1 | 69 s | 230 | 58 | 70 % | 8 % | 35 / 39 / 8 / 18 / 1 |
+| Zestafona zurück 1 | 75 s | 213 | 51 | 58 % | 26 % | 22 / 37 / 24 / 45 / 3 |
+| Zestafona hin 2 | 59 s | 253 | 64 | 82 % | 12 % | 19 / 23 / 14 / 20 / 0 |
+| Zestafona hin 3 | 69 s | 228 | 41 | 77 % | 6 % | 36 / 37 / 28 / 31 / 2 |
+| Zestafona zurück 3 | 64 s | 241 | 43 | 59 % | 23 % | 25 / 35 / 27 / 30 / 5 |
 
 „hin“ zählt ab dem B-Druck (inkl. 2–5 s Kaufmenü).
 
@@ -150,7 +150,6 @@ Klickpositionen in `config.yaml` → `buy.clicks`.
 
 ## Offene Punkte
 
-- Zestafona fehlt als Aufnahme
 - Zonen-Marker „CZ“ vs. „HZ“: Bedeutung unklar (vermutlich außerhalb/innerhalb oder Kontrollstatus). Beide werden als Zonen-Marker behandelt
 - Unbekannt: Fällt der Heli ohne Shift im Schwebeflug? Hält er die Neigung nach einem W-Tipp? Regler sind darauf ausgelegt, beides zu messen und nachzuregeln
 - Raketenwarnung (Audio) und Flares (V) nicht umgesetzt

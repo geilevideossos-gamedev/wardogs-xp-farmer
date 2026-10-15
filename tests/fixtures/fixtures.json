@@ -21,42 +21,42 @@
   "agl": 38
  },
  {
-  "file": "hud_ozeti_a_196.png",
+  "file": "hud_ozeti_196.png",
   "x": 780,
   "y": 905,
   "speed": 317,
   "agl": 53
  },
  {
-  "file": "hud_ozeti_a_347.png",
+  "file": "hud_ozeti_347.png",
   "x": 780,
   "y": 905,
   "speed": 0,
   "agl": 0
  },
  {
-  "file": "hud_ozeti_a_454.png",
+  "file": "hud_ozeti_454.png",
   "x": 780,
   "y": 905,
   "speed": 236,
   "agl": 56
  },
  {
-  "file": "hud_ozeti_b_158.png",
+  "file": "hud_zestafona_158.png",
   "x": 780,
   "y": 905,
   "speed": 297,
   "agl": 59
  },
  {
-  "file": "hud_ozeti_b_383.png",
+  "file": "hud_zestafona_383.png",
   "x": 780,
   "y": 905,
   "speed": 44,
   "agl": 10
  },
  {
-  "file": "hud_ozeti_b_443.png",
+  "file": "hud_zestafona_443.png",
   "x": 780,
   "y": 905,
   "speed": 95,
@@ -77,28 +77,28 @@
   "crate": false
  },
  {
-  "file": "badges_ozeti_a_196.png",
+  "file": "badges_ozeti_196.png",
   "x": 1700,
   "y": 895,
   "lakota": true,
   "crate": true
  },
  {
-  "file": "badges_ozeti_a_250.png",
+  "file": "badges_ozeti_250.png",
   "x": 1700,
   "y": 895,
   "lakota": true,
   "crate": false
  },
  {
-  "file": "badges_ozeti_b_158.png",
+  "file": "badges_zestafona_158.png",
   "x": 1700,
   "y": 895,
   "lakota": true,
   "crate": true
  },
  {
-  "file": "badges_ozeti_b_221.png",
+  "file": "badges_zestafona_221.png",
   "x": 1700,
   "y": 895,
   "lakota": true,
@@ -112,19 +112,19 @@
   "crate": false
  },
  {
-  "file": "damage_ozeti_a_250.png",
+  "file": "damage_ozeti_250.png",
   "x": 940,
   "y": 900,
   "damaged": true
  },
  {
-  "file": "damage_ozeti_a_196.png",
+  "file": "damage_ozeti_196.png",
   "x": 940,
   "y": 900,
   "damaged": false
  },
  {
-  "file": "damage_ozeti_b_330.png",
+  "file": "damage_zestafona_330.png",
   "x": 940,
   "y": 900,
   "damaged": true
@@ -143,14 +143,14 @@
   "delivered": false
  },
  {
-  "file": "prompt_ozeti_a_150.png",
+  "file": "prompt_ozeti_150.png",
   "x": 850,
   "y": 795,
   "buy_prompt": true,
   "delivered": false
  },
  {
-  "file": "prompt_ozeti_b_110.png",
+  "file": "prompt_zestafona_110.png",
   "x": 850,
   "y": 795,
   "buy_prompt": true,
@@ -171,21 +171,21 @@
   "delivered": true
  },
  {
-  "file": "prompt_ozeti_a_219.png",
+  "file": "prompt_ozeti_219.png",
   "x": 850,
   "y": 795,
   "buy_prompt": false,
   "delivered": true
  },
  {
-  "file": "prompt_ozeti_b_174.png",
+  "file": "prompt_zestafona_174.png",
   "x": 850,
   "y": 795,
   "buy_prompt": false,
   "delivered": true
  },
  {
-  "file": "first_aid_ozeti_b_344.png",
+  "file": "first_aid_zestafona_344.png",
   "x": 900,
   "y": 925,
   "first_aid": true
@@ -209,19 +209,19 @@
   "menu": "logistics"
  },
  {
-  "file": "menu_ozeti_a_144.png",
+  "file": "menu_ozeti_144.png",
   "x": 200,
   "y": 10,
   "menu": "logistics"
  },
  {
-  "file": "menu_ozeti_b_248.png",
+  "file": "menu_zestafona_248.png",
   "x": 200,
   "y": 10,
   "menu": "main"
  },
  {
-  "file": "menu_ozeti_a_126.png",
+  "file": "menu_ozeti_126.png",
   "x": 200,
   "y": 10,
   "menu": null
@@ -237,22 +237,22 @@
   "y": 266
  },
  {
-  "file": "zone_ozeti_a_371.png",
+  "file": "zone_ozeti_371.png",
   "x": 1007,
   "y": 436
  },
  {
-  "file": "zone_ozeti_a_261.png",
+  "file": "zone_ozeti_261.png",
   "x": 60,
   "y": 262
  },
  {
-  "file": "zone_ozeti_b_118.png",
+  "file": "zone_zestafona_118.png",
   "x": 856,
   "y": 476
  },
  {
-  "file": "zone_ozeti_b_307.png",
+  "file": "zone_zestafona_307.png",
   "x": 60,
   "y": 377
  },
@@ -262,12 +262,12 @@
   "y": 360
  },
  {
-  "file": "hq_ozeti_a_251.png",
+  "file": "hq_ozeti_251.png",
   "x": 785,
   "y": 359
  },
  {
-  "file": "hq_ozeti_b_216.png",
+  "file": "hq_zestafona_216.png",
   "x": 1037,
   "y": 363
  }
