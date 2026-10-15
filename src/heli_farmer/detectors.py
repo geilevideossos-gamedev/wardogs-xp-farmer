@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import cv2
@@ -21,6 +21,8 @@ class Marker:
     x: int
     y: int
     score: float
+    kind: str = ""
+    distance: int | None = None
 
 
 def read_template(path: Path) -> np.ndarray:
@@ -49,13 +51,24 @@ class Vision:
         self._templates = {
             name: read_template(root / spec["template"])
             for name, spec in config.items()
-            if isinstance(spec, dict) and "template" in spec and name != "digits"
+            if isinstance(spec, dict) and "template" in spec and name not in ("digits", "distance")
         }
+        self._hz = read_template(root / config["zone_marker"]["hz_template"])
         sheet = read_template(root / config["digits"]["template"])
         width = sheet.shape[1] // 10
         glyphs = [sheet[:, i * width : (i + 1) * width].ravel() for i in range(10)]
         self._digits = np.array([g / np.linalg.norm(g) for g in glyphs])
         self._digit_shape = (sheet.shape[0], width)
+        distance = config["distance"]
+        sheet = read_template(root / distance["template"])
+        edges = np.cumsum([0, *distance["widths"]])
+        self._glyphs = {
+            char: sheet[:, edges[i] : edges[i + 1]] for i, char in enumerate(distance["glyphs"])
+        }
+        minimap = config["minimap"]
+        inner, outer = minimap["ring"]
+        yy, xx = np.mgrid[-outer : outer + 1, -outer : outer + 1]
+        self._ring = (np.hypot(xx, yy) >= inner) & (np.hypot(xx, yy) <= outer)
 
     def score(self, frame: np.ndarray, name: str) -> float:
         spec = self._config[name]
@@ -112,11 +125,78 @@ class Vision:
     def agl(self, frame: np.ndarray) -> int | None:
         return self._number(frame, self._config["agl"])
 
+    def asl(self, frame: np.ndarray) -> int | None:
+        return self._number(frame, self._config["asl"])
+
     def zone_marker(self, frame: np.ndarray) -> Marker | None:
-        return self._marker(frame, "zone_marker")
+        marker = self._marker(frame, "zone_marker")
+        if marker is None:
+            return None
+        return replace(
+            marker, kind=self._zone_kind(frame, marker), distance=self._distance(frame, marker)
+        )
 
     def hq_marker(self, frame: np.ndarray) -> Marker | None:
         return self._marker(frame, "hq_marker")
+
+    def minimap_in_zone(self, frame: np.ndarray) -> bool:
+        spec = self._config["minimap"]
+        x, y = spec["center"]
+        outer = spec["ring"][1]
+        patch = frame[y - outer : y + outer + 1, x - outer : x + outer + 1]
+        median = np.median(patch[self._ring], axis=0)
+        return bool(median.max() - median.min() >= spec["min_chroma"])
+
+    def _zone_kind(self, frame: np.ndarray, marker: Marker) -> str:
+        spec = self._config["zone_marker"]
+        x, y, width, height = spec["letter"]
+        left = marker.x - spec["anchor"][0] + x
+        top = marker.y - spec["anchor"][1] + y
+        roi = frame[top : top + height, left : left + width]
+        if roi.shape[:2] != (height, width):
+            return "CZ"
+        gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY).astype(np.float32)
+        letters = (slice(y, y + height), slice(x, x + width))
+        hz = best_match(gray, self._hz[letters])[0]
+        cz = best_match(gray, self._templates["zone_marker"][letters])[0]
+        return "HZ" if hz > cz else "CZ"
+
+    def _distance(self, frame: np.ndarray, marker: Marker) -> int | None:
+        spec = self._config["distance"]
+        dx, dy, width, height = spec["strip"]
+        roi = frame[marker.y + dy : marker.y + dy + height, marker.x + dx : marker.x + dx + width]
+        if marker.x + dx < 0 or roi.shape[:2] != (height, width):
+            return None
+        gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY).astype(np.float32)
+        maps = {
+            c: cv2.matchTemplate(gray, t, cv2.TM_CCOEFF_NORMED) for c, t in self._glyphs.items()
+        }
+        best = (-np.inf, "", 0.0)
+        for layout in spec["formats"]:
+            for shift in range(-spec["shift"], spec["shift"] + 1):
+                read = self._read_layout(maps, layout, -dx + shift)
+                if read[0] > best[0]:
+                    best = read
+        _, text, weakest = best
+        if not text or weakest < spec["min_score"]:
+            return None
+        return round(float(text[:-2]) * 1000) if text.endswith("km") else int(text[:-1])
+
+    def _read_layout(self, maps: dict, layout: str, center: int) -> tuple[float, str, float]:
+        spec = self._config["distance"]
+        advance = spec["advance"]
+        x = center - sum(advance[c] for c in layout) / 2
+        gain, text, weakest = 0.0, "", 1.0
+        for slot in layout:
+            if slot != " ":
+                chars = "0123456789" if slot == "d" else slot
+                lo, hi = max(0, round(x) - spec["slack"]), round(x) + spec["slack"] + 1
+                score, char = max((float(maps[c][:, lo:hi].max(initial=-1.0)), c) for c in chars)
+                gain += score - spec["min_gain"]
+                text += char
+                weakest = min(weakest, score)
+            x += advance[slot]
+        return gain, text, weakest
 
     def _marker(self, frame: np.ndarray, name: str) -> Marker | None:
         spec = self._config[name]

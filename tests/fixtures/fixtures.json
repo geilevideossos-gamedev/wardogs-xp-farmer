@@ -4,63 +4,72 @@
   "x": 780,
   "y": 905,
   "speed": 262,
-  "agl": 178
+  "agl": 178,
+  "asl": 224
  },
  {
   "file": "hud_bakurani_244.png",
   "x": 780,
   "y": 905,
   "speed": 50,
-  "agl": 50
+  "agl": 50,
+  "asl": 153
  },
  {
   "file": "hud_bakurani_343.png",
   "x": 780,
   "y": 905,
   "speed": 278,
-  "agl": 38
+  "agl": 38,
+  "asl": 36
  },
  {
   "file": "hud_ozeti_196.png",
   "x": 780,
   "y": 905,
   "speed": 317,
-  "agl": 53
+  "agl": 53,
+  "asl": 138
  },
  {
   "file": "hud_ozeti_347.png",
   "x": 780,
   "y": 905,
   "speed": 0,
-  "agl": 0
+  "agl": 0,
+  "asl": 120
  },
  {
   "file": "hud_ozeti_454.png",
   "x": 780,
   "y": 905,
   "speed": 236,
-  "agl": 56
+  "agl": 56,
+  "asl": 149
  },
  {
   "file": "hud_zestafona_158.png",
   "x": 780,
   "y": 905,
   "speed": 297,
-  "agl": 59
+  "agl": 59,
+  "asl": 73
  },
  {
   "file": "hud_zestafona_383.png",
   "x": 780,
   "y": 905,
   "speed": 44,
-  "agl": 10
+  "agl": 10,
+  "asl": 4
  },
  {
   "file": "hud_zestafona_443.png",
   "x": 780,
   "y": 905,
   "speed": 95,
-  "agl": 40
+  "agl": 40,
+  "asl": 45
  },
  {
   "file": "badges_bakurani_149.png",
@@ -270,5 +279,116 @@
   "file": "hq_zestafona_216.png",
   "x": 1037,
   "y": 363
+ },
+ {
+  "file": "distance_bakurani_228.png",
+  "x": 70,
+  "y": 285,
+  "kind": "CZ",
+  "distance": 2500
+ },
+ {
+  "file": "distance_bakurani_323.png",
+  "x": 70,
+  "y": 363,
+  "kind": "HZ",
+  "distance": 76
+ },
+ {
+  "file": "distance_ozeti_152.png",
+  "x": 1578,
+  "y": 448,
+  "kind": "CZ",
+  "distance": 3100
+ },
+ {
+  "file": "distance_ozeti_215.png",
+  "x": 70,
+  "y": 443,
+  "kind": "HZ",
+  "distance": 119
+ },
+ {
+  "file": "distance_ozeti_445.png",
+  "x": 70,
+  "y": 266,
+  "kind": "CZ",
+  "distance": 140
+ },
+ {
+  "file": "distance_zestafona_172.png",
+  "x": 70,
+  "y": 531,
+  "kind": "HZ",
+  "distance": 1
+ },
+ {
+  "file": "distance_zestafona_336.png",
+  "x": 70,
+  "y": 290,
+  "kind": "CZ",
+  "distance": 674
+ },
+ {
+  "file": "distance_zestafona_369.png",
+  "x": 718,
+  "y": 454,
+  "kind": "CZ",
+  "distance": 2900
+ },
+ {
+  "file": "distance_zestafona_439.png",
+  "x": 70,
+  "y": 412,
+  "kind": "HZ",
+  "distance": 230
+ },
+ {
+  "file": "minimap_bakurani_150.png",
+  "x": 120,
+  "y": 822,
+  "in_zone": false
+ },
+ {
+  "file": "minimap_bakurani_188.png",
+  "x": 120,
+  "y": 822,
+  "in_zone": true
+ },
+ {
+  "file": "minimap_bakurani_196.png",
+  "x": 120,
+  "y": 822,
+  "in_zone": false
+ },
+ {
+  "file": "minimap_ozeti_214.png",
+  "x": 120,
+  "y": 822,
+  "in_zone": true
+ },
+ {
+  "file": "minimap_ozeti_437.png",
+  "x": 120,
+  "y": 822,
+  "in_zone": true
+ },
+ {
+  "file": "minimap_ozeti_445.png",
+  "x": 120,
+  "y": 822,
+  "in_zone": false
+ },
+ {
+  "file": "minimap_zestafona_160.png",
+  "x": 120,
+  "y": 822,
+  "in_zone": false
+ },
+ {
+  "file": "minimap_zestafona_175.png",
+  "x": 120,
+  "y": 822,
+  "in_zone": true
  }
 ]

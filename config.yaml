@@ -77,6 +77,10 @@ vision:
     right: 1121.5
     top: 921
     slots: 4
+  asl:
+    right: 1121.5
+    top: 943
+    slots: 4
   lakota:
     template: label_lakota.png
     x: 1788
@@ -124,9 +128,26 @@ vision:
     min_red: 60
   zone_marker:
     template: marker_zone.png
+    hz_template: marker_zone_hz.png
+    letter: [6, 9, 10, 14]
     band: [60, 1000]
     anchor: [15, 15]
     min_score: 0.6
+  distance:
+    template: distance_glyphs.png
+    glyphs: "0123456789.km"
+    widths: [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 3, 7, 11]
+    advance: {d: 8, ".": 5, " ": 4, k: 8, m: 11}
+    formats: ["d m", "dd m", "ddd m", "d km", "d.d km"]
+    strip: [-50, -37, 100, 24]
+    shift: 1
+    slack: 1
+    min_gain: 0.7
+    min_score: 0.6
+  minimap:
+    center: [160, 862]
+    ring: [12, 30]
+    min_chroma: 14
   hq_marker:
     template: marker_hq.png
     band: [60, 1000]

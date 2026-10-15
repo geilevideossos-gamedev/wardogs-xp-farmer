@@ -21,6 +21,7 @@ Alle wichtigen Änderungen an diesem Projekt. Format nach [Keep a Changelog](htt
 - Tastensteuerung kann Tasten halten, kurz tippen, im Menü klicken und zu lange gehaltene Tasten von selbst loslassen
 - Flugregler: hält die Höhe über Grund (Shift/Strg), regelt das Tempo mit kurzen W/S-Tipps und dreht mit Q/E zum Ziel-Marker
 - Layer 1 – Crate-Schleife: kauft die Ammo-Palette, steigt, dreht zur Zone, fliegt hin, wirft unter 60 m ab, dreht zur Base, fliegt zurück und landet im Kaufbereich. Start mit `--layer 1`, eine Runde mit `--once`, ein einzelner Schritt mit `--step buy|climb|turn|drop|land`, Flugwerte pro Map mit `--map`. Keine Taste bleibt länger als 20 Sekunden am Stück gedrückt (`timeouts.max_hold_s`). Stoppt sicher mit Screenshot bei Tod, Heli-Schaden, Crash oder wenn ein Schritt nicht klappt. Am Ende steht eine Zusammenfassung im Log
+- Bilderkennung für die Zone: erkennt, ob der Zonen-Marker „CZ“ oder „HZ“ zeigt, liest die Entfernung darüber („744 m“, „1.6 km“) und prüft, ob das Heli-Symbol auf der Minimap in einem eingefärbten Zonenkreis liegt. Außerdem wird die Höhe über Meer (ASL) gelesen. Getestet mit 17 neuen Testbildern aus allen drei Videos
 
 ### Geändert
 

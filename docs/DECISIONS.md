@@ -69,6 +69,24 @@ Format je Eintrag: Datum, Entscheidung, Grund, verworfene Alternativen.
 - **Grund:** Zonen-Marker immer vorhanden (außerhalb des Bildes am Rand), HQ-Marker sichtbar sobald voraus. Keine absolute Position nötig. Mittelwert-Füllung erlaubt die schnelle FFT-Suche (~40/60 ms statt ~150 ms mit Maske) bei gleicher Trefferquote.
 - **Verworfen:** Position über Minimap-Abgleich (braucht Kartenbilder pro Map), Kompass (in den Videos vom Overlay verdeckt, nicht validierbar; Erweiterung möglich), Suche in halber Auflösung (Marker zu klein, viele Fehltreffer), Zonen-Eintritt über Banner „CONTROL ZONE“ oder Minimap-Farbe (kurzlebig bzw. unzuverlässig).
 
+## 2026-10-15 – Zonen-Eintritt über HZ-Marker und Minimap
+
+- **Entscheidung:** „In der Zielzone“ = Zonen-Marker zeigt „HZ“ **und** Minimap um das Heli-Symbol ist eingefärbt (Daniels Regel). HZ/CZ über den Vergleich des Buchstabenfelds mit zwei Templates, Minimap über die Buntheit des Median-Farbtons in einem Ring.
+- **Grund:** HZ/CZ ist in allen 1.940 Video-Markern eindeutig. Die Minimap allein färbt auch in der Base und in fremden Zonen (35 % der CZ-Bilder), ist zusammen mit HZ aber eine zweite, unabhängige Bestätigung. Ersetzt die frühere Ankunftsregel „Marker tief im Bild“ (`zone_arrive_y`).
+- **Verworfen:** Ganzes Marker-Template für HZ (HZ hat dunklere Füllung, 319 Verwechslungen), Kreis-Erkennung per Hough auf der Minimap (Rand ist innen meist nicht sichtbar, Zone größer als die Minimap).
+
+## 2026-10-15 – Eigener Leser für die Entfernung am Zonen-Marker
+
+- **Entscheidung:** Glyphen-Templates (0–9 . k m) aus 53 von Hand gelesenen Video-Ausschnitten, Lesen über feste Text-Formate mit zentrierter Lage statt Segmentierung.
+- **Grund:** Text ist klein (10 px), unscharf und hat wechselnden Hintergrund; Spalten-Segmentierung trennt die Zeichen nicht. Die Formate sind fest, und der Text ist genau über dem Marker zentriert, daher genügt Template-Vergleich an wenigen Positionen. Selbsttraining der Templates hat 5/6/8 vermischt, daher Training nur auf geprüften Beispielen. ~3 % Fehllesungen, deshalb nutzt der Regler nur den Median mehrerer Lesungen.
+- **Verworfen:** OCR-Bibliothek (siehe oben), Bildposition des Markers als Entfernungsmaß (hängt von Höhe und Neigung ab), Format `dd km` (keine Zone > 10 km, verursachte „31 km“ statt „3.1 km“).
+
+## 2026-10-15 – Nickwinkel nicht aus dem Bild
+
+- **Entscheidung:** Kein Detektor für den Nickwinkel. Höhe über Meer (ASL) wird gelesen; „sinkt trotz Shift“ gilt als Zeichen für zu viel Neigung.
+- **Grund:** Die Horizont-Striche der Lageanzeige zeigen nur die Querneigung, die Bögen den Kollektiv. Der echte Horizont ist durch Dunst, Berge und HUD nicht stabil messbar. Netto-W-Zeit schwankt im Reiseflug zwischen −0,2 und +3,4 s und taugt nicht als Schätzung. ASL ist 1:1 lesbar und unabhängig vom Gelände.
+- **Verworfen:** Neigung aus der Lageanzeige, Horizontlinie im Bild, Integration der W/S-Zeiten.
+
 ## 2026-10-15 – Flug als Regelkreis mit Pulsen
 
 - **Entscheidung:** `Pilot` regelt jede Achse getrennt pro Tick: Höhe als Zweipunktregler mit Hysterese und Vorhersage (Shift/Ctrl halten), Tempo über eine Soll-Beschleunigung mit kurzen W/S-Pulsen, Gieren mit Q/E-Pulsen proportional zum Marker-Abstand, Landung über Soll-Sinkrate. Pulse sind nicht blockierend.

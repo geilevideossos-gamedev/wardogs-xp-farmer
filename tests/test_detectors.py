@@ -38,6 +38,7 @@ def test_reads_speed_and_agl(vision, entry):
     frame = frame_from(entry)
     assert vision.speed(frame) == entry["speed"]
     assert vision.agl(frame) == entry["agl"]
+    assert vision.asl(frame) == entry["asl"]
 
 
 @pytest.mark.parametrize("entry", entries("badges"), ids=ids(entries("badges")))
@@ -80,6 +81,18 @@ def test_markers_found_inside_crop(vision, kind):
         assert entry["y"] <= marker.y < entry["y"] + crop.shape[0], entry["file"]
 
 
+@pytest.mark.parametrize("entry", entries("distance"), ids=ids(entries("distance")))
+def test_zone_marker_kind_and_distance(vision, entry):
+    marker = vision.zone_marker(frame_from(entry))
+    assert marker is not None
+    assert (marker.kind, marker.distance) == (entry["kind"], entry["distance"])
+
+
+@pytest.mark.parametrize("entry", entries("minimap"), ids=ids(entries("minimap")))
+def test_minimap_in_zone(vision, entry):
+    assert vision.minimap_in_zone(frame_from(entry)) == entry["in_zone"]
+
+
 def test_markers_absent_on_hud_only_frame(vision):
     frame = frame_from(entries("hud")[0])
     assert vision.zone_marker(frame) is None
@@ -90,6 +103,8 @@ def test_empty_frame_reads_nothing(vision):
     frame = np.zeros((1080, 1920, 3), np.uint8)
     assert vision.speed(frame) is None
     assert vision.agl(frame) is None
+    assert vision.asl(frame) is None
     assert not vision.in_lakota(frame)
+    assert not vision.minimap_in_zone(frame)
     assert vision.garage_menu(frame) is None
     assert not vision.heli_damaged(frame)
