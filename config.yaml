@@ -177,7 +177,10 @@ flight:
   speed_gain: 0.2
   accel_max: 15
   accel_band: 6
-  speed_tap_interval_s: 0.7
+  pitch_tap_s: 0.2
+  pitch_interval_s: 0.7
+  sink_guard: 1.5
+  speed_limits: [[20, 40], [40, 100], [60, 160], [80, 220], [120, 280]]
   yaw_deadband: 40
   yaw_s_per_px: 0.0015
   yaw_min_s: 0.08
@@ -186,22 +189,31 @@ flight:
   climb_timeout_s: 30
   turn_timeout_s: 25
   leg_timeout_s: 240
+  turnaround_s: 4
+  drop_delay_s: 3
+  drop_wait_s: 15
   drop_timeout_s: 3
   delivered_wait_s: 3
+  distance_history: 5
   landed_agl: 1
   landed_speed: 3
   landed_hold_s: 2
   land_timeout_s: 90
   sink_rate: 4
   sink_rate_min: 1.5
+  sink_slow_agl: 10
   sink_band: 1
 
 maps:
   default:
+    turn_agl: 15
+    min_agl: 80
     cruise_agl: 100
     cruise_speed: 200
+    brake_distance: 400
     zone_arrive_y: 620
-    drop_agl: 60
+    drop_agl: 70
+    drop_max_agl: 85
     drop_speed: 120
     approach_speed: 60
     hq_approach_y: 560

@@ -110,7 +110,8 @@ Die wichtigsten Einstellungen:
 | `timeouts.heli_lost_s` | So lange darf die Heli-Anzeige fehlen, bevor Layer 1 verlassen wird | 2 |
 | `maps.<map>.cruise_agl` | Reiseflughöhe über Grund (m) | 100 |
 | `maps.<map>.cruise_speed` | Reisetempo (km/h) | 200 |
-| `maps.<map>.drop_agl` / `drop_speed` | Höchstens so hoch (m) und schnell (km/h) beim Abwurf. Über ca. 90 m zerbricht die Palette | 60 / 120 |
+| `maps.<map>.min_agl` | Mindesthöhe im Reiseflug (m). Darunter steigt der Bot erst mit Shift und nimmt die Nase hoch, bevor er weiter beschleunigt | 80 |
+| `maps.<map>.drop_agl` / `drop_speed` | Zielhöhe (m) und Tempo (km/h) beim Abwurf. Über ca. 90 m zerbricht die Palette | 70 / 120 |
 | `maps.<map>.zone_arrive_y` | Abwurf, wenn der Zonen-Marker so weit unten im Bild ist (Pixel von oben). Kleiner = früher abwerfen | 620 |
 | `maps.<map>.hq_approach_y` | Bremsen, wenn der HQ-Marker so weit unten ist (oder der Kauf-Hinweis erscheint) | 560 |
 | `maps.<map>.approach_speed` | Ab diesem Tempo (km/h) beginnt der Sinkflug zur Landung | 60 |
@@ -118,6 +119,9 @@ Die wichtigsten Einstellungen:
 | `flight.agl_band` | Erlaubte Abweichung von der Zielhöhe (m) | 8 |
 | `flight.yaw_deadband` | Marker gilt als mittig bei dieser Abweichung (Pixel) | 40 |
 | `flight.sink_rate` | Sinkrate bei der Landung (m/s) | 4 |
+| `flight.speed_limits` | Höchsttempo je Höhe über Grund als Paare `[Höhe m, km/h]`, dazwischen wird gemittelt. Schützt vor Baum-Crashs wie bei 215 km/h in 28 m Höhe | 20 m → 40, 40 → 100, 60 → 160, 80 → 220, 120 → 280 |
+| `flight.sink_guard` | Sinkt der Heli trotz Shift schneller als das (m/s), ist die Nase zu weit unten und der Bot tippt S | 1.5 |
+| `flight.pitch_tap_s` / `pitch_interval_s` | Dauer eines W/S-Tipps und Mindestabstand zwischen zwei Tipps (Sekunden) | 0.2 / 0.7 |
 | `vision.*` | Positionen, Vorlagenbilder und Schwellen der Bilderkennung | |
 | `loop.tick_s` / `flight.tick_s` | Pause zwischen zwei Bildschirm-Prüfungen außerhalb / in Layer 1 (Sekunden) | 0.1 / 0.05 |
 | `hold_test.*`, `recording.*`, `logging.*` | Hold-Test, Aufnahme-Tool, Log-Dateien | |

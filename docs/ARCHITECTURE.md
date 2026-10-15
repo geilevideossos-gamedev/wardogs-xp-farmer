@@ -103,10 +103,10 @@ stateDiagram-v2
 | Schritt | Ablauf |
 |---|---|
 | `buy` | Kiste schon geladen → fertig. Sonst Kauf-Hinweis nötig → B → warten auf Menü (`main` oder `logistics`) → ggf. Klick `logistics` → Klick `pallets` → Klick `ammo_pallet` → warten auf `main` → Klick `confirm` → warten auf G-Feld. `buy.attempts` Versuche, dann `StepFailed` |
-| `climb` | `Pilot.altitude(agl, cruise_agl)` bis Zielhöhe |
+| `climb` | `Pilot.fly` mit Tempo 0 bis `cruise_agl` |
 | `turn` | Ziel = Zonen-Marker wenn Kiste geladen, sonst HQ-Marker. Höhe halten, Tempo 0. Kein Marker → `Pilot.search()` (Puls rechts). Fertig wenn `|x − center_x| ≤ yaw_deadband` |
 | `drop` | Reiseflug (`cruise_agl`, `cruise_speed`, Gieren zum Marker) bis Marker nicht am Rand und `y ≥ zone_arrive_y`. Dann `drop_agl`/`drop_speed` halten; sobald erreicht: G tippen, warten bis G-Feld `vision.confirm`-mal weg, danach bis `delivered_wait_s` auf „SUPPLIES DELIVERED“ |
-| `land` | Reiseflug zum HQ-Marker bis Marker `y ≥ hq_approach_y` oder Kauf-Hinweis → bremsen (Tempo 0, Höhe halten) bis `approach_speed` → `Pilot.sink` + Tempo 0 bis AGL ≤ `landed_agl` und Tempo ≤ `landed_speed` für `landed_hold_s` → Kauf-Hinweis prüfen |
+| `land` | Reiseflug zum HQ-Marker bis Marker `y ≥ hq_approach_y` oder Kauf-Hinweis → bremsen (Tempo 0, Höhe halten) bis `approach_speed` → `Pilot.descend` bis AGL ≤ `landed_agl` und Tempo ≤ `landed_speed` für `landed_hold_s` → Kauf-Hinweis prüfen |
 
 Statistik `CrateLoop.stats` (`Counter`): `bought`, `dropped`, `delivered`, `rounds`. Wird pro Runde und beim Beenden geloggt.
 
@@ -114,11 +114,11 @@ Statistik `CrateLoop.stats` (`Counter`): `bought`, `dropped`, `delivered`, `roun
 
 | Methode | Verhalten |
 |---|---|
-| `altitude(agl, target)` | Vorhersage `agl + rate × agl_lookahead_s`. Unter `target − agl_band` → Shift halten. Über `target + agl_band` → Shift los, über `target + 3·agl_band` zusätzlich Ctrl. Dazwischen Shift-Zustand behalten (Hysterese), Ctrl los |
-| `speed(speed, target)` | Soll-Beschleunigung `clamp(speed_gain × (target − speed), ±accel_max)`. Gemessene Beschleunigung (Trend) kleiner als Soll − `accel_band` → W-Puls `tap_s`; größer als Soll + `accel_band` → S-Puls. Höchstens alle `speed_tap_interval_s` |
+| `fly(agl, asl, speed, target_agl, target_speed, floor)` | **Höhe nur über Shift** (nie Ctrl): Vorhersage `agl + rate × agl_lookahead_s`, unter `target − agl_band` Shift halten, über `target + agl_band` los, dazwischen Zustand behalten. Unter `floor` immer Shift. **Neigung über W/S-Pulse** (`pitch_tap_s`, höchstens alle `pitch_interval_s`): S-Puls, wenn Tempo > `speed_limit(agl) + speed_band`, wenn Shift gehalten und ASL-Rate < −`sink_guard` (Nase zu weit unten) oder wenn unter `floor` noch beschleunigt wird. Unter `floor` nie W. Sonst Soll-Beschleunigung `clamp(speed_gain × (min(target_speed, Limit) − speed), ±accel_max)`; Ist (Trend) < Soll − `accel_band` → W (nicht beim Sinken), > Soll + `accel_band` → S |
+| `speed_limit(agl)` | Höchsttempo je Höhe: lineare Interpolation in `speed_limits` (`[[agl, km/h], …]`), außerhalb konstant |
+| `descend(agl, asl, speed)` | Landung: Soll-Steigrate (ASL-Trend) −`sink_rate` über `sink_slow_agl`, darunter −`sink_rate_min`, 0 solange Tempo > `speed_limit(agl)`. Zu schnell sinkend → Shift, zu langsam → Ctrl. Tempo-Soll 0 über W/S |
 | `yaw(x)` | Fehler `x − center_x`. Innerhalb `yaw_deadband` → `True`. Sonst Q- oder E-Puls, Dauer `clamp(|Fehler| × yaw_s_per_px, yaw_min_s, yaw_max_s)`, frühestens nach `yaw_interval_s` und nicht während eines laufenden Gier-Pulses |
-| `search()` | E-Puls `yaw_max_s`, wenn kein Gier-Puls läuft |
-| `sink(agl)` | Soll-Sinkrate `sink_rate` (über 10 m) bzw. `sink_rate_min`; zu schnell → Shift, zu langsam → Ctrl, sonst beide los |
+| `search(direction)` | Gier-Puls `yaw_max_s` in `direction` (`"yaw_right"` Standard), wenn kein Gier-Puls läuft |
 | `update()` / `release()` | abgelaufene Pulse loslassen / alle Flugtasten los |
 
 Pulse sind nicht blockierend: `key_down` sofort, `key_up` im ersten `update()` nach Ablauf. Damit laufen Höhe, Tempo und Gieren im selben Tick.

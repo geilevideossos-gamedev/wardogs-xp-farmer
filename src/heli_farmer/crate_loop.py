@@ -147,8 +147,7 @@ class CrateLoop:
         target = self._map["cruise_agl"]
         deadline = self._clock() + self._flight["climb_timeout_s"]
         while self._clock() < deadline:
-            agl = self._vision.agl(self.observe())
-            self._pilot.altitude(agl, target)
+            agl, _ = self._hold(self.observe(), target, 0)
             if agl is not None and agl >= target - self._flight["agl_band"]:
                 log.info("Sichere Höhe erreicht: %s m", agl)
                 return
@@ -213,8 +212,7 @@ class CrateLoop:
             else:
                 agl = self._vision.agl(frame)
                 speed = self._vision.speed(frame)
-                self._pilot.sink(agl)
-                self._pilot.speed(speed, 0)
+                self._pilot.descend(agl, self._vision.asl(frame), speed)
                 on_ground = agl is not None and agl <= self._flight["landed_agl"]
                 still = speed is not None and speed <= self._flight["landed_speed"]
                 if not (on_ground and still):
@@ -253,8 +251,7 @@ class CrateLoop:
     def _hold(self, frame: np.ndarray, agl: float, speed: float) -> tuple[int | None, int | None]:
         current_agl = self._vision.agl(frame)
         current_speed = self._vision.speed(frame)
-        self._pilot.altitude(current_agl, agl)
-        self._pilot.speed(current_speed, speed)
+        self._pilot.fly(current_agl, self._vision.asl(frame), current_speed, agl, speed)
         return current_agl, current_speed
 
     def _target(self, frame: np.ndarray) -> Marker | None:

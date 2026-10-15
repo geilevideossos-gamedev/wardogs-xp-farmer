@@ -93,12 +93,18 @@ Format je Eintrag: Datum, Entscheidung, Grund, verworfene Alternativen.
 - **Grund:** Tastatur ist binär; Daniel fliegt genauso (Shift lange gehalten, W/S/A/D kurz getippt, Median 0,22 s). Unbekanntes Flugmodell (hält der Heli die Neigung? sinkt er ohne Shift?) wird durch Messen der Änderungsrate nachgeregelt statt angenommen. Alle Parameter in `flight` und `maps`.
 - **Verworfen:** Abspielen aufgenommener Tastenfolgen (bricht bei jeder Abweichung, laut Vorgabe verboten), stufenlose PID-Ausgabe (nicht mit Tasten umsetzbar).
 
+## 2026-10-15 – Flugregler nach Daniels Flugmodell
+
+- **Entscheidung:** Höhe nur über die Dauer von Shift (Ctrl nur beim Landen). Neigung über W/S-Pulse mit Rückmeldung aus Beschleunigung und ASL-Steigrate. Sicherheitsgrenzen: `floor` (Mindesthöhe, im Reiseflug `min_agl` 80 m) und Höchsttempo je AGL (`flight.speed_limits`). Unter der Mindesthöhe immer Shift, nie W, und S, solange noch beschleunigt wird. Sinkt der Heli trotz Shift (ASL), ist die Nase zu weit unten → S.
+- **Grund:** Daniel: ohne Taste schwebt der Heli, ~20° Nase vorn + Shift hält die Höhe, W ohne Shift sinkt. Damit ist Shift der Höhenregler und „sinkt trotz Shift“ das messbare Zeichen für mehr als ~20° Neigung (Videos: 4 m/s Sinken bei 250–317 km/h mit Shift). Der Crash in Bild 02 (215 km/h bei AGL 28) wird durch Tempo-Grenze und Mindesthöhe verhindert. ASL statt AGL für die Steigrate, weil AGL über Hügeln springt.
+- **Verworfen:** Ctrl im Reiseflug (Daniel: Höhe über Shift-Dauer), Neigung zählen über aufsummierte W/S-Zeit (schwankt im Video zwischen −0,2 und +3,4 s bei gleichem Tempo).
+
 ## 2026-10-15 – Layer 1 als Schrittfolge mit Prüfung pro Tick
 
 - **Entscheidung:** `CrateLoop` führt die Schritte `buy, climb, turn, drop, turn, land` prozedural aus. Jeder Tick läuft durch `observe()`, das Erste-Hilfe-Symbol, Heli-Schaden und fehlendes HUD prüft und dann `LeaveLayer` wirft. Fehlgeschlagene Schritte werfen `StepFailed` → sicherer Stopp mit Screenshot.
 - **Grund:** Einfach zu lesen und einzeln testbar (`--step`), äußere Bedingungen werden trotzdem jeden Tick geprüft. `has_heli` liefert `None` bei fehlendem HUD, damit kurze Aussetzer nicht sofort stoppen; nach `unknown_state_s` greift der Watchdog.
 - **Verworfen:** Tick-basierter Unterautomat pro Schritt (mehr Zustandsverwaltung für Menüfolgen ohne Mehrwert).
-- **Entscheidung:** Abwurf erst unter `drop_agl` (Standard 60 m), Landung dort, wo der Kauf-Hinweis erscheint.
+- **Entscheidung:** Abwurf erst unter `drop_agl` (Standard 70 m), Landung dort, wo der Kauf-Hinweis erscheint.
 - **Grund:** Spieltext: Palette zerbricht ab ca. 90 m freiem Fall. Ein markierter grüner Landeplatz ist in keinem Video zu sehen; Daniel landet auf freien Flächen im Kaufbereich.
 - **Entscheidung:** `timeouts.max_hold_s` (20 s) gilt für jede Taste; der Regler drückt sie im nächsten Tick neu.
 - **Grund:** Vorgabe „keine Taste länger als Timeout am Stück“. Daniel hält Shift bis zu 59 s, ein kurzes Loslassen kostet nur wenige Meter.

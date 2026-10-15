@@ -1,3 +1,4 @@
+import math
 import threading
 from unittest.mock import Mock
 
@@ -11,6 +12,10 @@ from heli_farmer.inputs import Input
 
 FRAME = np.zeros((4, 4, 3), np.uint8)
 TICK = 0.05
+GROUND_ASL = 100.0
+PITCH_RATE = 60.0
+SHIFT_LIFT = 1 / math.cos(math.radians(20))
+CTRL_LIFT = 0.93
 
 
 class World:
@@ -18,6 +23,9 @@ class World:
         self.now = 0.0
         self.agl = 0.0
         self.speed = 0.0
+        self.pitch = 0.0
+        self.climb = 0.0
+        self.track: list[tuple[float, float]] = []
         self.crate = False
         self.menu = None
         self.prompt = True
@@ -44,6 +52,21 @@ class World:
         else:
             self.keys.discard(name)
 
+    def fly(self) -> None:
+        if "w" in self.keys:
+            self.pitch = min(35.0, self.pitch + PITCH_RATE * TICK)
+        if "s" in self.keys:
+            self.pitch = max(-20.0, self.pitch - PITCH_RATE * TICK)
+        lift = SHIFT_LIFT if "shift" in self.keys else CTRL_LIFT if "ctrl" in self.keys else 1.0
+        wanted = 80 * (lift * math.cos(math.radians(self.pitch)) - 1)
+        self.climb += (wanted - self.climb) * TICK / 0.5
+        self.agl = max(0.0, self.agl + self.climb * TICK)
+        if self.agl == 0:
+            self.climb, self.speed, self.pitch = max(0.0, self.climb), 0.0, 0.0
+        else:
+            self.speed = max(0.0, self.speed + (1.2 * self.pitch - 0.1 * self.speed) * TICK)
+        self.track.append((self.agl, self.speed))
+
     def click(self, x: int, y: int) -> None:
         name = self._clicks[(x, y)]
         self.clicked.append(name)
@@ -59,13 +82,7 @@ class World:
     def step(self) -> np.ndarray:
         self.now += TICK
         if not self.menu:
-            climb = 4 if "shift" in self.keys else -6 if "ctrl" in self.keys else -1
-            self.agl = max(0.0, self.agl + climb * TICK * 5)
-            if "w" in self.keys:
-                self.speed += 60 * TICK
-            if "s" in self.keys:
-                self.speed = max(0.0, self.speed - 60 * TICK)
-            self.speed = 0.0 if self.agl == 0 else self.speed * 0.995
+            self.fly()
             turn = 40 if "q" in self.keys else -40 if "e" in self.keys else 0
             for marker in (self.zone, self.hq):
                 if marker:
@@ -101,6 +118,9 @@ class FakeVision:
 
     def agl(self, frame):
         return round(self.w.agl) if self.w.lakota else None
+
+    def asl(self, frame):
+        return round(GROUND_ASL + self.w.agl) if self.w.lakota else None
 
     def speed(self, frame):
         return round(self.w.speed) if self.w.lakota else None
