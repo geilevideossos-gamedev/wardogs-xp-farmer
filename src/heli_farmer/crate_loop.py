@@ -186,7 +186,7 @@ class CrateLoop:
         while self._clock() < deadline:
             frame = self.observe()
             marker = self._vision.zone_marker(frame)
-            if marker is not None:
+            if marker is not None and entered is None:
                 self._pilot.yaw(marker.x)
             inside = (
                 marker is not None and marker.kind == "HZ" and self._vision.minimap_in_zone(frame)
@@ -229,21 +229,28 @@ class CrateLoop:
         turned = self._clock() + self._flight["turnaround_s"]
         deadline = turned + self._flight["leg_timeout_s"]
         outside_hits = 0
+        left: float | None = None
         while self._clock() < deadline:
             if self._clock() < turned:
                 self._fly(frame, self._map["cruise_agl"], 0)
                 self._pilot.search(away)
-            else:
-                self._cruise(frame)
-                marker = self._vision.zone_marker(frame)
-                if marker is not None:
-                    outside = marker.kind == "CZ"
-                else:
-                    outside = not self._vision.minimap_in_zone(frame)
-                outside_hits = outside_hits + 1 if outside else 0
-                if outside_hits >= self._confirm:
-                    log.info("Zone verlassen")
+                frame = self.observe()
+                continue
+            self._cruise(frame)
+            if left is not None:
+                if self._clock() - left >= self._flight["leave_margin_s"]:
                     return
+                frame = self.observe()
+                continue
+            marker = self._vision.zone_marker(frame)
+            if marker is not None:
+                outside = marker.kind == "CZ"
+            else:
+                outside = not self._vision.minimap_in_zone(frame)
+            outside_hits = outside_hits + 1 if outside else 0
+            if outside_hits >= self._confirm:
+                left = self._clock()
+                log.info("Zone verlassen, noch %s s weiter", self._flight["leave_margin_s"])
             frame = self.observe()
         raise StepFailed("Zone nicht verlassen")
 
@@ -251,6 +258,7 @@ class CrateLoop:
         deadline = self._clock() + self._flight["land_timeout_s"] + self._flight["leg_timeout_s"]
         phase = "cruise"
         landed_since = None
+        seen = self._clock()
         while self._clock() < deadline:
             frame = self.observe()
             if phase == "cruise":
@@ -262,12 +270,19 @@ class CrateLoop:
                     marker and not self._at_edge(marker) and marker.y >= self._map["hq_approach_y"]
                 )
                 if near or self._vision.buy_prompt(frame):
-                    log.info("Base erreicht, bremsen")
-                    phase = "brake"
-            elif phase == "brake":
-                _, speed = self._fly(frame, self._map["cruise_agl"], 0)
-                if speed is not None and speed <= self._map["approach_speed"]:
-                    log.info("Sinkflug")
+                    log.info("Base erreicht, tief und langsam anfliegen")
+                    phase = "approach"
+                    seen = self._clock()
+            elif phase == "approach":
+                marker = self._vision.hq_marker(frame)
+                landing = self._map["approach_agl"]
+                self._fly(frame, landing, self._map["approach_speed"], 0, sink=True)
+                if marker is not None:
+                    seen = self._clock()
+                    self._pilot.yaw(marker.x)
+                prompt = self._vision.buy_prompt(frame)
+                if prompt or self._clock() - seen > self._flight["hq_lost_s"]:
+                    log.info("Sinkflug (%s)", "Kauf-Hinweis" if prompt else "HQ unter dem Heli")
                     phase = "descend"
             else:
                 agl = self._vision.agl(frame)
@@ -313,17 +328,16 @@ class CrateLoop:
 
     def _approach(self, frame: np.ndarray) -> tuple[int | None, int | None]:
         drop_agl = self._map["drop_agl"]
-        return self._fly(
-            frame, drop_agl, self._map["drop_speed"], drop_agl - self._flight["agl_band"]
-        )
+        floor = drop_agl - self._flight["agl_band"]
+        return self._fly(frame, drop_agl, self._map["drop_speed"], floor, sink=True)
 
     def _fly(
-        self, frame: np.ndarray, agl: float, speed: float, floor: float = 0
+        self, frame: np.ndarray, agl: float, speed: float, floor: float = 0, sink: bool = False
     ) -> tuple[int | None, int | None]:
         current_agl = self._vision.agl(frame)
         current_speed = self._vision.speed(frame)
         asl = self._vision.asl(frame)
-        self._pilot.fly(current_agl, asl, current_speed, agl, speed, floor)
+        self._pilot.fly(current_agl, asl, current_speed, agl, speed, floor, sink)
         return current_agl, current_speed
 
     def _at_edge(self, marker: Marker) -> bool:

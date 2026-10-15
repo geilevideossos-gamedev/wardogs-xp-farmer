@@ -115,6 +115,18 @@ Format je Eintrag: Datum, Entscheidung, Grund, verworfene Alternativen.
 - **Grund:** Daniels Regeln aus PROJECT.md „Navigation“. HQ-Marker ist in der Zone nie sichtbar (0 von 7 Anflügen), daher erst raus. Die Drehrate von Q/E ist unbekannt, eine zeitgesteuerte Kehrtwende ist einfach einzustellen. Median, weil ~3 % der Entfernungen falsch gelesen werden.
 - **Verworfen:** Kehrtwende bis der Marker am Rand klebt (dreht nur ~45°), Steigen auf volle Reiseflughöhe vor dem Drehen (Daniel: ein paar Meter reichen, kostet Zeit pro Runde).
 
+## 2026-10-15 – Neigung zählen und nach dem Bremsen ausrichten
+
+- **Entscheidung:** `Pilot.tilt` zählt W-Pulse minus S-Pulse (0 am Boden). Beim Bremsen auf Schweben (Ziel und Tempo ≤ `hover_speed`) tippt der Bot so lange die Gegentaste, bis der Zähler 0 ist. Unter der Mindesthöhe nimmt er die Nase nur hoch, wenn sie laut Zähler vorn ist.
+- **Grund:** Die Neigung bleibt nach dem Loslassen stehen, und das HUD-Tempo hat kein Vorzeichen. Ohne Ausgleich würde der Heli nach dem Bremsen rückwärts beschleunigen, und der Regler würde wegen „zu schnell“ weiter S tippen. Daniel gleicht in den Videos genauso aus (Zestafona 172–180 s: S 1,5 s, danach W 1,8 s). Der Zähler gilt nur über kurze Zeit als verlässlich; über ganze Flüge driftet er (siehe „Nickwinkel nicht aus dem Bild“).
+- **Verworfen:** Bremsen ohne Ausgleich (Rückwärts-Aufschaukeln), Richtung aus Bewegung im Bild (zu aufwendig für jetzt).
+
+## 2026-10-15 – Strg im Abwurf- und Landeanflug, Landung tief anfliegen
+
+- **Entscheidung:** `fly(sink=True)` erlaubt Strg, wenn der Heli über `Ziel + agl_band` ist; nur im Abwurf-Anflug und im Landeanflug. Landung: tief und langsam (`approach_agl` 30 m, `approach_speed` 60 km/h) weiter zum HQ, bis der Kauf-Hinweis erscheint, dann senkrecht runter. Nach dem Zonen-Eintritt wird nicht mehr zum HZ-Marker gegiert. Nach dem Verlassen der Zone noch `leave_margin_s` geradeaus.
+- **Grund:** In der Simulation sank der Heli mit wenig Neigung ohne Strg kaum (Abwurf erst 11 s nach Eintritt), Daniel nutzt vor Abwurf und Landung selbst Strg (1–19 s). Senkrecht aus 100 m sinken landete außerhalb des Kaufbereichs. Gieren zum HZ-Marker ließ den Heli um die Zonenmitte schwenken; direkt nach dem Verlassen trieb er beim Drehen zurück in die Zone (HQ dort unsichtbar).
+- **Verworfen:** Strg im Reiseflug (Daniel: Höhe über Shift-Dauer), niedrigere Reiseflughöhe (Mindesthöhe 80 m wegen Bäumen).
+
 ## 2026-10-15 – Video-Abgleich als eigener Test-Marker
 
 - **Entscheidung:** `tests/test_replay_videos.py` mit Marker `videos`, per `addopts` im Standardlauf abgewählt; Aufruf `pytest -m videos`.

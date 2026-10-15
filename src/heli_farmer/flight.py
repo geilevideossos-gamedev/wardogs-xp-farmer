@@ -37,6 +37,7 @@ class Pilot:
         self._pulses: dict[str, float] = {}
         self._last_pitch = -1e9
         self._last_yaw = -1e9
+        self.tilt = 0
 
     def update(self) -> None:
         now = self._clock()
@@ -62,20 +63,24 @@ class Pilot:
         target_agl: float,
         target_speed: float,
         floor: float = 0,
+        sink: bool = False,
     ) -> None:
         self._track(agl, asl, speed)
         if agl is None:
             return
         low = agl < floor
         lift = low or self._lift(agl, target_agl)
+        predicted = agl + self._agl.rate() * self._cfg["agl_lookahead_s"]
+        above = predicted > target_agl + self._cfg["agl_band"]
         self._inp.hold(self._keys["up"], lift)
-        self._inp.hold(self._keys["down"], False)
+        self._inp.hold(self._keys["down"], sink and not lift and above)
         if speed is None:
             return
         limit = self.speed_limit(agl)
         sinking = self._asl.rate() < -self._cfg["sink_guard"]
         accel = self._speed.rate()
-        if speed > limit + self._cfg["speed_band"] or (lift and sinking) or (low and accel > 0):
+        too_fast = speed > limit + self._cfg["speed_band"]
+        if too_fast or (lift and sinking) or (low and accel > 0 and self.tilt > 0):
             self._pitch("back")
         elif not low:
             self._pitch_for(speed, min(target_speed, limit), accel, sinking)
@@ -119,6 +124,9 @@ class Pilot:
         self._agl.add(now, agl)
         self._asl.add(now, asl)
         self._speed.add(now, speed)
+        if agl is not None and speed is not None:
+            if agl <= self._cfg["landed_agl"] and speed <= self._cfg["landed_speed"]:
+                self.tilt = 0
 
     def _lift(self, agl: int, target: float) -> bool:
         predicted = agl + self._agl.rate() * self._cfg["agl_lookahead_s"]
@@ -129,6 +137,11 @@ class Pilot:
         return self._inp.is_down(self._keys["up"])
 
     def _pitch_for(self, speed: int, target: float, accel: float, sinking: bool) -> None:
+        hover = self._cfg["hover_speed"]
+        if target <= hover and speed <= hover:
+            if self.tilt:
+                self._pitch("forward" if self.tilt < 0 else "back")
+            return
         limit = self._cfg["accel_max"]
         wanted = max(-limit, min(limit, self._cfg["speed_gain"] * (target - speed)))
         band = self._cfg["accel_band"]
@@ -143,6 +156,7 @@ class Pilot:
             return
         self._pulse(self._keys[key], self._cfg["pitch_tap_s"])
         self._last_pitch = now
+        self.tilt += 1 if key == "forward" else -1
 
     def _yawing(self) -> bool:
         return self._keys["yaw_left"] in self._pulses or self._keys["yaw_right"] in self._pulses

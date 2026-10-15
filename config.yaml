@@ -180,6 +180,7 @@ flight:
   pitch_tap_s: 0.2
   pitch_interval_s: 0.7
   sink_guard: 1.5
+  hover_speed: 10
   speed_limits: [[20, 40], [40, 100], [60, 160], [80, 220], [120, 280]]
   yaw_deadband: 40
   yaw_s_per_px: 0.0015
@@ -190,6 +191,7 @@ flight:
   turn_timeout_s: 25
   leg_timeout_s: 240
   turnaround_s: 4
+  leave_margin_s: 3
   drop_delay_s: 3
   drop_wait_s: 15
   drop_timeout_s: 3
@@ -199,6 +201,7 @@ flight:
   landed_speed: 3
   landed_hold_s: 2
   land_timeout_s: 90
+  hq_lost_s: 3
   sink_rate: 4
   sink_rate_min: 1.5
   sink_slow_agl: 10
@@ -214,6 +217,7 @@ maps:
     drop_agl: 70
     drop_max_agl: 85
     drop_speed: 120
+    approach_agl: 30
     approach_speed: 60
     hq_approach_y: 560
   bakurani: {}

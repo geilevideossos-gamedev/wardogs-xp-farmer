@@ -116,9 +116,10 @@ Die wichtigsten Einstellungen:
 | `maps.<map>.brake_distance` | Ab dieser Entfernung zum Zonenrand (m, Zahl am CZ-Marker) bremst und sinkt der Bot auf Abwurf-Tempo und -Höhe | 400 |
 | `maps.<map>.drop_max_agl` | G wird nur gedrückt, wenn der Heli höchstens so hoch ist (m) | 85 |
 | `flight.drop_delay_s` | Wartezeit nach dem Erreichen der Zone (Minimap + HZ) bis G | 3 |
+| `flight.leave_margin_s` | So lange (s) fliegt der Bot nach dem Verlassen der Zone noch geradeaus, bevor er die Base sucht | 3 |
 | `flight.turnaround_s` | So lange (s) dreht der Bot nach dem Abwurf, bevor er aus der Zone fliegt. Mehr = weiter umdrehen | 4 |
 | `maps.<map>.hq_approach_y` | Bremsen, wenn der HQ-Marker so weit unten ist (oder der Kauf-Hinweis erscheint) | 560 |
-| `maps.<map>.approach_speed` | Ab diesem Tempo (km/h) beginnt der Sinkflug zur Landung | 60 |
+| `maps.<map>.approach_agl` / `approach_speed` | Höhe (m) und Tempo (km/h) für den letzten Anflug auf die Base, bis „[B] BUY AMMO / SUPPLIES“ erscheint | 30 / 60 |
 | `buy.clicks` | Klickpunkte im Kaufmenü (Logistics, Pallets, Ammo-Palette, Confirm & Exit) | |
 | `flight.agl_band` | Erlaubte Abweichung von der Zielhöhe (m) | 8 |
 | `flight.yaw_deadband` | Marker gilt als mittig bei dieser Abweichung (Pixel) | 40 |

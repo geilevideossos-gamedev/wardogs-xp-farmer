@@ -109,10 +109,47 @@ def test_fly_low_and_fast_noses_up_with_shift(setup):
 
 def test_fly_below_floor_stops_accelerating(setup):
     pilot, inp, clock, _ = setup
+    pilot.tilt = 3
     for step, speed in enumerate((60, 70, 80)):
         clock.now = step * 0.4
         fly(pilot, 50, speed, target_speed=200, floor=80)
     assert inp.is_down("shift") and inp.is_down("s") and not inp.is_down("w")
+
+
+def test_fly_below_floor_never_pitches_up_from_level(setup):
+    pilot, inp, clock, _ = setup
+    for step, speed in enumerate((5, 10, 15)):
+        clock.now = step * 0.4
+        fly(pilot, 50, speed, target_speed=200, floor=80)
+    assert inp.is_down("shift") and not inp.is_down("s") and not inp.is_down("w")
+
+
+def test_fly_levels_out_after_braking(setup):
+    pilot, inp, _, _ = setup
+    pilot.tilt = -2
+    fly(pilot, 100, 5, target_speed=0)
+    assert inp.is_down("w") and pilot.tilt == -1
+
+
+def test_fly_counts_pitch_taps(setup):
+    pilot, _, _, _ = setup
+    fly(pilot, 100, 0, target_speed=200)
+    assert pilot.tilt == 1
+
+
+def test_tilt_resets_on_ground(setup):
+    pilot, inp, _, _ = setup
+    pilot.tilt = 3
+    fly(pilot, 0, 0, target_agl=0)
+    assert pilot.tilt == 0 and not inp.is_down("w") and not inp.is_down("s")
+
+
+def test_fly_uses_ctrl_only_in_sink_mode(setup):
+    pilot, inp, _, _ = setup
+    fly(pilot, 100, 100, target_agl=70, target_speed=100)
+    assert not inp.is_down("ctrl")
+    pilot.fly(100, 200, 100, 70, 100, 0, sink=True)
+    assert inp.is_down("ctrl") and not inp.is_down("shift")
 
 
 def test_fly_noses_up_when_sinking_despite_shift(setup):

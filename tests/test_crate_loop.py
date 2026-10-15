@@ -14,7 +14,7 @@ from heli_farmer.inputs import Input
 FRAME = np.zeros((4, 4, 3), np.uint8)
 TICK = 0.05
 GROUND_ASL = 100.0
-PITCH_RATE = 60.0
+PITCH_RATE = 25.0
 YAW_RATE = 40.0
 SHIFT_LIFT = 1 / math.cos(math.radians(20))
 CTRL_LIFT = 0.93
@@ -121,7 +121,7 @@ class World:
             x = round(960 + error * 900 / FOV_HALF)
         else:
             x = 120 if error < 0 else 1800
-        y = 400 + round(200 * min(1.0, 300 / max(distance, 1.0)))
+        y = 400 + round(200 * min(1.0, 600 / max(distance, 1.0)))
         return Marker(x, y, 0.9, **extra)
 
     def inside(self) -> bool:

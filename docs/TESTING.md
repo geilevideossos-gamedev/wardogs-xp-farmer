@@ -107,14 +107,14 @@ Erst die Erkennung ohne Tastendrücke, dann die einzelnen Schritte, dann eine Ru
 **Schritt 5 – Umdrehen und raus aus der Zone**
 
 1. Direkt nach Schritt 4: `… --layer 1 --step leave`
-2. **Erwartet:** Log `Umdrehen mit Q` (oder E), er bremst und dreht ca. 4 Sekunden, dann fliegt er geradeaus aus der Zone, Log `Zone verlassen`
+2. **Erwartet:** Log `Umdrehen mit Q` (oder E), er bremst und dreht ca. 4 Sekunden, dann fliegt er geradeaus aus der Zone, Log `Zone verlassen, noch 3 s weiter`
 3. Melden: Wie weit hat er sich ungefähr gedreht (z. B. halbe Drehung, Viertel)? Danach wird `flight.turnaround_s` eingestellt: für eine halbe Drehung soll er ungefähr zurück Richtung Base zeigen
 
 **Schritt 6 – Base suchen und landen**
 
 1. Direkt nach Schritt 5: `… --layer 1 --step turn`, danach `… --layer 1 --step land`
-2. **Erwartet:** `turn` dreht nur mit Q/E, bis der blaue HQ-Marker mittig ist. `land`: Flug zum HQ-Marker, beim Kauf-Hinweis oder nahe der Base bremsen, dann langsam senkrecht sinken (Strg nur hier), aufsetzen, Log `Gelandet im Kaufbereich`
-3. Melden: Wo setzt er auf (Grasfläche mit „[B] BUY AMMO / SUPPLIES“, Dach, Bäume)? Zu hart (`flight.sink_rate` kleiner)? Bremst er zu früh oder zu spät (`maps.<map>.hq_approach_y`)?
+2. **Erwartet:** `turn` dreht nur mit Q/E, bis der blaue HQ-Marker mittig ist. `land`: Flug zum HQ-Marker, nahe der Base Log `Base erreicht, tief und langsam anfliegen`: er sinkt auf ca. 30 m und fliegt mit ca. 60 km/h weiter, bis „[B] BUY AMMO / SUPPLIES“ erscheint (Log `Sinkflug (Kauf-Hinweis)`), dann bremst er und sinkt senkrecht, setzt auf, Log `Gelandet im Kaufbereich`
+3. Melden: Wo setzt er auf (Grasfläche mit „[B] BUY AMMO / SUPPLIES“, Dach, Bäume)? Zu hart (`flight.sink_rate` kleiner)? Beginnt der tiefe Anflug zu früh oder zu spät (`maps.<map>.hq_approach_y`)? Bleibt er nach dem Bremsen ruhig in der Luft stehen oder fliegt er rückwärts weg?
 
 **Schritt 7 – Eine Runde**
 
