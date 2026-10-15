@@ -30,6 +30,28 @@ logging:
   root: logs
   level: INFO
 
+overlay:
+  origin: [632, 6]
+  pitch: [125, 120]
+  patches:
+    - [5, 4, 85, 18]
+    - [-18, 82, 86, 20]
+  keys:
+    q: [0, 1]
+    w: [0, 2]
+    e: [0, 3]
+    r: [0, 4]
+    shift: [1, 0]
+    a: [1, 1]
+    s: [1, 2]
+    d: [1, 3]
+    f: [1, 4]
+    ctrl: [2, 0]
+  threshold_on: 75
+  threshold_off: 65
+  step: 2
+  image_step: 6
+
 vision:
   assets: assets
   confirm: 3

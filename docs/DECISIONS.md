@@ -45,6 +45,12 @@ Format je Eintrag: Datum, Entscheidung, Grund, verworfene Alternativen.
 - **Grund:** Die pip-Wheels von OpenCV schreiben H.264 nicht zuverlässig, `mp4v` funktioniert ohne Zusatz. Das Video hat nominell `fps`; die echten Zeitpunkte (inkl. verworfener Frames) stehen in `frames.csv`.
 - **Verworfen:** Threads im selben Prozess (GIL-Konkurrenz mit Hook-Callbacks), ffmpeg-Subprozess (zusätzliche externe Abhängigkeit).
 
+## 2026-10-15 – Datengrundlage: OBS-Videos statt Aufnahme-Tool
+
+- **Entscheidung:** Daniels OBS-Videos mit Tasten-Overlay sind die Testdaten. `tools/overlay_inputs.py` liest das Overlay (Gelbanteil je Taste, Hysterese 75/65) und schreibt `inputs.jsonl` im Format von `tools/record.py`. B und G kommen aus dem Bild (Kaufmenü öffnet, G-Feld verschwindet).
+- **Grund:** Videos lagen vor, Overlay ist eindeutig ablesbar (gedrückt ≥ 70, sonst ≤ 60 außerhalb von Ladebildschirmen).
+- **Folge:** Detektoren dürfen die Overlay-Fläche (x 600–1500, y 0–370) nicht als Merkmal nutzen. Was dort im Spiel liegt (Kompass, Zonen-Banner, hohe Marker), ist offline nur eingeschränkt prüfbar.
+
 ## 2026-10-15 – Bilderkennung mit festen Template-Fenstern
 
 - **Entscheidung:** HUD-Zustände per `cv2.matchTemplate` (TM_CCOEFF_NORMED, Graustufen) in kleinen festen Fenstern (`x, y, search`). Templates aus den Videos zugeschnitten (`assets/`), Schwellen aus der Verteilung über alle 1.420 Sekundenbilder (Treffer/Nicht-Treffer klar getrennt).

@@ -94,6 +94,14 @@ Dateiformate:
 | `inputs.jsonl` | je Zeile JSON, `t` in Sekunden seit `t0`, monoton. `{"type":"key","key":<key_name>,"action":"down"\|"up"}`, `{"type":"button","button":"left"\|"right"\|"middle"\|…,"action":…,"x":…,"y":…}`, `{"type":"move","x":…,"y":…}` (Bildschirmkoordinaten, nicht regionsrelativ) |
 | `meta.json` | `region`, `fps`, `scale`, `video_size`, `started`, `clock` |
 
+### `overlay_inputs.py` – Tasten aus OBS-Overlay
+
+`analyse(video, config)` → Liste von Ereignissen im `inputs.jsonl`-Format (`type: key`), sortiert nach `t` (Video-Zeit). Ausgabe `<video>.inputs.jsonl` neben dem Video.
+
+- `key_levels(frame, overlay)`: Gelbanteil `min(G,R) − B`, Median über `overlay.patches` je Taste (Raster `origin`, `pitch`, `keys: name → [zeile, spalte]`)
+- `KeyTracker(on, off)`: Hysterese, Ereignis bei Zustandswechsel. Jedes `overlay.step`-te Frame
+- `ImageTracker(vision, keys, confirm)`: jedes `overlay.image_step`-te Frame. `b` (down+up) wenn `garage_menu` von `None` auf offen wechselt; `g` wenn die Kiste (nur bei sichtbarem „Z20 LAKOTA“) nach `confirm` gleichen Messungen von geladen auf leer wechselt
+
 ### `video.py` – gemeinsames Video-Lesen
 
 `iter_frames(video, select)` → `(index, t, frame)`. `t` aus `frames.csv` neben dem Video, falls vorhanden (eigene Aufnahmen), sonst `CAP_PROP_POS_MSEC` (OBS). `select(index, t) -> bool` entscheidet vor dem Dekodieren des Bildes (`grab` vs. `retrieve`).

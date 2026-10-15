@@ -45,6 +45,12 @@ Beendet wird mit **F2** (oder Strg+C im Konsolenfenster).
 
 Funktioniert mit Aufnahmen des Aufnahme-Tools und mit normalen OBS-Videos (MP4, 1920×1080).
 
+Tasten aus einem OBS-Video mit Tasten-Overlay auslesen (schreibt `<video>.inputs.jsonl` neben das Video):
+
+```powershell
+.venv\Scripts\python -m tools.overlay_inputs wardogs_daten\Video\join+Bakurani.mp4
+```
+
 Einzelbilder als PNG speichern (landen in `debug/frames/…`):
 
 ```powershell
