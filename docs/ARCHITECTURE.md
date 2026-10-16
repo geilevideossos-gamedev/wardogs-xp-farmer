@@ -6,7 +6,8 @@
 |---|---|
 | `config.py` | `load_config(path)`: lädt `config.yaml`, merged `config.local.yaml` (gleiches Verzeichnis, optional) rekursiv darüber. `merge(base, override)` |
 | `killswitch.py` | `Killswitch`: pynput-Keyboard-Listener, bei `keys.stop` → `stop.set()` + `on_stop()` (= `Input.release_all`). `wait(stop, s)` wirft `Stopped`. `key_name(key)` normalisiert pynput-Keys auf Strings (`"f2"`, `"w"`, `"space"`, `"vk<n>"`) |
-| `inputs.py` | `Input`: `key_down/key_up/hold/tap/click/mouse_down/mouse_up` über pydirectinput (`SendInput`, Scan-Codes). Merkt gedrückte Tasten mit Startzeit, `release_overdue(limit_s)` lässt zu lange gehaltene Tasten los, `release_all()`. Nach Stop wirft Drücken `Stopped`. `dry_run=True` loggt statt zu senden |
+| `inputs.py` | `Input`: `key_down/key_up/hold/tap/click/mouse_down/mouse_up` über pydirectinput (`SendInput`, Scan-Codes). Merkt gedrückte Tasten mit Startzeit, `release_overdue(limit_s)` lässt zu lange gehaltene Tasten los, `release_all()`. Nach Stop wirft Drücken `Stopped`. `dry_run=True` loggt statt zu senden. `focused()` (optional): vor jedem `key_down`/`mouse_down`/`click` und in `CrateLoop.observe` → `wait_for_focus()`: nicht im Vordergrund → `release_all`, pollen alle `focus_poll_s` bis wieder vorne, Wartezeit summiert in `paused_s` |
+| `window.py` | `foreground_title()` (Win32 `GetForegroundWindow`/`GetWindowTextW` über ctypes), `is_foreground(title)`: Titel exakt gleich (getrimmt, ohne Groß/Klein) |
 | `capture.py` | `ScreenCapture(region).grab()` → BGR `np.ndarray` (H×W×3, uint8) der Spielregion via `mss` |
 | `logs.py` | `setup_logging(root, level, name)` → `logs/<YYYY-MM-DD>/<name>_<HHMMSS>.log` + Konsole. `save_debug_screenshot(run_dir, frame, reason)` → `<run_dir>/screenshots/<HHMMSS_ffffff>_<reason>.png` |
 | `detectors.py` | `Vision(config["vision"])`: Detektoren `frame → Ergebnis` (siehe unten). Stubs `on_server`, `in_team_blue` (→ `None`) für Layer 3/4 |
@@ -141,6 +142,8 @@ flowchart LR
     SM -->|UnknownStateTimeout / SafeStop / StepFailed| Safe[Killswitch.trigger + Screenshot]
 ```
 
+Start: `countdown(stop, loop.start_delay_s)` (Log pro Sekunde, F2 bricht ab), dann Log des Vordergrund-Titels. Fokusprüfung nur ohne `--dry-run` und ohne `--hold-test` (`focused = is_foreground(window.title)`). `CrateLoop`-Uhr = `monotonic() − Input.paused_s`: Schritt-Timeouts, Trends und Pulse stehen, solange auf das Spielfenster gewartet wird.
+
 CLI: `python -m heli_farmer.main [--config] [--dry-run] [--hold-test] [--layer 1] [--once] [--step buy|climb|turn|drop|leave|land] [--map NAME]`. `--once`/`--step` nur mit `--layer 1`. `--map` wählt `maps.<NAME>`, gemerged über `maps.default`.
 
 Exit-Codes: 0 Stopp/fertig, 1 unerwarteter Fehler, 2 Watchdog (unbekannter Zustand), 3 sicherer Stopp (`SafeStop`, `StepFailed`).
@@ -151,7 +154,8 @@ Exit-Codes: 0 Stopp/fertig, 1 unerwarteter Fehler, 2 Watchdog (unbekannter Zusta
 |---|---|
 | `game_region` | `ScreenCapture`, Klick-Offset in `CrateLoop` |
 | `keys` | Killswitch (`stop`), Aufnahme (`record`), Bot (`shop, drop, up, down, forward, back, yaw_left, yaw_right`) |
-| `loop.tick_s` | Hauptschleife außerhalb Layer 1 |
+| `loop` | `tick_s` Hauptschleife außerhalb Layer 1, `start_delay_s` Countdown vor dem ersten Tastendruck (auch Hold-Test) |
+| `window` | `title` Fenstertitel des Spiels, `poll_s` Abfrageintervall beim Warten auf den Fokus |
 | `timeouts` | `unknown_state_s` (Watchdog), `max_hold_s` (`release_overdue`), `heli_lost_s` (`observe`) |
 | `vision` | `Vision`; `confirm` = gleiche Messungen in Folge für Zustandswechsel der Kiste |
 | `buy` | Klickpunkte und Wartezeiten des Kaufs |

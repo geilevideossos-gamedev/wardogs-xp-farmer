@@ -79,6 +79,7 @@ class CrateLoop:
 
     def observe(self) -> np.ndarray:
         wait(self._stop, self._flight["tick_s"])
+        self._inp.wait_for_focus()
         self._pilot.update()
         self._inp.release_overdue(self._timeouts["max_hold_s"])
         frame = self._grab()

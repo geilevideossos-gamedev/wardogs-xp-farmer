@@ -23,7 +23,7 @@ def test_hold_test_holds_key_until_stop():
     timer.start()
 
     with pytest.raises(Stopped):
-        hold_test(inp, stop, "w", 0.01, 0)
+        hold_test(inp, stop, "w", 0.01)
 
     assert backend.keyDown.call_count >= 2
     backend.keyUp.assert_called_once_with("w")

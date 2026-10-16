@@ -24,19 +24,36 @@ class Input:
         dry_run: bool = False,
         backend=None,
         clock: Callable[[], float] = time.monotonic,
+        focused: Callable[[], bool] | None = None,
+        focus_poll_s: float = 0.2,
     ):
         self._stop = stop
         self._dry_run = dry_run
         self._backend = backend if backend is not None or dry_run else _pydirectinput()
         self._clock = clock
+        self._focused = focused
+        self._focus_poll_s = focus_poll_s
         self._lock = threading.Lock()
         self._keys: dict[str, float] = {}
         self._buttons: set[str] = set()
+        self.paused_s = 0.0
 
     def is_down(self, key: str) -> bool:
         return key in self._keys
 
+    def wait_for_focus(self) -> None:
+        if self._focused is None or self._focused():
+            return
+        self.release_all()
+        log.warning("Spielfenster nicht im Vordergrund: alle Tasten los, warte")
+        started = self._clock()
+        while not self._focused():
+            wait(self._stop, self._focus_poll_s)
+        self.paused_s += self._clock() - started
+        log.info("Spielfenster wieder im Vordergrund nach %.1f s", self._clock() - started)
+
     def key_down(self, key: str) -> None:
+        self.wait_for_focus()
         with self._lock:
             self._raise_if_stopped()
             self._send("keyDown", key)
@@ -61,6 +78,7 @@ class Input:
             self.key_up(key)
 
     def click(self, x: int, y: int) -> None:
+        self.wait_for_focus()
         with self._lock:
             self._raise_if_stopped()
             self._send("moveTo", x, y)
@@ -68,6 +86,7 @@ class Input:
         self.mouse_up()
 
     def mouse_down(self, button: str = "left") -> None:
+        self.wait_for_focus()
         with self._lock:
             self._raise_if_stopped()
             self._send("mouseDown", button=button)

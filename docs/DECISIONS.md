@@ -131,3 +131,9 @@ Format je Eintrag: Datum, Entscheidung, Grund, verworfene Alternativen.
 
 - **Entscheidung:** `tests/test_replay_videos.py` mit Marker `videos`, per `addopts` im Standardlauf abgewählt; Aufruf `pytest -m videos`.
 - **Grund:** Videos liegen nur lokal (1,1 GB, nicht im Repo) und der Lauf dauert einige Minuten. Marker und Minimap werden nur in jeder 5. Zeile (2 Bilder/s) gelesen, weil die Marker-Suche ~100 ms pro Bild kostet.
+
+## 2026-10-17 – Startverzögerung und Eingaben nur ins Spielfenster
+
+- **Entscheidung:** Countdown `loop.start_delay_s` vor jedem Lauf (ersetzt `hold_test.start_delay_s`). Eingaben nur, wenn der Vordergrund-Fenstertitel exakt `window.title` ist; sonst `release_all` und warten. Die Wartezeit wird aus der Uhr von `CrateLoop` herausgerechnet (`Input.paused_s`). Ohne Prüfung: `--dry-run`, `--hold-test` (Not-Aus-Test läuft im Editor).
+- **Grund:** Test 17.10.: Der Bot startete sofort und tippte in die Konsole, Daniel wechselte per Alt+Tab (Screenshot 002840 zeigt den Fensterumschalter). Exakter Titel, weil „wardogs“ auch in anderen Titeln vorkommt (VS Code „… - wardogs_script - …“, Explorer `wardogs_daten`). ctypes ist Teil von Python, keine neue Dependency. Uhr anhalten, damit ein kurzer Blick ins Log keinen Schritt-Timeout auslöst.
+- **Verworfen:** `pywin32`/`pygetwindow` (neue Dependency für zwei API-Aufrufe), Teilstring-Vergleich des Titels, Prozessname (Name der Spiel-EXE unbekannt), Fokus nur beim Start prüfen.

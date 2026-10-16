@@ -164,3 +164,30 @@ def test_release_overdue_lets_go_of_long_holds():
     now[0] = 21.0
     assert inp.release_overdue(20) == ["shift"]
     assert inp.is_down("w") and not inp.is_down("shift")
+
+
+def test_waits_for_game_window_and_releases_keys_meanwhile():
+    now = [0.0]
+    answers = iter([True, False, False, True])
+
+    def focused():
+        now[0] += 1.0
+        return next(answers)
+
+    backend = Mock()
+    inp = Input(
+        threading.Event(), backend=backend, clock=lambda: now[0], focused=focused, focus_poll_s=0
+    )
+    inp.key_down("shift")
+    inp.key_down("w")
+    assert backend.keyUp.call_args_list == [call("shift")]
+    assert backend.keyDown.call_args_list == [call("shift"), call("w")]
+    assert inp.paused_s == 2.0
+
+
+def test_stop_ends_waiting_for_game_window():
+    stop = threading.Event()
+    inp = Input(stop, backend=Mock(), focused=lambda: False, focus_poll_s=0.01)
+    threading.Timer(0.05, stop.set).start()
+    with pytest.raises(Stopped):
+        inp.key_down("w")

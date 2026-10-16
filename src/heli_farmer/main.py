@@ -2,6 +2,7 @@ import argparse
 import logging
 import sys
 import threading
+import time
 from pathlib import Path
 
 from heli_farmer import detectors
@@ -21,6 +22,7 @@ from heli_farmer.states import (
     Watchdog,
     not_built,
 )
+from heli_farmer.window import foreground_title, is_foreground
 
 log = logging.getLogger(__name__)
 
@@ -49,15 +51,13 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     return args
 
 
-def hold_test(
-    inp: Input, stop: threading.Event, key: str, repeat_s: float, start_delay_s: float
-) -> None:
-    log.info(
-        "Hold-Test: in %s s wird '%s' gedrückt gehalten. Jetzt ins Zielfenster wechseln",
-        start_delay_s,
-        key,
-    )
-    wait(stop, start_delay_s)
+def countdown(stop: threading.Event, seconds: int) -> None:
+    for left in range(seconds, 0, -1):
+        log.info("Start in %d s: jetzt ins Spiel wechseln", left)
+        wait(stop, 1)
+
+
+def hold_test(inp: Input, stop: threading.Event, key: str, repeat_s: float) -> None:
     log.info("Hold-Test: halte '%s' gedrückt", key)
     while True:
         inp.key_down(key)
@@ -98,7 +98,11 @@ def bot_loop(
 ) -> int:
     capture = ScreenCapture(config["game_region"])
     vision = Vision(config["vision"])
-    loop = CrateLoop(vision, inp, capture.grab, stop, config, args.map)
+
+    def clock() -> float:
+        return time.monotonic() - inp.paused_s
+
+    loop = CrateLoop(vision, inp, capture.grab, stop, config, args.map, clock)
     machine = build_machine(config, args, vision, loop, inp)
     try:
         while True:
@@ -129,14 +133,17 @@ def main(argv: list[str] | None = None) -> int:
     config = load_config(args.config)
     run_dir = setup_logging(config["logging"]["root"], config["logging"]["level"], "bot")
     stop = threading.Event()
-    inp = Input(stop, dry_run=args.dry_run)
+    window = config["window"]
+    focused = None if args.dry_run or args.hold_test else lambda: is_foreground(window["title"])
+    inp = Input(stop, dry_run=args.dry_run, focused=focused, focus_poll_s=window["poll_s"])
     killswitch = Killswitch(config["keys"]["stop"], stop, inp.release_all)
     killswitch.start()
     log.info("Start (dry_run=%s). Stopp mit %s", args.dry_run, config["keys"]["stop"].upper())
     try:
+        countdown(stop, config["loop"]["start_delay_s"])
+        log.info("Vordergrund: '%s' (Spiel: '%s')", foreground_title(), window["title"])
         if args.hold_test:
-            settings = config["hold_test"]
-            hold_test(inp, stop, settings["key"], settings["repeat_s"], settings["start_delay_s"])
+            hold_test(inp, stop, config["hold_test"]["key"], config["hold_test"]["repeat_s"])
         return bot_loop(config, args, stop, inp, killswitch, run_dir)
     except Stopped:
         log.info("Beendet durch Stopp")

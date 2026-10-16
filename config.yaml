@@ -18,6 +18,11 @@ keys:
 
 loop:
   tick_s: 0.1
+  start_delay_s: 5
+
+window:
+  title: Wardogs
+  poll_s: 0.2
 
 timeouts:
   unknown_state_s: 30
@@ -27,7 +32,6 @@ timeouts:
 hold_test:
   key: w
   repeat_s: 0.03
-  start_delay_s: 5
 
 recording:
   root: recordings

@@ -27,6 +27,16 @@ py -m venv .venv
 
 Immer aus dem Projektordner heraus. Spiel in 1920×1080, randloses Fenster.
 
+Nach dem Start zählt der Bot 5 Sekunden herunter (im Log `Start in 5 s …`). In der Zeit ins Spiel wechseln. Der Bot drückt nur Tasten, solange WARDOGS im Vordergrund ist. Wechselst du in ein anderes Fenster, lässt er sofort alle Tasten los und wartet, bis das Spiel wieder vorne ist (Log `Spielfenster nicht im Vordergrund`). Zeitlimits der Schritte laufen in der Zeit nicht weiter.
+
+**Kurzbefehl `bot`** (startet immer mit `--layer 1`): einmal in PowerShell `notepad $PROFILE` öffnen, diese Zeile einfügen, `<Projektordner>` durch deinen Pfad ersetzen, speichern und PowerShell neu öffnen:
+
+```powershell
+function bot { Push-Location "<Projektordner>"; try { .venv\Scripts\python.exe -m heli_farmer.main --layer 1 @args } finally { Pop-Location } }
+```
+
+Danach geht in jedem PowerShell-Fenster: `bot` (Dauerlauf), `bot --once`, `bot --step buy`, `bot --step drop --dry-run`, `bot --map ozeti` usw.
+
 | Befehl | Was passiert |
 |---|---|
 | `.venv\Scripts\python -m heli_farmer.main --layer 1` | Crate-Schleife im Dauerlauf. Start: du sitzt als Pilot im Z20 Lakota, gelandet in der blauen Base (Hinweis „BUY AMMO / SUPPLIES“ sichtbar) |
@@ -34,7 +44,7 @@ Immer aus dem Projektordner heraus. Spiel in 1920×1080, randloses Fenster.
 | `… --layer 1 --step buy` | Nur einen Schritt: `buy` (Palette kaufen), `climb` (ein paar Meter abheben), `turn` (zur Zone bzw. zur Base drehen), `drop` (zur Zone fliegen und abwerfen), `leave` (umdrehen und aus der Zone fliegen), `land` (zur Base fliegen und landen) |
 | `… --layer 1 --map ozeti` | Flugwerte für eine Map aus `config.yaml` → `maps` verwenden (`bakurani`, `ozeti`, `zestafona`) |
 | `… --dry-run` | Probelauf: drückt keine Tasten, schreibt nur ins Log, was er drücken würde |
-| `.venv\Scripts\python -m heli_farmer.main --hold-test` | Test für den Not-Aus: hält nach 5 Sekunden die Taste W gedrückt, bis du F2 drückst |
+| `.venv\Scripts\python -m heli_farmer.main --hold-test` | Test für den Not-Aus: hält nach 5 Sekunden die Taste W gedrückt, bis du F2 drückst. Funktioniert in jedem Fenster (z. B. Editor) |
 
 Beendet wird mit **F2** (oder Strg+C im Konsolenfenster). Am Ende steht im Log eine Zusammenfassung (gekaufte, abgeworfene und bestätigte Paletten, Runden).
 
@@ -104,6 +114,8 @@ Die wichtigsten Einstellungen:
 | Einstellung | Bedeutung | Standard |
 |---|---|---|
 | `game_region` | Bildschirmbereich des Spiels (links, oben, Breite, Höhe in Pixeln) | 0, 0, 1920, 1080 |
+| `loop.start_delay_s` | Countdown nach dem Start, bevor der Bot etwas drückt (Sekunden) | 5 |
+| `window.title` | Fenstertitel des Spiels. Nur wenn dieses Fenster vorne ist, drückt der Bot Tasten. Nach dem Countdown steht im Log `Vordergrund: '…'`; weicht der Titel ab, hier eintragen | Wardogs |
 | `keys.*` | Tasten: `stop` F2, `shop` b, `drop` g, `up` shift, `down` ctrl, `forward` w, `back` s, `yaw_left` q, `yaw_right` e, `record` f9 | |
 | `timeouts.unknown_state_s` | So lange darf der Bildschirm unbekannt sein, bevor das Programm sicher stoppt (Sekunden) | 30 |
 | `timeouts.max_hold_s` | Keine Taste wird länger am Stück gehalten (Sekunden) | 20 |
