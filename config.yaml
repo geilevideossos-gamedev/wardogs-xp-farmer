@@ -15,6 +15,8 @@ keys:
   back: s
   yaw_left: q
   yaw_right: e
+  roll_left: a
+  roll_right: d
 
 loop:
   tick_s: 0.1
@@ -202,8 +204,13 @@ flight:
   speed_gain: 0.2
   accel_max: 15
   accel_band: 6
+  brake_accel: 5
   pitch_tap_s: 0.2
   pitch_interval_s: 0.7
+  max_tilt: 3
+  trim_speed: 4
+  trim_accel: 4
+  trim_tap_s: 0.1
   sink_guard: 1.5
   hover_speed: 10
   speed_limits: [[20, 40], [40, 100], [60, 160], [80, 220], [120, 280]]
@@ -212,11 +219,20 @@ flight:
   yaw_min_s: 0.08
   yaw_max_s: 0.6
   yaw_interval_s: 0.4
+  bank_speed: 80
+  bank_per_px: 0.04
+  max_bank: 15
+  roll_band: 4
+  roll_s_per_deg: 0.02
+  roll_min_s: 0.1
+  roll_max_s: 0.4
+  roll_interval_s: 0.6
   climb_timeout_s: 30
   turn_timeout_s: 25
   leg_timeout_s: 240
   turnaround_s: 4
   leave_margin_s: 3
+  outside_check_s: 1
   drop_delay_s: 3
   drop_wait_s: 15
   drop_timeout_s: 3
@@ -227,23 +243,28 @@ flight:
   landed_hold_s: 2
   land_timeout_s: 90
   hq_lost_s: 3
+  hq_overhead_distance: 60
+  drop_sink_rate: 2
+  approach_sink_rate: 3
   sink_rate: 4
   sink_rate_min: 1.5
   sink_slow_agl: 10
   sink_band: 1
+  touchdown_speed: 15
 
 maps:
   default:
     turn_agl: 15
     min_agl: 80
     cruise_agl: 100
-    cruise_speed: 200
+    cruise_speed: 180
     brake_distance: 400
     drop_agl: 70
     drop_max_agl: 85
     drop_speed: 120
-    approach_agl: 30
-    approach_speed: 60
+    approach_agl: 40
+    approach_speed: 40
+    land_distance: 700
     hq_approach_y: 560
   bakurani: {}
   ozeti: {}

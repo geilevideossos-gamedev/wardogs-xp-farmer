@@ -5,6 +5,8 @@ import numpy as np
 
 from heli_farmer.inputs import Input
 
+FLIGHT_KEYS = ("up", "down", "forward", "back", "yaw_left", "yaw_right", "roll_left", "roll_right")
+
 
 class Trend:
     def __init__(self, window_s: float):
@@ -25,6 +27,10 @@ class Trend:
         return (v1 - v0) / (t1 - t0) if t1 > t0 else 0.0
 
 
+def clamp(value: float, low: float, high: float) -> float:
+    return max(low, min(high, value))
+
+
 class Pilot:
     def __init__(self, inp: Input, keys: dict, flight: dict, clock: Callable[[], float]):
         self._inp = inp
@@ -37,7 +43,12 @@ class Pilot:
         self._pulses: dict[str, float] = {}
         self._last_pitch = -1e9
         self._last_yaw = -1e9
+        self._last_roll = -1e9
         self.tilt = 0
+
+    @property
+    def yawing(self) -> bool:
+        return self._keys["yaw_left"] in self._pulses or self._keys["yaw_right"] in self._pulses
 
     def update(self) -> None:
         now = self._clock()
@@ -47,7 +58,7 @@ class Pilot:
                 del self._pulses[key]
 
     def release(self) -> None:
-        for key in ("up", "down", "forward", "back", "yaw_left", "yaw_right"):
+        for key in FLIGHT_KEYS:
             self._inp.hold(self._keys[key], False)
         self._pulses.clear()
 
@@ -61,37 +72,46 @@ class Pilot:
         asl: int | None,
         speed: int | None,
         target_agl: float,
-        target_speed: float,
+        target_speed: float | None,
         floor: float = 0,
-        sink: bool = False,
+        sink_rate: float = 0,
+        loaded: bool = False,
     ) -> None:
         self._track(agl, asl, speed)
         if agl is None:
             return
         low = agl < floor
-        lift = low or self._lift(agl, target_agl)
+        rate = self._asl.rate()
+        sinking_fast = sink_rate > 0 and rate < -sink_rate - self._cfg["sink_band"]
+        lift = low or sinking_fast or self._lift(agl, target_agl)
         predicted = agl + self._agl.rate() * self._cfg["agl_lookahead_s"]
         above = predicted > target_agl + self._cfg["agl_band"]
         self._inp.hold(self._keys["up"], lift)
-        self._inp.hold(self._keys["down"], sink and not lift and above)
+        self._inp.hold(
+            self._keys["down"], sink_rate > 0 and above and not lift and rate > -sink_rate
+        )
         if speed is None:
             return
         limit = self.speed_limit(agl)
-        sinking = self._asl.rate() < -self._cfg["sink_guard"]
+        sinking = rate < -self._cfg["sink_guard"]
         accel = self._speed.rate()
         too_fast = speed > limit + self._cfg["speed_band"]
-        if too_fast or (lift and sinking) or (low and accel > 0 and self.tilt > 0):
+        nose_low = lift and sinking and not sink_rate
+        if too_fast or nose_low or (low and accel > 0 and self.tilt > 0):
             self._pitch("back")
-        elif not low:
-            self._pitch_for(speed, min(target_speed, limit), accel, sinking)
+        elif not low and target_speed is not None:
+            self._pitch_for(speed, min(target_speed, limit), accel, sinking, loaded)
 
     def descend(self, agl: int | None, asl: int | None, speed: int | None) -> None:
         self._track(agl, asl, speed)
         if agl is None:
             return
+        slow_agl = agl <= self._cfg["sink_slow_agl"]
         if speed is not None and speed > self.speed_limit(agl):
             target = 0.0
-        elif agl > self._cfg["sink_slow_agl"]:
+        elif slow_agl and speed is not None and speed > self._cfg["touchdown_speed"]:
+            target = 0.0
+        elif not slow_agl:
             target = -self._cfg["sink_rate"]
         else:
             target = -self._cfg["sink_rate_min"]
@@ -107,17 +127,42 @@ class Pilot:
         if abs(error) <= self._cfg["yaw_deadband"]:
             return True
         now = self._clock()
-        if self._yawing() or now - self._last_yaw < self._cfg["yaw_interval_s"]:
+        if self.yawing or now - self._last_yaw < self._cfg["yaw_interval_s"]:
             return False
-        seconds = abs(error) * self._cfg["yaw_s_per_px"]
-        seconds = max(self._cfg["yaw_min_s"], min(self._cfg["yaw_max_s"], seconds))
+        seconds = clamp(
+            abs(error) * self._cfg["yaw_s_per_px"], self._cfg["yaw_min_s"], self._cfg["yaw_max_s"]
+        )
         self._pulse(self._keys["yaw_right" if error > 0 else "yaw_left"], seconds)
         self._last_yaw = now
         return False
 
     def search(self, direction: str = "yaw_right") -> None:
-        if not self._yawing():
+        if not self.yawing:
             self._pulse(self._keys[direction], self._cfg["yaw_max_s"])
+
+    def bank(self, roll: int | None, speed: int | None, x: float | None = None) -> None:
+        if roll is None:
+            return
+        target = 0.0
+        if x is not None and speed is not None and speed >= self._cfg["bank_speed"]:
+            limit = self._cfg["max_bank"]
+            target = clamp((x - self._cfg["center_x"]) * self._cfg["bank_per_px"], -limit, limit)
+        error = target - roll
+        now = self._clock()
+        rolling = (
+            self._keys["roll_left"] in self._pulses or self._keys["roll_right"] in self._pulses
+        )
+        if abs(error) <= self._cfg["roll_band"] or rolling:
+            return
+        if now - self._last_roll < self._cfg["roll_interval_s"]:
+            return
+        seconds = clamp(
+            abs(error) * self._cfg["roll_s_per_deg"],
+            self._cfg["roll_min_s"],
+            self._cfg["roll_max_s"],
+        )
+        self._pulse(self._keys["roll_right" if error > 0 else "roll_left"], seconds)
+        self._last_roll = now
 
     def _track(self, agl: int | None, asl: int | None, speed: int | None) -> None:
         now = self._clock()
@@ -136,30 +181,46 @@ class Pilot:
             return False
         return self._inp.is_down(self._keys["up"])
 
-    def _pitch_for(self, speed: int, target: float, accel: float, sinking: bool) -> None:
+    def _pitch_for(
+        self, speed: int, target: float, accel: float, sinking: bool, loaded: bool = False
+    ) -> None:
         hover = self._cfg["hover_speed"]
-        if target <= hover and speed <= hover:
-            if self.tilt:
-                self._pitch("forward" if self.tilt < 0 else "back")
+        band = self._cfg["accel_band"]
+        if target <= hover:
+            if speed <= hover:
+                if speed > self._cfg["trim_speed"] and accel > 0:
+                    self._drift(loaded)
+            elif self.tilt < 0 and accel > band:
+                self._pitch("forward")
+            elif accel > -self._cfg["brake_accel"]:
+                self._pitch("back")
             return
         limit = self._cfg["accel_max"]
-        wanted = max(-limit, min(limit, self._cfg["speed_gain"] * (target - speed)))
-        band = self._cfg["accel_band"]
+        wanted = clamp(self._cfg["speed_gain"] * (target - speed), -limit, limit)
         if accel < wanted - band and not sinking:
-            self._pitch("forward")
+            if self.tilt < self._cfg["max_tilt"]:
+                self._pitch("forward")
+            elif accel < self._cfg["trim_accel"]:
+                self._pitch("forward", self._cfg["trim_tap_s"], counted=False)
         elif accel > wanted + band:
             self._pitch("back")
 
-    def _pitch(self, key: str) -> None:
+    def _drift(self, loaded: bool) -> None:
+        if self.tilt > 0:
+            self._pitch("back")
+        elif self.tilt < 0:
+            self._pitch("forward")
+        elif loaded:
+            self._pitch("forward", self._cfg["trim_tap_s"], counted=False)
+
+    def _pitch(self, key: str, seconds: float | None = None, counted: bool = True) -> None:
         now = self._clock()
         if now - self._last_pitch < self._cfg["pitch_interval_s"]:
             return
-        self._pulse(self._keys[key], self._cfg["pitch_tap_s"])
+        self._pulse(self._keys[key], seconds or self._cfg["pitch_tap_s"])
         self._last_pitch = now
-        self.tilt += 1 if key == "forward" else -1
-
-    def _yawing(self) -> bool:
-        return self._keys["yaw_left"] in self._pulses or self._keys["yaw_right"] in self._pulses
+        if counted:
+            self.tilt += 1 if key == "forward" else -1
 
     def _pulse(self, key: str, seconds: float) -> None:
         self._inp.key_down(key)

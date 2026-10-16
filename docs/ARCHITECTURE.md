@@ -11,7 +11,7 @@
 | `capture.py` | `ScreenCapture(region).grab()` → BGR `np.ndarray` (H×W×3, uint8) der Spielregion via `mss` |
 | `logs.py` | `setup_logging(root, level, name)` → `logs/<YYYY-MM-DD>/<name>_<HHMMSS>.log` + Konsole. `save_debug_screenshot(run_dir, frame, reason)` → `<run_dir>/screenshots/<HHMMSS_ffffff>_<reason>.png` |
 | `detectors.py` | `Vision(config["vision"])`: Detektoren `frame → Ergebnis` (siehe unten). Stubs `on_server`, `in_team_blue` (→ `None`) für Layer 3/4 |
-| `flight.py` | `Trend` (Änderungsrate über `history_s`), `Pilot`: Regler für Höhe (Shift/Ctrl), Tempo (W/S-Tipps), Gieren (Q/E-Pulse), Sinkrate |
+| `flight.py` | `Trend` (Änderungsrate über `history_s`), `Pilot`: Regler für Höhe (Shift/Ctrl), Tempo/Nicklage (W/S-Tipps), Querneigung (A/D-Pulse), Gieren (Q/E-Pulse), Sinkrate |
 | `crate_loop.py` | `CrateLoop`: Layer 1 als Schritte `buy, climb, turn, drop, land`, Sicherheitsprüfung pro Tick, Statistik |
 | `states.py` | Hierarchische State Machine: `Detectors`, `detect`, `classify`, `Watchdog`, `StateMachine`, `SafeStop`, `not_built(layer)` |
 | `main.py` | CLI, Aufbau der State Machine, Hauptschleife, Exit-Codes |
@@ -84,9 +84,9 @@ stateDiagram-v2
     [*] --> buy
     buy --> climb: G-Feld sichtbar
     climb --> turn: AGL >= turn_agl
-    turn --> drop: Zonen-Marker mittig
-    drop --> leave: HZ + Minimap, drop_delay_s gewartet, AGL <= drop_max_agl, G, G-Feld weg
-    leave --> turn2: turnaround_s gedreht, Marker CZ bzw. Minimap ohne Färbung
+    turn --> drop: Zonen-Marker mittig, confirm Bilder in Folge, kein Gier-Puls
+    drop --> leave: HZ + Minimap, drop_delay_s gewartet (gerade, sanft sinken), AGL <= drop_max_agl, G, G-Feld weg
+    leave --> turn2: schon draußen (outside_check_s) oder turnaround_s gedreht und raus
     turn2 --> land: HQ-Marker mittig
     land --> buy: gelandet, Kauf-Hinweis sichtbar
     buy --> StepFailed: kein Kauf-Hinweis / Kauf erfolglos
@@ -111,10 +111,10 @@ stateDiagram-v2
 |---|---|
 | `buy` | Kiste schon geladen → fertig. Menü zu: Kauf-Hinweis nötig → B. Warten auf Menü (`main` oder `logistics`). `main` mit `slots_full` → nur bestätigen. Sonst ggf. Klick `logistics` (kommt das Menü nicht → nur bestätigen) → `pallets` → `ammo_pallet` → warten auf `main`. Bestätigen: Klick `confirm`, bis `garage_menu` `None` ist, höchstens `buy.confirm_attempts`-mal, sonst `StepFailed`. Dann warten auf G-Feld. `buy.attempts` Versuche, dann `StepFailed`. Klick = `moveTo`, `hover_s` warten, Maustaste `press_s` halten, danach `pause_s` |
 | `climb` | `Pilot.fly` mit Tempo 0 bis AGL ≥ `turn_agl` („ein paar Meter“, am Boden wirkt Gieren nicht) |
-| `turn` | Hinflug (Kiste geladen): Ziel Zonen-Marker, Höhe `turn_agl`. Rückflug: Ziel HQ-Marker, Höhe `cruise_agl`. Tempo 0, nur Q/E. Kein Marker → `Pilot.search()`. Fertig wenn `|x − center_x| ≤ yaw_deadband` |
-| `drop` | Gieren zum Zonen-Marker (nur bis zum Eintritt, danach Kurs halten). Reiseflug (`_cruise`: `cruise_agl`, `cruise_speed`, `floor = min_agl`), bis der Median der letzten `distance_history` CZ-Entfernungen ≤ `brake_distance` → Anflug (`_approach`: `drop_agl`, `drop_speed`, `floor = drop_agl − agl_band`, `sink=True`, bleibt an). Zone erreicht = `kind == "HZ"` und `minimap_in_zone` in `vision.confirm` Bildern in Folge. Danach Anflug halten, nach `drop_delay_s` G, sobald AGL ≤ `drop_max_agl`; nach `drop_wait_s` ohne passende Höhe `StepFailed`. G-Druck: warten bis G-Feld `vision.confirm`-mal weg, dann bis `delivered_wait_s` auf „SUPPLIES DELIVERED“; dabei wird weiter geflogen (`wait_for(each=…)`) |
-| `leave` | Drehrichtung weg vom Marker (Marker rechts → Q, sonst E). `turnaround_s` lang `Pilot.search(Richtung)` bei Tempo 0, Höhe `cruise_agl`. Dann Reiseflug geradeaus, bis „draußen“ `vision.confirm`-mal in Folge: Marker sichtbar → `kind == "CZ"`, sonst Minimap ohne Färbung. Danach noch `leave_margin_s` geradeaus (sonst treibt der Heli beim Drehen zurück in die Zone, wo der HQ-Marker fehlt) |
-| `land` | Reiseflug zum HQ-Marker bis Marker `y ≥ hq_approach_y` oder Kauf-Hinweis → Anflug tief und langsam (`approach_agl`, `approach_speed`, `sink=True`, weiter zum HQ-Marker gieren) bis Kauf-Hinweis sichtbar oder HQ-Marker `hq_lost_s` nicht gesehen (unter dem Heli) → `Pilot.descend` bis AGL ≤ `landed_agl` und Tempo ≤ `landed_speed` für `landed_hold_s` → Kauf-Hinweis prüfen |
+| `turn` | Hinflug (Kiste geladen): Ziel Zonen-Marker, Höhe `turn_agl`. Rückflug: Ziel HQ-Marker, Höhe `cruise_agl`. Tempo 0, nur Q/E. Kein Marker → `Pilot.search(Seite)`, Seite = wo der Marker zuletzt war (Start rechts). Fertig, wenn `yaw(x)` mittig meldet und kein Gier-Puls läuft, `vision.confirm` Bilder in Folge |
+| `drop` | Bis zum Eintritt: zum Zonen-Marker gieren (`yaw`) und bei Tempo neigen (`bank` mit `x`). Reiseflug (`_cruise`: `cruise_agl`, `cruise_speed`, `floor = min_agl`), bis der Median der letzten `distance_history` CZ-Entfernungen ≤ `brake_distance` → Anflug (`_approach`: `drop_agl`, `drop_speed`, `floor = drop_agl − agl_band`, `sink_rate = drop_sink_rate`). Zone erreicht = `kind == "HZ"` und `minimap_in_zone` in `vision.confirm` Bildern in Folge, `entered` wird nur einmal gesetzt. Danach `_hold_level`: kein Gieren, Querneigung → 0, keine W/S-Tipps außer Sicherheitsregeln, sanft (≤ `drop_sink_rate`) auf `drop_agl`. Nach `drop_delay_s` G, sobald AGL ≤ `drop_max_agl` (sonst einmal Log `Warte auf Abwurfhöhe`); nach `drop_wait_s` `StepFailed` mit AGL. G-Druck: warten bis G-Feld `vision.confirm`-mal weg, dann bis `delivered_wait_s` auf „SUPPLIES DELIVERED“; dabei `_hold_level` |
+| `leave` | Zuerst bis `outside_check_s` prüfen, ob schon draußen (`_outside` `vision.confirm`-mal: Marker sichtbar → `kind == "CZ"`, sonst Minimap ohne Färbung) → fertig (Schwung nach G). Sonst Drehrichtung weg vom Marker (Marker rechts → Q, sonst E), `turnaround_s` lang `Pilot.search(Richtung)` bei Tempo 0, Höhe `cruise_agl`. Dann Reiseflug geradeaus bis draußen, danach noch `leave_margin_s` geradeaus |
+| `land` | HQ-Entfernung: Median der letzten `distance_history` gelesenen Werte. **Reiseflug** zum HQ-Marker (gieren + neigen) bis Entfernung ≤ `land_distance` oder Marker `y ≥ hq_approach_y` oder Kauf-Hinweis → **Anflug** (`approach_agl`, `approach_speed`, `sink_rate = approach_sink_rate`, S bremst über die Tempo-Regelung; gieren nur, solange Entfernung > `hq_overhead_distance`) bis Kauf-Hinweis oder (Minimap eingefärbt = über der Base und (Entfernung ≤ `hq_overhead_distance` oder HQ-Marker `hq_lost_s` weg)) → **Sinkflug** `Pilot.descend` + `bank` (gerade) bis AGL ≤ `landed_agl` und Tempo ≤ `landed_speed` für `landed_hold_s` → Kauf-Hinweis prüfen |
 
 Statistik `CrateLoop.stats` (`Counter`): `bought`, `dropped`, `delivered`, `rounds`. Wird pro Runde und beim Beenden geloggt.
 
@@ -122,15 +122,17 @@ Statistik `CrateLoop.stats` (`Counter`): `bought`, `dropped`, `delivered`, `roun
 
 | Methode | Verhalten |
 |---|---|
-| `fly(agl, asl, speed, target_agl, target_speed, floor, sink)` | **Höhe über Shift**, Ctrl nur mit `sink=True` (Abwurf- und Landeanflug) und Vorhersage > `target + agl_band`: Vorhersage `agl + rate × agl_lookahead_s`, unter `target − agl_band` Shift halten, über `target + agl_band` los, dazwischen Zustand behalten. Unter `floor` immer Shift. **Neigung über W/S-Pulse** (`pitch_tap_s`, höchstens alle `pitch_interval_s`): S-Puls, wenn Tempo > `speed_limit(agl) + speed_band`, wenn Shift gehalten und ASL-Rate < −`sink_guard` (Nase zu weit unten) oder wenn unter `floor` noch beschleunigt wird und `tilt > 0`. Unter `floor` nie W. Ziel und Tempo ≤ `hover_speed` → nur ausrichten: `tilt < 0` → W, `tilt > 0` → S, sonst nichts. Sonst Soll-Beschleunigung `clamp(speed_gain × (min(target_speed, Limit) − speed), ±accel_max)`; Ist (Trend) < Soll − `accel_band` → W (nicht beim Sinken), > Soll + `accel_band` → S |
-| `tilt` | Neigungsschätzung: Zähler der W-Pulse minus S-Pulse. 0, sobald AGL ≤ `landed_agl` und Tempo ≤ `landed_speed`. Verhindert, dass der Heli nach dem Bremsen mit Nase oben rückwärts beschleunigt (HUD-Tempo hat kein Vorzeichen) |
+| `fly(agl, asl, speed, target_agl, target_speed, floor, sink_rate, loaded)` | **Höhe über Shift**: Vorhersage `agl + rate × agl_lookahead_s`, unter `target − agl_band` Shift halten, über `target + agl_band` los, dazwischen Zustand behalten. Unter `floor` immer Shift. **Sanft sinken** nur mit `sink_rate > 0`: über `target + agl_band` Ctrl, solange die ASL-Rate > −`sink_rate`; sinkt er schneller als `sink_rate + sink_band` → Shift. **Nicklage über W/S-Pulse** (`pitch_tap_s`, höchstens alle `pitch_interval_s`): S, wenn Tempo > `speed_limit(agl) + speed_band`, wenn Shift gehalten und ASL-Rate < −`sink_guard` (Nase zu weit unten, nicht im Sinkmodus) oder wenn unter `floor` noch beschleunigt wird und `tilt > 0`. Unter `floor` nie W. `target_speed None` → sonst keine W/S-Tipps (Zone). Sonst `_pitch_for` |
+| `tilt` | Neigungsschätzung: Zähler der W-Pulse minus S-Pulse (Trimm-Tipps zählen nicht). 0, sobald AGL ≤ `landed_agl` und Tempo ≤ `landed_speed`. Driftet über längere Zeit (Palette zieht die Nase hoch) |
 | `speed_limit(agl)` | Höchsttempo je Höhe: lineare Interpolation in `speed_limits` (`[[agl, km/h], …]`), außerhalb konstant |
-| `descend(agl, asl, speed)` | Landung: Soll-Steigrate (ASL-Trend) −`sink_rate` über `sink_slow_agl`, darunter −`sink_rate_min`, 0 solange Tempo > `speed_limit(agl)`. Zu schnell sinkend → Shift, zu langsam → Ctrl. Tempo-Soll 0 über W/S |
+| `descend(agl, asl, speed)` | Landung: Soll-Steigrate (ASL-Trend) −`sink_rate` über `sink_slow_agl`, darunter −`sink_rate_min`; 0 solange Tempo > `speed_limit(agl)` oder (unter `sink_slow_agl`) Tempo > `touchdown_speed`. Zu schnell sinkend → Shift, zu langsam → Ctrl. Tempo-Soll 0 über `_pitch_for` |
 | `yaw(x)` | Fehler `x − center_x`. Innerhalb `yaw_deadband` → `True`. Sonst Q- oder E-Puls, Dauer `clamp(|Fehler| × yaw_s_per_px, yaw_min_s, yaw_max_s)`, frühestens nach `yaw_interval_s` und nicht während eines laufenden Gier-Pulses |
 | `search(direction)` | Gier-Puls `yaw_max_s` in `direction` (`"yaw_right"` Standard), wenn kein Gier-Puls läuft |
+| `bank(roll, speed, x)` | Soll-Querneigung 0; mit `x` und Tempo ≥ `bank_speed` `clamp((x − center_x) × bank_per_px, ±max_bank)`. Fehler > `roll_band` → A- oder D-Puls, Dauer `clamp(|Fehler| × roll_s_per_deg, roll_min_s, roll_max_s)`, frühestens nach `roll_interval_s`, nicht während eines laufenden Roll-Pulses. `roll None` → nichts |
 | `update()` / `release()` | abgelaufene Pulse loslassen / alle Flugtasten los |
+| `_pitch_for(speed, target, accel, sinking, loaded)` | **Ziel ≤ `hover_speed` (Schweben/Bremsen):** Tempo ≤ `hover_speed` → nur bei Drift (Tempo > `trim_speed` und steigend): `tilt > 0` → S, `tilt < 0` → W, `tilt == 0` mit Palette → Trimm-W (`trim_tap_s`, ungezählt), sonst nichts. Schneller: `tilt < 0` und Beschleunigung > `accel_band` (rückwärts) → W, sonst S, solange die Verzögerung < `brake_accel`. **Sonst:** Soll-Beschleunigung `clamp(speed_gain × (Ziel − Tempo), ±accel_max)`; Ist < Soll − `accel_band` (nicht beim Sinken) → W, solange `tilt < max_tilt`, darüber nur Trimm-W, wenn Ist < `trim_accel` (Nicklage verloren, z. B. Palette); Ist > Soll + `accel_band` → S |
 
-Pulse sind nicht blockierend: `key_down` sofort, `key_up` im ersten `update()` nach Ablauf. Damit laufen Höhe, Tempo und Gieren im selben Tick.
+Pulse sind nicht blockierend: `key_down` sofort, `key_up` im ersten `update()` nach Ablauf. Damit laufen Höhe, Tempo, Querneigung und Gieren im selben Tick. `CrateLoop._fly` liest pro Tick AGL, ASL, Tempo, Querneigung und G-Feld (`loaded`) und ruft `fly` und `bank` auf.
 
 ## Datenfluss Bot (`main.py`)
 
@@ -157,14 +159,14 @@ Exit-Codes: 0 Stopp/fertig, 1 unerwarteter Fehler, 2 Watchdog (unbekannter Zusta
 | Abschnitt | Nutzer |
 |---|---|
 | `game_region` | `ScreenCapture`, Klick-Offset in `CrateLoop` |
-| `keys` | Killswitch (`stop`), Aufnahme (`record`), Bot (`shop, drop, up, down, forward, back, yaw_left, yaw_right`) |
+| `keys` | Killswitch (`stop`), Aufnahme (`record`), Bot (`shop, drop, up, down, forward, back, yaw_left, yaw_right, roll_left, roll_right`) |
 | `loop` | `tick_s` Hauptschleife außerhalb Layer 1, `start_delay_s` Countdown vor dem ersten Tastendruck (auch Hold-Test) |
 | `window` | `title` Fenstertitel des Spiels, `poll_s` Abfrageintervall beim Warten auf den Fokus |
 | `timeouts` | `unknown_state_s` (Watchdog), `max_hold_s` (`release_overdue`), `heli_lost_s` (`observe`) |
 | `vision` | `Vision`; `confirm` = gleiche Messungen in Folge für Zustandswechsel der Kiste |
 | `buy` | Klickpunkte und Wartezeiten des Kaufs |
 | `flight` | `Pilot` und Schritt-Timeouts, `tick_s` = Takt in Layer 1 |
-| `maps.default` + `maps.<name>` | Flugparameter pro Map: `turn_agl, min_agl, cruise_agl, cruise_speed, brake_distance, drop_agl, drop_max_agl, drop_speed, approach_speed, hq_approach_y` |
+| `maps.default` + `maps.<name>` | Flugparameter pro Map: `turn_agl, min_agl, cruise_agl, cruise_speed, brake_distance, drop_agl, drop_max_agl, drop_speed, approach_agl, approach_speed, land_distance, hq_approach_y` |
 | `overlay` | nur `tools/overlay_inputs.py` |
 | `recording`, `hold_test`, `logging` | Aufnahme, Hold-Test, Logs |
 
@@ -215,5 +217,5 @@ Exit-Codes: 0 Stopp/fertig, 1 unerwarteter Fehler, 2 Watchdog (unbekannter Zusta
 ## Tests
 
 - `tests/fixtures/`: zugeschnittene Frames aus allen drei Videos + `fixtures.json` (`file`, `x`, `y` = Position des Ausschnitts im 1920×1080-Frame, erwartete Werte). Tests setzen den Ausschnitt in ein schwarzes Vollbild und rufen den Detektor auf
-- `tests/test_crate_loop.py`: simulierte Welt nach Daniels Flugmodell (Neigung bleibt nach W/S stehen, Shift hält bei 20° die Höhe, ohne Taste Schweben), 2D-Position mit Kurs, Zone mit Radius (CZ-Entfernung zum Rand, HZ innen, Minimap-Färbung), HQ in der Zone unsichtbar, Kauf-Hinweis nur nah an der Base und tief. Tests für jeden Schritt und eine ganze Runde; `assert_never_low_and_fast` prüft das Höchsttempo je Höhe über den ganzen Flug
+- `tests/test_crate_loop.py`: simulierte Welt nach Daniels Flugmodell (Nick- und Querneigung bleiben nach W/S bzw. A/D stehen, Shift hält bei 15° die Höhe, ohne Taste Schweben, Palette zieht die Nase mit 0,3°/s hoch, Q/E wirkt bei Tempo schwächer, Querneigung dreht den Kurs und kostet Auftrieb, Tempo mit Vorzeichen, HUD zeigt den Betrag), 2D-Position mit Kurs, Zone mit Radius (CZ-Entfernung zum Rand, HZ innen, Minimap-Färbung), HQ in der Zone unsichtbar, Kauf-Hinweis nur nah an der Base und tief. Tests für jeden Schritt und eine ganze Runde; `assert_never_low_and_fast` prüft das Höchsttempo je Höhe über den ganzen Flug
 - `pytest -m videos`: langsamer Abgleich mit den Videos (Standardlauf überspringt ihn)

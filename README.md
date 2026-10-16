@@ -96,7 +96,7 @@ Einzelbilder als PNG speichern (landen in `debug/frames/…`):
 | **F2** | Not-Aus: stoppt sofort und lässt alle Tasten los. Im Aufnahme-Tool: beenden |
 | **F9** | Aufnahme-Tool: Aufnahme starten/stoppen |
 
-Der Bot benutzt im Spiel: Shift (steigen), Strg (sinken), W/S (vorwärts/bremsen), Q/E (drehen), B (Kaufmenü), G (abwerfen) und Mausklicks im Kaufmenü.
+Der Bot benutzt im Spiel: Shift (steigen), Strg (sinken), W/S (vorwärts/bremsen), Q/E (drehen), A/D (zur Seite neigen, in Kurven und zum Geradehalten), B (Kaufmenü), G (abwerfen) und Mausklicks im Kaufmenü.
 
 ## Einstellungen
 
@@ -117,22 +117,31 @@ Die wichtigsten Einstellungen:
 | `game_region` | Bildschirmbereich des Spiels (links, oben, Breite, Höhe in Pixeln) | 0, 0, 1920, 1080 |
 | `loop.start_delay_s` | Countdown nach dem Start, bevor der Bot etwas drückt (Sekunden) | 5 |
 | `window.title` | Fenstertitel des Spiels. Nur wenn dieses Fenster vorne ist, drückt der Bot Tasten. Nach dem Countdown steht im Log `Vordergrund: '…'`; weicht der Titel ab, hier eintragen | Wardogs |
-| `keys.*` | Tasten: `stop` F2, `shop` b, `drop` g, `up` shift, `down` ctrl, `forward` w, `back` s, `yaw_left` q, `yaw_right` e, `record` f9 | |
+| `keys.*` | Tasten: `stop` F2, `shop` b, `drop` g, `up` shift, `down` ctrl, `forward` w, `back` s, `yaw_left` q, `yaw_right` e, `roll_left` a, `roll_right` d, `record` f9 | |
 | `timeouts.unknown_state_s` | So lange darf der Bildschirm unbekannt sein, bevor das Programm sicher stoppt (Sekunden) | 30 |
 | `timeouts.max_hold_s` | Keine Taste wird länger am Stück gehalten (Sekunden) | 20 |
 | `timeouts.heli_lost_s` | So lange darf die Heli-Anzeige fehlen, bevor Layer 1 verlassen wird | 2 |
 | `maps.<map>.cruise_agl` | Reiseflughöhe über Grund (m) | 100 |
-| `maps.<map>.cruise_speed` | Reisetempo (km/h) | 200 |
+| `maps.<map>.cruise_speed` | Reisetempo (km/h). Bestimmt, wie weit der Bot die Nase im Reiseflug nach vorne nimmt | 180 |
 | `maps.<map>.min_agl` | Mindesthöhe im Reiseflug (m). Darunter steigt der Bot erst mit Shift und nimmt die Nase hoch, bevor er weiter beschleunigt | 80 |
 | `maps.<map>.drop_agl` / `drop_speed` | Zielhöhe (m) und Tempo (km/h) beim Abwurf. Über ca. 90 m zerbricht die Palette | 70 / 120 |
 | `maps.<map>.turn_agl` | So hoch (m) steigt der Bot vor dem Drehen | 15 |
-| `maps.<map>.brake_distance` | Ab dieser Entfernung zum Zonenrand (m, Zahl am CZ-Marker) bremst und sinkt der Bot auf Abwurf-Tempo und -Höhe | 400 |
+| `maps.<map>.brake_distance` | Ab dieser Entfernung zum Zonenrand (m, Zahl am CZ-Marker) bremst der Bot auf Abwurf-Tempo und sinkt sanft auf Abwurfhöhe | 400 |
 | `maps.<map>.drop_max_agl` | G wird nur gedrückt, wenn der Heli höchstens so hoch ist (m) | 85 |
 | `flight.drop_delay_s` | Wartezeit nach dem Erreichen der Zone (Minimap + HZ) bis G | 3 |
 | `flight.leave_margin_s` | So lange (s) fliegt der Bot nach dem Verlassen der Zone noch geradeaus, bevor er die Base sucht | 3 |
 | `flight.turnaround_s` | So lange (s) dreht der Bot nach dem Abwurf, bevor er aus der Zone fliegt. Mehr = weiter umdrehen | 4 |
-| `maps.<map>.hq_approach_y` | Bremsen, wenn der HQ-Marker so weit unten ist (oder der Kauf-Hinweis erscheint) | 560 |
-| `maps.<map>.approach_agl` / `approach_speed` | Höhe (m) und Tempo (km/h) für den letzten Anflug auf die Base, bis „[B] BUY AMMO / SUPPLIES“ erscheint | 30 / 60 |
+| `maps.<map>.land_distance` | Ab dieser Entfernung zur Base (m, Zahl neben dem HQ-Marker) beginnt der Landeanflug: bremsen und sinken. Größer = früher | 700 |
+| `maps.<map>.hq_approach_y` | Ersatz, falls die Entfernung nicht lesbar ist: Landeanflug, wenn der HQ-Marker so weit unten im Bild ist | 560 |
+| `maps.<map>.approach_agl` / `approach_speed` | Höhe (m) und Tempo (km/h) im Landeanflug, bis die Base auf der Minimap unter dem Heli ist | 40 / 40 |
+| `flight.hq_overhead_distance` | Ab dieser Entfernung zum HQ (m) über der Base: senkrecht runter | 60 |
+| `flight.approach_sink_rate` / `drop_sink_rate` | Höchste Sinkrate (m/s) im Landeanflug / vor und in der Zone | 3 / 2 |
+| `flight.touchdown_speed` | Unter 10 m sinkt der Bot erst weiter, wenn er langsamer als das ist (km/h) | 15 |
+| `flight.max_tilt` | So viele W-Tipps nimmt der Bot die Nase höchstens nach vorne (ein Tipp geschätzt 4–5°, 3 Tipps ≈ 12–15°). Neigt er zu stark: kleiner | 3 |
+| `flight.trim_speed` / `trim_accel` / `trim_tap_s` | Ausgleich, wenn die Palette die Nase hochzieht: kurzer W-Tipp (s), wenn der Heli beim Schweben schneller als `trim_speed` km/h wird bzw. im Reiseflug kaum noch beschleunigt | 4 / 4 / 0.1 |
+| `flight.bank_speed` / `max_bank` | Ab diesem Tempo (km/h) lenkt der Bot zusätzlich mit A/D, höchstens so schräg (Grad) | 80 / 15 |
+| `flight.roll_band` | So viel Schräglage (Grad) gilt noch als gerade | 4 |
+| `flight.outside_check_s` | So lange (s) prüft der Bot nach dem Abwurf, ob er schon aus der Zone raus ist | 1 |
 | `buy.clicks` | Klickpunkte im Kaufmenü (Logistics, Pallets, Ammo-Palette, Confirm & Exit) | |
 | `buy.hover_s` / `press_s` | Pause nach dem Hinbewegen der Maus und Dauer des Klicks (Sekunden). Reagiert ein Knopf nicht, größer machen | 0.2 / 0.1 |
 | `buy.confirm_attempts` | So oft klickt der Bot CONFIRM & EXIT, bis das Kaufmenü zu ist | 3 |

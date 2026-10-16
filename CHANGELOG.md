@@ -26,6 +26,8 @@ Alle wichtigen Änderungen an diesem Projekt. Format nach [Keep a Changelog](htt
 
 ### Geändert
 
+- Fliegen nach deinem ersten Test: Im Reiseflug nimmt der Bot die Nase nur noch ca. 10–15° nach vorne. Mit Palette gleicht er das langsame Kippen nach hinten mit kurzen W-Tipps aus. Bei Tempo lenkt er zusätzlich mit A/D und hält den Heli sonst gerade (liest dafür die Schräglage). Vor und in der Zone sinkt er nur noch sanft (höchstens 2 m/s), fliegt gerade weiter und wirft nach 3 Sekunden ab, sobald er unter 85 m ist. Ist er nach dem Abwurf schon aus der Zone raus, sucht er sofort die Base. Drehen auf der Stelle endet erst, wenn der Marker ruhig in der Mitte steht. Landen: Anflug ab ca. 700 m vor der Base (doppelt so früh), mit S bremsen, senkrecht runter, sobald die Base auf der Minimap unter dem Heli ist
+
 - Rundenende („NEXT ROUND IN“) wird erkannt: Der Bot lässt alle Tasten los und stoppt mit der Meldung „Runde vorbei“, statt es als Crash zu melden und 30 Sekunden zu warten
 
 - Kaufen: Der Bot bewegt die Maus erst auf den Knopf, wartet kurz und hält die Maustaste etwas länger. Nach CONFIRM & EXIT prüft er, ob das Menü zu ist, und klickt sonst erneut. Steht „LOGISTICS SLOTS FULL“ im Menü, ist die Palette schon geladen: dann nur noch bestätigen

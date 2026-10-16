@@ -124,11 +124,30 @@ def test_fly_below_floor_never_pitches_up_from_level(setup):
     assert inp.is_down("shift") and not inp.is_down("s") and not inp.is_down("w")
 
 
-def test_fly_levels_out_after_braking(setup):
-    pilot, inp, _, _ = setup
+def test_fly_hovers_without_pitch_taps_while_still(setup):
+    pilot, inp, clock, _ = setup
     pilot.tilt = -2
-    fly(pilot, 100, 5, target_speed=0)
+    for step in range(3):
+        clock.now = step * 0.5
+        fly(pilot, 100, 3, target_speed=0)
+    assert not inp.is_down("w") and not inp.is_down("s")
+
+
+def test_fly_levels_out_when_drifting_after_braking(setup):
+    pilot, inp, clock, _ = setup
+    pilot.tilt = -2
+    for step in range(3):
+        clock.now = step * 0.5
+        fly(pilot, 100, 5 + 2 * step, target_speed=0)
     assert inp.is_down("w") and pilot.tilt == -1
+
+
+def test_fly_brakes_with_s_until_slow(setup):
+    pilot, inp, clock, _ = setup
+    for step in range(3):
+        clock.now = step * 0.5
+        fly(pilot, 100, 60 - step, target_speed=0)
+    assert inp.is_down("s")
 
 
 def test_fly_counts_pitch_taps(setup):
@@ -148,8 +167,78 @@ def test_fly_uses_ctrl_only_in_sink_mode(setup):
     pilot, inp, _, _ = setup
     fly(pilot, 100, 100, target_agl=70, target_speed=100)
     assert not inp.is_down("ctrl")
-    pilot.fly(100, 200, 100, 70, 100, 0, sink=True)
+    pilot.fly(100, 200, 100, 70, 100, 0, sink_rate=2)
     assert inp.is_down("ctrl") and not inp.is_down("shift")
+
+
+def test_fly_sinks_no_faster_than_sink_rate(setup):
+    pilot, inp, clock, _ = setup
+    pilot.fly(100, 200, 100, 70, 100, 0, sink_rate=2)
+    clock.now = 1.0
+    pilot.fly(98, 198, 100, 70, 100, 0, sink_rate=2)
+    assert not inp.is_down("ctrl")
+    clock.now = 2.0
+    pilot.fly(94, 194, 100, 70, 100, 0, sink_rate=2)
+    assert inp.is_down("shift") and not inp.is_down("ctrl")
+
+
+def test_fly_without_target_speed_keeps_pitch(setup):
+    pilot, inp, clock, _ = setup
+    for step in range(5):
+        clock.now = step * 0.5
+        pilot.update()
+        pilot.fly(70, 170, 120 - 5 * step, 70, None)
+    assert not inp.is_down("w") and not inp.is_down("s") and pilot.tilt == 0
+
+
+def test_fly_stops_tilting_forward_at_max_tilt(setup):
+    pilot, inp, clock, flight = setup
+    for step in range(12):
+        clock.now = step * flight["pitch_interval_s"]
+        pilot.update()
+        fly(pilot, 100, 50 + 5 * step, target_speed=200)
+    assert pilot.tilt == flight["max_tilt"]
+
+
+def test_fly_trims_forward_when_speed_stalls_at_max_tilt(setup):
+    pilot, inp, clock, flight = setup
+    pilot.tilt = flight["max_tilt"]
+    for step in range(3):
+        clock.now = step * 0.5
+        fly(pilot, 100, 100, target_speed=200)
+    assert inp.is_down("w") and pilot.tilt == flight["max_tilt"]
+
+
+def test_fly_trims_backward_drift_with_crate(setup):
+    pilot, inp, clock, flight = setup
+    for step in range(3):
+        clock.now = step * 0.5
+        pilot.fly(15, 115, 5 + 2 * step, 15, 0, loaded=True)
+    assert inp.is_down("w") and pilot.tilt == 0
+
+
+def test_bank_into_turn_only_at_speed(setup):
+    pilot, inp, clock, flight = setup
+    pilot.bank(0, flight["bank_speed"] - 1, 1800)
+    assert not inp.is_down("d")
+    pilot.bank(0, flight["bank_speed"], 1800)
+    assert inp.is_down("d") and not inp.is_down("a")
+
+
+def test_bank_levels_out(setup):
+    pilot, inp, clock, flight = setup
+    pilot.bank(flight["roll_band"], 150)
+    assert not inp.is_down("a") and not inp.is_down("d")
+    pilot.bank(12, 150)
+    assert inp.is_down("a")
+    clock.now = flight["roll_max_s"] + 0.01
+    pilot.update()
+    pilot.bank(-12, 150)
+    assert not inp.is_down("d")
+    clock.now = flight["roll_interval_s"] + 0.01
+    pilot.bank(-12, 150)
+    assert inp.is_down("d")
+    pilot.bank(None, 150)
 
 
 def test_fly_noses_up_when_sinking_despite_shift(setup):
@@ -202,9 +291,19 @@ def test_descend_waits_while_too_fast_for_height(setup):
     assert inp.is_down("s")
 
 
+def test_descend_brakes_before_touchdown(setup):
+    pilot, inp, clock, flight = setup
+    agl = flight["sink_slow_agl"]
+    pilot.descend(agl, 100 + agl, flight["touchdown_speed"] + 5)
+    clock.now = 1.0
+    pilot.descend(agl, 100 + agl, flight["touchdown_speed"] + 5)
+    assert not inp.is_down("ctrl") and inp.is_down("s")
+
+
 def test_release_lets_go_of_all_flight_keys(setup):
     pilot, inp, _, _ = setup
     fly(pilot, 10, 0, target_speed=200)
     pilot.yaw(1800)
+    pilot.bank(0, 200, 1800)
     pilot.release()
-    assert not any(inp.is_down(key) for key in ("shift", "ctrl", "w", "s", "q", "e"))
+    assert not any(inp.is_down(key) for key in ("shift", "ctrl", "w", "s", "q", "e", "a", "d"))
