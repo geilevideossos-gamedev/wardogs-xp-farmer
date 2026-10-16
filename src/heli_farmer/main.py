@@ -16,6 +16,7 @@ from heli_farmer.logs import save_debug_screenshot, setup_logging
 from heli_farmer.states import (
     Detectors,
     Layer,
+    RoundOver,
     SafeStop,
     StateMachine,
     UnknownStateTimeout,
@@ -67,7 +68,12 @@ def hold_test(inp: Input, stop: threading.Event, key: str, repeat_s: float) -> N
 def build_machine(
     config: dict, args: argparse.Namespace, vision: Vision, loop: CrateLoop, inp: Input
 ) -> StateMachine:
-    handlers = {Layer.UNKNOWN: lambda frame: inp.release_all()}
+    def unknown(frame) -> None:
+        inp.release_all()
+        if vision.round_over(frame):
+            raise RoundOver
+
+    handlers = {Layer.UNKNOWN: unknown}
     if args.layer == 1:
         steps = (args.step,) if args.step else ()
 

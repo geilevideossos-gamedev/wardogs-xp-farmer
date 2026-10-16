@@ -53,6 +53,7 @@ Wann der Bot von selbst anhält (immer mit Screenshot in `logs/<Datum>/screensho
 - Erste-Hilfe-Symbol (tot), Heli beschädigt (rotes Heli-Symbol unten mittig) oder Heli-Anzeige weg (Crash, ausgestiegen)
 - Ein Schritt klappt nicht (z. B. kein Kauf-Hinweis, Kauf erfolglos wegen zu wenig Geld, Zone oder Landung dauert zu lange)
 - Bildschirm länger als 30 Sekunden unbekannt
+- Runde vorbei (Bildschirm „NEXT ROUND IN“): Log `Runde vorbei …, kein Crash`. Wieder einem Server beitreten kann der Bot erst mit Layer 4
 
 ## Aufnahmen für Testdaten
 

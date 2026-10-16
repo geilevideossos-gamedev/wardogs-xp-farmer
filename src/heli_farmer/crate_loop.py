@@ -12,6 +12,7 @@ from heli_farmer.detectors import Marker, Vision
 from heli_farmer.flight import Pilot
 from heli_farmer.inputs import Input
 from heli_farmer.killswitch import wait
+from heli_farmer.states import RoundOver
 
 log = logging.getLogger(__name__)
 
@@ -83,6 +84,8 @@ class CrateLoop:
         self._pilot.update()
         self._inp.release_overdue(self._timeouts["max_hold_s"])
         frame = self._grab()
+        if self._vision.round_over(frame):
+            raise RoundOver
         if self._vision.first_aid(frame):
             raise LeaveLayer("Erste-Hilfe-Symbol: Spieler tot")
         if self._vision.in_lakota(frame):

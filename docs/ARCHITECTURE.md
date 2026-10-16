@@ -28,6 +28,7 @@ Alle arbeiten auf einem 1920×1080-BGR-Frame. Koordinaten, Templates und Schwell
 | `delivered` | bool | Template „SUPPLIES DELIVERED“ |
 | `first_aid` | bool | Template Erste-Hilfe-Stern |
 | `garage_menu` | `"main"`, `"logistics"`, `None` | Templates der Menütitel |
+| `round_over` | bool | Template „NEXT ROUND IN“ unten mittig (Rundenende-Bildschirm, ohne die Zeit) |
 | `slots_full` | bool | Template „⚠ LOGISTICS SLOTS FULL“ unter der Logistik-Kachel im Hauptmenü (= Palette schon geladen) |
 | `heli_damaged` | bool | Median `R − max(G,B)` im Bereich der Heli-Silhouette ≥ `min_red` |
 | `has_heli` | `bool \| None` | Erste-Hilfe → `False`; Kaufmenü → `True`; „Z20 LAKOTA“ → `not heli_damaged`; sonst `None` |
@@ -70,8 +71,8 @@ Handler in `main.build_machine`:
 
 | Modus | Detektoren | Handler |
 |---|---|---|
-| ohne `--layer` | `on_server`, `in_team_blue` = Stubs (`None`), `has_heli` = `Vision.has_heli` | nur `UNKNOWN: release_all` → Watchdog stoppt |
-| `--layer 1` | `on_server`, `in_team_blue` = immer `True`, `has_heli` = `Vision.has_heli` | `CRATE_LOOP`: `CrateLoop.run`, danach `Finished` bei `--once/--step`; `VEHICLE/TEAM/SERVER`: `not_built` → `SafeStop`; `UNKNOWN`: `release_all` |
+| ohne `--layer` | `on_server`, `in_team_blue` = Stubs (`None`), `has_heli` = `Vision.has_heli` | nur `UNKNOWN: release_all` (bei `round_over` → `RoundOver`) → Watchdog stoppt |
+| `--layer 1` | `on_server`, `in_team_blue` = immer `True`, `has_heli` = `Vision.has_heli` | `CRATE_LOOP`: `CrateLoop.run`, danach `Finished` bei `--once/--step`; `VEHICLE/TEAM/SERVER`: `not_built` → `SafeStop`; `UNKNOWN`: `release_all`, bei `round_over` → `RoundOver` |
 
 ## Layer 1: `CrateLoop`
 
@@ -98,6 +99,7 @@ stateDiagram-v2
 
 | Prüfung | Folge |
 |---|---|
+| `round_over` | `RoundOver` (Unterklasse von `SafeStop`) → sicherer Stopp mit Screenshot |
 | `first_aid` | `LeaveLayer("Erste-Hilfe-Symbol")` |
 | `in_lakota` und `heli_damaged` | `LeaveLayer("Heli beschädigt")` |
 | weder `in_lakota` noch Kaufmenü länger als `timeouts.heli_lost_s` | `LeaveLayer("Heli-Anzeige weg")` |

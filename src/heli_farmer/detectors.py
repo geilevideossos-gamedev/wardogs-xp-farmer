@@ -96,6 +96,9 @@ class Vision:
     def first_aid(self, frame: np.ndarray) -> bool:
         return self.seen(frame, "first_aid")
 
+    def round_over(self, frame: np.ndarray) -> bool:
+        return self.seen(frame, "round_over")
+
     def slots_full(self, frame: np.ndarray) -> bool:
         return self.seen(frame, "slots_full")
 

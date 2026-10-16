@@ -10,6 +10,7 @@ from heli_farmer.crate_loop import CrateLoop, LeaveLayer, StepFailed
 from heli_farmer.detectors import Marker
 from heli_farmer.flight import Pilot
 from heli_farmer.inputs import Input
+from heli_farmer.states import RoundOver
 
 FRAME = np.zeros((4, 4, 3), np.uint8)
 TICK = 0.05
@@ -40,6 +41,7 @@ class World:
         self.prompt = True
         self.delivered = False
         self.first_aid = False
+        self.round_over = False
         self.damaged = False
         self.lakota = True
         self.buy_works = True
@@ -147,6 +149,9 @@ class FakeVision:
 
     def first_aid(self, frame):
         return self.w.first_aid
+
+    def round_over(self, frame):
+        return self.w.round_over
 
     def in_lakota(self, frame):
         return self.w.lakota
@@ -348,6 +353,14 @@ def test_first_aid_leaves_layer(loop, world):
     world.first_aid = True
     with pytest.raises(LeaveLayer):
         loop.step("climb")
+    assert not world.keys
+
+
+def test_round_end_stops_safely(loop, world):
+    airborne(world, 50, 0, 0)
+    world.round_over, world.lakota = True, False
+    with pytest.raises(RoundOver, match="Runde vorbei"):
+        loop.step("land")
     assert not world.keys
 
 

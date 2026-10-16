@@ -44,6 +44,11 @@ class SafeStop(Exception):
     pass
 
 
+class RoundOver(SafeStop):
+    def __init__(self) -> None:
+        super().__init__("Runde vorbei (NEXT ROUND IN), kein Crash. Rejoin kommt mit Layer 4")
+
+
 def not_built(layer: Layer) -> Handler:
     def handler(frame: np.ndarray) -> None:
         raise SafeStop(f"Layer {layer.name} ist noch nicht gebaut")

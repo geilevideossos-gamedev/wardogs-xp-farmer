@@ -25,6 +25,8 @@ Alle wichtigen Änderungen an diesem Projekt. Format nach [Keep a Changelog](htt
 
 ### Geändert
 
+- Rundenende („NEXT ROUND IN“) wird erkannt: Der Bot lässt alle Tasten los und stoppt mit der Meldung „Runde vorbei“, statt es als Crash zu melden und 30 Sekunden zu warten
+
 - Kaufen: Der Bot bewegt die Maus erst auf den Knopf, wartet kurz und hält die Maustaste etwas länger. Nach CONFIRM & EXIT prüft er, ob das Menü zu ist, und klickt sonst erneut. Steht „LOGISTICS SLOTS FULL“ im Menü, ist die Palette schon geladen: dann nur noch bestätigen
 
 - Start mit 5 Sekunden Countdown (`loop.start_delay_s`), damit du ins Spiel wechseln kannst. Der Bot drückt nur noch Tasten, wenn WARDOGS im Vordergrund ist. Sonst lässt er alles los und wartet, Zeitlimits laufen solange nicht weiter. Kurzbefehl `bot` für PowerShell in der README

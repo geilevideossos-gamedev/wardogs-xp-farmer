@@ -143,3 +143,9 @@ Format je Eintrag: Datum, Entscheidung, Grund, verworfene Alternativen.
 - **Entscheidung:** Klick = Maus hinbewegen, `buy.hover_s` warten, Taste `buy.press_s` halten. Nach CONFIRM & EXIT prüfen, ob das Menü zu ist, sonst bis `buy.confirm_attempts`-mal erneut. „LOGISTICS SLOTS FULL“ im Hauptmenü = Palette schon geladen → nur bestätigen.
 - **Grund:** Test 17.10. (Screenshot 002114): Cursor stand auf CONFIRM & EXIT, das Menü blieb offen. Bewegung, Drücken und Loslassen kamen im selben Moment; das Spiel hat den Klick vermutlich nicht als Hover + Klick gesehen. Im zweiten Versuch klickte der alte Ablauf ohne offenes Logistik-Menü blind auf PALLETS und die Ammo-Palette (Gefahr, im Hauptmenü etwas anderes zu kaufen).
 - **Verworfen:** Enter/Esc statt Klick (unbekannt, ob das Spiel damit bestätigt), feste längere Pausen ohne Prüfung.
+
+## 2026-10-17 – Rundenende als sicherer Stopp
+
+- **Entscheidung:** „NEXT ROUND IN“ (Template ohne Zeit) → `RoundOver(SafeStop)`: alle Tasten los, Screenshot, Exit 3. Geprüft in `CrateLoop.observe` vor allen anderen Prüfungen und im `UNKNOWN`-Handler.
+- **Grund:** Test 17.10. (`land`, Screenshot 002840): Runde endete, Heli weg, der Bot meldete „Heli-Anzeige weg (Crash oder ausgestiegen)“ und wartete 30 s auf den Watchdog. Rundenende ist kein Crash; Rejoin gehört zu Layer 4.
+- **Verworfen:** Tab-Leiste SCORE/PROGRESSION/SCOREBOARD als Merkmal (ausgewählter Tab wechselt die Farbe), weiter auf den Watchdog warten.

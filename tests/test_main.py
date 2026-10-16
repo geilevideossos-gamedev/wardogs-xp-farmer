@@ -9,7 +9,7 @@ from heli_farmer.config import load_config
 from heli_farmer.inputs import Input
 from heli_farmer.killswitch import Killswitch, Stopped
 from heli_farmer.main import Finished, build_machine, hold_test, parse_args
-from heli_farmer.states import Layer, SafeStop
+from heli_farmer.states import Layer, RoundOver, SafeStop
 
 FRAME = np.zeros((1080, 1920, 3), np.uint8)
 
@@ -54,7 +54,21 @@ def test_layer_one_assumes_server_and_team_and_stubs_outer_layers():
 def test_without_layer_outer_layers_stay_unknown():
     vision = Mock()
     vision.has_heli.return_value = True
+    vision.round_over.return_value = False
     inp = Mock()
     machine = build_machine(load_config("config.yaml"), parse_args([]), vision, Mock(), inp)
     assert machine.tick(FRAME) == Layer.UNKNOWN
+    inp.release_all.assert_called_once()
+
+
+def test_round_end_screen_stops_instead_of_waiting():
+    vision = Mock()
+    vision.has_heli.return_value = None
+    vision.round_over.return_value = True
+    inp = Mock()
+    machine = build_machine(
+        load_config("config.yaml"), parse_args(["--layer", "1"]), vision, Mock(), inp
+    )
+    with pytest.raises(RoundOver):
+        machine.tick(FRAME)
     inp.release_all.assert_called_once()

@@ -75,6 +75,11 @@ def test_logistics_slots_full(vision, entry):
     assert vision.slots_full(frame_from(entry)) == entry["slots_full"]
 
 
+@pytest.mark.parametrize("entry", entries("round"), ids=ids(entries("round")))
+def test_round_over(vision, entry):
+    assert vision.round_over(frame_from(entry)) == entry["round_over"]
+
+
 @pytest.mark.parametrize("kind", ["zone", "hq"])
 def test_markers_found_inside_crop(vision, kind):
     detect = vision.zone_marker if kind == "zone" else vision.hq_marker
