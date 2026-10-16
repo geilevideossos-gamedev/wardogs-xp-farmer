@@ -77,13 +77,17 @@ class Input:
         finally:
             self.key_up(key)
 
-    def click(self, x: int, y: int) -> None:
+    def click(self, x: int, y: int, hover_s: float = 0, press_s: float = 0) -> None:
         self.wait_for_focus()
         with self._lock:
             self._raise_if_stopped()
             self._send("moveTo", x, y)
+        wait(self._stop, hover_s)
         self.mouse_down()
-        self.mouse_up()
+        try:
+            wait(self._stop, press_s)
+        finally:
+            self.mouse_up()
 
     def mouse_down(self, button: str = "left") -> None:
         self.wait_for_focus()

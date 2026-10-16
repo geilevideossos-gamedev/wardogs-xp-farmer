@@ -96,6 +96,9 @@ class Vision:
     def first_aid(self, frame: np.ndarray) -> bool:
         return self.seen(frame, "first_aid")
 
+    def slots_full(self, frame: np.ndarray) -> bool:
+        return self.seen(frame, "slots_full")
+
     def garage_menu(self, frame: np.ndarray) -> str | None:
         if self.seen(frame, "menu_logistics"):
             return "logistics"

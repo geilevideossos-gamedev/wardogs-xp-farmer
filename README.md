@@ -133,6 +133,8 @@ Die wichtigsten Einstellungen:
 | `maps.<map>.hq_approach_y` | Bremsen, wenn der HQ-Marker so weit unten ist (oder der Kauf-Hinweis erscheint) | 560 |
 | `maps.<map>.approach_agl` / `approach_speed` | Höhe (m) und Tempo (km/h) für den letzten Anflug auf die Base, bis „[B] BUY AMMO / SUPPLIES“ erscheint | 30 / 60 |
 | `buy.clicks` | Klickpunkte im Kaufmenü (Logistics, Pallets, Ammo-Palette, Confirm & Exit) | |
+| `buy.hover_s` / `press_s` | Pause nach dem Hinbewegen der Maus und Dauer des Klicks (Sekunden). Reagiert ein Knopf nicht, größer machen | 0.2 / 0.1 |
+| `buy.confirm_attempts` | So oft klickt der Bot CONFIRM & EXIT, bis das Kaufmenü zu ist | 3 |
 | `flight.agl_band` | Erlaubte Abweichung von der Zielhöhe (m) | 8 |
 | `flight.yaw_deadband` | Marker gilt als mittig bei dieser Abweichung (Pixel) | 40 |
 | `flight.sink_rate` | Sinkrate bei der Landung (m/s) | 4 |

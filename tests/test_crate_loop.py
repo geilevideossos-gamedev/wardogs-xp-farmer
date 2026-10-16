@@ -43,6 +43,8 @@ class World:
         self.damaged = False
         self.lakota = True
         self.buy_works = True
+        self.confirm_misses = 0
+        self.mouse = (0, 0)
         self.keys: set[str] = set()
         self._clicks = {tuple(v): k for k, v in clicks.items()}
         self.clicked: list[str] = []
@@ -70,17 +72,25 @@ class World:
         else:
             self.keys.discard(name)
 
-    def click(self, x: int, y: int) -> None:
-        name = self._clicks[(x, y)]
+    def move(self, x: int, y: int) -> None:
+        self.mouse = (x, y)
+
+    def click(self) -> None:
+        name = self._clicks[self.mouse]
         self.clicked.append(name)
-        if name == "logistics" and self.menu == "main":
+        if name == "logistics" and self.menu == "main" and not self.slots_full():
             self.menu = "logistics"
         elif name == "ammo_pallet" and self.menu == "logistics" and self.buy_works:
             self.crate = True
             self.menu = "main"
+        elif name == "confirm" and self.confirm_misses:
+            self.confirm_misses -= 1
         elif name == "confirm":
             self.menu = None
             self.lakota = True
+
+    def slots_full(self) -> bool:
+        return self.menu == "main" and self.crate
 
     def step(self) -> np.ndarray:
         self.now += TICK
@@ -147,6 +157,9 @@ class FakeVision:
     def garage_menu(self, frame):
         return self.w.menu
 
+    def slots_full(self, frame):
+        return self.w.slots_full()
+
     def crate_loaded(self, frame):
         return self.w.lakota and self.w.crate
 
@@ -200,7 +213,8 @@ def loop(config, world):
     backend = Mock()
     backend.keyDown.side_effect = lambda key: world.press(key, True)
     backend.keyUp.side_effect = lambda key: world.press(key, False)
-    backend.moveTo.side_effect = world.click
+    backend.moveTo.side_effect = world.move
+    backend.mouseUp.side_effect = lambda button: world.click()
     inp = Input(threading.Event(), backend=backend, clock=lambda: world.now)
     return CrateLoop(
         FakeVision(world), inp, world.step, threading.Event(), config, clock=lambda: world.now
@@ -230,6 +244,26 @@ def test_buy_skips_when_crate_loaded(loop, world):
     world.crate = True
     loop.step("buy")
     assert world.clicked == []
+
+
+def test_buy_only_confirms_when_slots_full(loop, world):
+    world.crate, world.menu, world.lakota = True, "main", False
+    loop.step("buy")
+    assert world.clicked == ["confirm"]
+    assert world.menu is None and loop.stats["bought"] == 1
+
+
+def test_buy_repeats_confirm_until_menu_closes(loop, world):
+    world.confirm_misses = 2
+    loop.step("buy")
+    assert world.clicked == ["logistics", "pallets", "ammo_pallet", "confirm", "confirm", "confirm"]
+    assert world.crate and world.menu is None
+
+
+def test_buy_stops_when_confirm_never_works(loop, world):
+    world.confirm_misses = 99
+    with pytest.raises(StepFailed, match="CONFIRM"):
+        loop.step("buy")
 
 
 def test_buy_needs_buy_prompt(loop, world):

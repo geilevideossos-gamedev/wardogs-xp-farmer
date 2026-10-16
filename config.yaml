@@ -127,6 +127,12 @@ vision:
     y: 31
     search: 8
     min_score: 0.8
+  slots_full:
+    template: label_slots_full.png
+    x: 859
+    y: 872
+    search: 8
+    min_score: 0.7
   damage:
     region: [955, 908, 11, 24]
     min_red: 60
@@ -165,9 +171,12 @@ buy:
     ammo_pallet: [530, 300]
     confirm: [1560, 972]
   pause_s: 0.5
+  hover_s: 0.2
+  press_s: 0.1
   menu_timeout_s: 4
   loaded_timeout_s: 5
   attempts: 2
+  confirm_attempts: 3
 
 flight:
   tick_s: 0.05

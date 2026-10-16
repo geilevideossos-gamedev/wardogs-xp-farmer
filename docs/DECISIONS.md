@@ -137,3 +137,9 @@ Format je Eintrag: Datum, Entscheidung, Grund, verworfene Alternativen.
 - **Entscheidung:** Countdown `loop.start_delay_s` vor jedem Lauf (ersetzt `hold_test.start_delay_s`). Eingaben nur, wenn der Vordergrund-Fenstertitel exakt `window.title` ist; sonst `release_all` und warten. Die Wartezeit wird aus der Uhr von `CrateLoop` herausgerechnet (`Input.paused_s`). Ohne Prüfung: `--dry-run`, `--hold-test` (Not-Aus-Test läuft im Editor).
 - **Grund:** Test 17.10.: Der Bot startete sofort und tippte in die Konsole, Daniel wechselte per Alt+Tab (Screenshot 002840 zeigt den Fensterumschalter). Exakter Titel, weil „wardogs“ auch in anderen Titeln vorkommt (VS Code „… - wardogs_script - …“, Explorer `wardogs_daten`). ctypes ist Teil von Python, keine neue Dependency. Uhr anhalten, damit ein kurzer Blick ins Log keinen Schritt-Timeout auslöst.
 - **Verworfen:** `pywin32`/`pygetwindow` (neue Dependency für zwei API-Aufrufe), Teilstring-Vergleich des Titels, Prozessname (Name der Spiel-EXE unbekannt), Fokus nur beim Start prüfen.
+
+## 2026-10-17 – Kaufmenü: Klick mit Pause, Schließen prüfen
+
+- **Entscheidung:** Klick = Maus hinbewegen, `buy.hover_s` warten, Taste `buy.press_s` halten. Nach CONFIRM & EXIT prüfen, ob das Menü zu ist, sonst bis `buy.confirm_attempts`-mal erneut. „LOGISTICS SLOTS FULL“ im Hauptmenü = Palette schon geladen → nur bestätigen.
+- **Grund:** Test 17.10. (Screenshot 002114): Cursor stand auf CONFIRM & EXIT, das Menü blieb offen. Bewegung, Drücken und Loslassen kamen im selben Moment; das Spiel hat den Klick vermutlich nicht als Hover + Klick gesehen. Im zweiten Versuch klickte der alte Ablauf ohne offenes Logistik-Menü blind auf PALLETS und die Ammo-Palette (Gefahr, im Hauptmenü etwas anderes zu kaufen).
+- **Verworfen:** Enter/Esc statt Klick (unbekannt, ob das Spiel damit bestätigt), feste längere Pausen ohne Prüfung.

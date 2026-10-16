@@ -146,12 +146,16 @@ def test_tap_presses_and_releases():
     assert not inp.is_down("b")
 
 
-def test_click_moves_then_clicks():
+def test_click_moves_waits_and_holds_button():
     _, backend, inp, _ = make()
-    inp.click(955, 520)
-    backend.moveTo.assert_called_once_with(955, 520)
-    backend.mouseDown.assert_called_once_with(button="left")
-    backend.mouseUp.assert_called_once_with(button="left")
+    started = time.perf_counter()
+    inp.click(955, 520, hover_s=0.05, press_s=0.05)
+    assert time.perf_counter() - started >= 0.1
+    assert backend.mock_calls == [
+        call.moveTo(955, 520),
+        call.mouseDown(button="left"),
+        call.mouseUp(button="left"),
+    ]
 
 
 def test_release_overdue_lets_go_of_long_holds():

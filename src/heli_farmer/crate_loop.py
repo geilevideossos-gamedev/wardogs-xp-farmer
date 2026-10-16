@@ -117,7 +117,9 @@ class CrateLoop:
 
     def click(self, name: str) -> None:
         x, y = self._buy["clicks"][name]
-        self._inp.click(self._origin[0] + x, self._origin[1] + y)
+        self._inp.click(
+            self._origin[0] + x, self._origin[1] + y, self._buy["hover_s"], self._buy["press_s"]
+        )
         wait(self._stop, self._buy["pause_s"])
 
     def buy(self) -> None:
@@ -126,24 +128,14 @@ class CrateLoop:
             log.info("Crate ist schon geladen")
             return
         for attempt in range(1, self._buy["attempts"] + 1):
-            if not self._vision.buy_prompt(frame) and self._vision.garage_menu(frame) is None:
-                raise StepFailed("Kein Kauf-Hinweis: Heli steht nicht im Kaufbereich der Base")
             if self._vision.garage_menu(frame) is None:
+                if not self._vision.buy_prompt(frame):
+                    raise StepFailed("Kein Kauf-Hinweis: Heli steht nicht im Kaufbereich der Base")
                 self._inp.tap(self._keys["shop"], self._flight["tap_s"])
             menu = self.wait_for(self._vision.garage_menu, self._buy["menu_timeout_s"])
-            if menu == "main":
-                self.click("logistics")
-                self.wait_for(
-                    lambda f: self._vision.garage_menu(f) == "logistics",
-                    self._buy["menu_timeout_s"],
-                )
             if menu:
-                self.click("pallets")
-                self.click("ammo_pallet")
-                self.wait_for(
-                    lambda f: self._vision.garage_menu(f) == "main", self._buy["menu_timeout_s"]
-                )
-                self.click("confirm")
+                self._choose_pallet(menu)
+                self._confirm_exit()
             if self.wait_for(self._vision.crate_loaded, self._buy["loaded_timeout_s"]):
                 self.stats["bought"] += 1
                 log.info("Crate gekauft (Versuch %d)", attempt)
@@ -151,6 +143,31 @@ class CrateLoop:
             log.warning("Crate nicht im Bild nach Kaufversuch %d", attempt)
             frame = self.observe()
         raise StepFailed("Crate-Kauf fehlgeschlagen (zu wenig Geld oder Menü unbekannt)")
+
+    def _choose_pallet(self, menu: str) -> None:
+        if menu == "main":
+            if self._vision.slots_full(self.observe()):
+                log.info("LOGISTICS SLOTS FULL: Palette ist schon geladen, nur bestätigen")
+                return
+            self.click("logistics")
+            if not self.wait_for(
+                lambda f: self._vision.garage_menu(f) == "logistics", self._buy["menu_timeout_s"]
+            ):
+                log.warning("Logistik-Menü ging nicht auf")
+                return
+        self.click("pallets")
+        self.click("ammo_pallet")
+        self.wait_for(lambda f: self._vision.garage_menu(f) == "main", self._buy["menu_timeout_s"])
+
+    def _confirm_exit(self) -> None:
+        for attempt in range(1, self._buy["confirm_attempts"] + 1):
+            self.click("confirm")
+            if self.wait_for(
+                lambda f: self._vision.garage_menu(f) is None, self._buy["menu_timeout_s"]
+            ):
+                return
+            log.warning("Kaufmenü nach CONFIRM & EXIT noch offen (Versuch %d)", attempt)
+        raise StepFailed("Kaufmenü geht nicht zu: CONFIRM & EXIT wirkt nicht")
 
     def climb(self) -> None:
         target = self._map["turn_agl"]

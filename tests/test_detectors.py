@@ -70,6 +70,11 @@ def test_garage_menu(vision, entry):
     assert vision.garage_menu(frame_from(entry)) == entry["menu"]
 
 
+@pytest.mark.parametrize("entry", entries("slots"), ids=ids(entries("slots")))
+def test_logistics_slots_full(vision, entry):
+    assert vision.slots_full(frame_from(entry)) == entry["slots_full"]
+
+
 @pytest.mark.parametrize("kind", ["zone", "hq"])
 def test_markers_found_inside_crop(vision, kind):
     detect = vision.zone_marker if kind == "zone" else vision.hq_marker

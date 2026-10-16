@@ -25,6 +25,8 @@ Alle wichtigen Änderungen an diesem Projekt. Format nach [Keep a Changelog](htt
 
 ### Geändert
 
+- Kaufen: Der Bot bewegt die Maus erst auf den Knopf, wartet kurz und hält die Maustaste etwas länger. Nach CONFIRM & EXIT prüft er, ob das Menü zu ist, und klickt sonst erneut. Steht „LOGISTICS SLOTS FULL“ im Menü, ist die Palette schon geladen: dann nur noch bestätigen
+
 - Start mit 5 Sekunden Countdown (`loop.start_delay_s`), damit du ins Spiel wechseln kannst. Der Bot drückt nur noch Tasten, wenn WARDOGS im Vordergrund ist. Sonst lässt er alles los und wartet, Zeitlimits laufen solange nicht weiter. Kurzbefehl `bot` für PowerShell in der README
 
 - `tools/replay.py` zeigt jetzt den Ablauf der Crate-Schleife pro Video (Kaufmenü, Flug zur Zone, Rückflug, gelandet, beschädigt, tot) und die Abwurfzeitpunkte. `python -m pytest -m videos` gleicht das mit `docs/ANALYSIS.md` ab. Neu: Es zeigt auch, wann der Bot „in der Zone“ erkannt hätte und wo er vor der Zone bremsen würde. Der Video-Test prüft das für alle 7 Abwürfe in Daniels Videos

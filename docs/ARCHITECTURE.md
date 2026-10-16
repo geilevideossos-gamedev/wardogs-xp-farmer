@@ -28,6 +28,7 @@ Alle arbeiten auf einem 1920×1080-BGR-Frame. Koordinaten, Templates und Schwell
 | `delivered` | bool | Template „SUPPLIES DELIVERED“ |
 | `first_aid` | bool | Template Erste-Hilfe-Stern |
 | `garage_menu` | `"main"`, `"logistics"`, `None` | Templates der Menütitel |
+| `slots_full` | bool | Template „⚠ LOGISTICS SLOTS FULL“ unter der Logistik-Kachel im Hauptmenü (= Palette schon geladen) |
 | `heli_damaged` | bool | Median `R − max(G,B)` im Bereich der Heli-Silhouette ≥ `min_red` |
 | `has_heli` | `bool \| None` | Erste-Hilfe → `False`; Kaufmenü → `True`; „Z20 LAKOTA“ → `not heli_damaged`; sonst `None` |
 | `speed`, `agl`, `asl` | `int \| None` | Ziffernleser: Top-Hat, rechtsbündige Ziffernsuche, Kosinus-Vergleich mit `digits.png` |
@@ -105,7 +106,7 @@ stateDiagram-v2
 
 | Schritt | Ablauf |
 |---|---|
-| `buy` | Kiste schon geladen → fertig. Sonst Kauf-Hinweis nötig → B → warten auf Menü (`main` oder `logistics`) → ggf. Klick `logistics` → Klick `pallets` → Klick `ammo_pallet` → warten auf `main` → Klick `confirm` → warten auf G-Feld. `buy.attempts` Versuche, dann `StepFailed` |
+| `buy` | Kiste schon geladen → fertig. Menü zu: Kauf-Hinweis nötig → B. Warten auf Menü (`main` oder `logistics`). `main` mit `slots_full` → nur bestätigen. Sonst ggf. Klick `logistics` (kommt das Menü nicht → nur bestätigen) → `pallets` → `ammo_pallet` → warten auf `main`. Bestätigen: Klick `confirm`, bis `garage_menu` `None` ist, höchstens `buy.confirm_attempts`-mal, sonst `StepFailed`. Dann warten auf G-Feld. `buy.attempts` Versuche, dann `StepFailed`. Klick = `moveTo`, `hover_s` warten, Maustaste `press_s` halten, danach `pause_s` |
 | `climb` | `Pilot.fly` mit Tempo 0 bis AGL ≥ `turn_agl` („ein paar Meter“, am Boden wirkt Gieren nicht) |
 | `turn` | Hinflug (Kiste geladen): Ziel Zonen-Marker, Höhe `turn_agl`. Rückflug: Ziel HQ-Marker, Höhe `cruise_agl`. Tempo 0, nur Q/E. Kein Marker → `Pilot.search()`. Fertig wenn `|x − center_x| ≤ yaw_deadband` |
 | `drop` | Gieren zum Zonen-Marker (nur bis zum Eintritt, danach Kurs halten). Reiseflug (`_cruise`: `cruise_agl`, `cruise_speed`, `floor = min_agl`), bis der Median der letzten `distance_history` CZ-Entfernungen ≤ `brake_distance` → Anflug (`_approach`: `drop_agl`, `drop_speed`, `floor = drop_agl − agl_band`, `sink=True`, bleibt an). Zone erreicht = `kind == "HZ"` und `minimap_in_zone` in `vision.confirm` Bildern in Folge. Danach Anflug halten, nach `drop_delay_s` G, sobald AGL ≤ `drop_max_agl`; nach `drop_wait_s` ohne passende Höhe `StepFailed`. G-Druck: warten bis G-Feld `vision.confirm`-mal weg, dann bis `delivered_wait_s` auf „SUPPLIES DELIVERED“; dabei wird weiter geflogen (`wait_for(each=…)`) |
