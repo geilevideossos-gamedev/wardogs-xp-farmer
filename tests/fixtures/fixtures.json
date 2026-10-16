@@ -414,5 +414,47 @@
   "x": 820,
   "y": 890,
   "round_over": false
+ },
+ {
+  "file": "roll_zestafona_154.png",
+  "x": 889,
+  "y": 875,
+  "roll": 10
+ },
+ {
+  "file": "roll_zestafona_159.png",
+  "x": 889,
+  "y": 875,
+  "roll": 0
+ },
+ {
+  "file": "roll_zestafona_170.png",
+  "x": 889,
+  "y": 875,
+  "roll": 37
+ },
+ {
+  "file": "roll_zestafona_bot.png",
+  "x": 889,
+  "y": 875,
+  "roll": -17
+ },
+ {
+  "file": "hqdist_bakurani_196.png",
+  "x": 1009,
+  "y": 350,
+  "distance": 3400
+ },
+ {
+  "file": "hqdist_bakurani_210.png",
+  "x": 795,
+  "y": 358,
+  "distance": 2400
+ },
+ {
+  "file": "hqdist_bakurani_212.png",
+  "x": 779,
+  "y": 368,
+  "distance": 2200
  }
 ]

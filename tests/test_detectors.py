@@ -80,6 +80,16 @@ def test_round_over(vision, entry):
     assert vision.round_over(frame_from(entry)) == entry["round_over"]
 
 
+@pytest.mark.parametrize("entry", entries("roll"), ids=ids(entries("roll")))
+def test_roll_from_horizon_strokes(vision, entry):
+    assert vision.roll(frame_from(entry)) == pytest.approx(entry["roll"], abs=2)
+
+
+@pytest.mark.parametrize("entry", entries("hqdist"), ids=ids(entries("hqdist")))
+def test_hq_distance(vision, entry):
+    assert vision.hq_marker(frame_from(entry)).distance == entry["distance"]
+
+
 @pytest.mark.parametrize("kind", ["zone", "hq"])
 def test_markers_found_inside_crop(vision, kind):
     detect = vision.zone_marker if kind == "zone" else vision.hq_marker
@@ -118,3 +128,4 @@ def test_empty_frame_reads_nothing(vision):
     assert not vision.minimap_in_zone(frame)
     assert vision.garage_menu(frame) is None
     assert not vision.heli_damaged(frame)
+    assert vision.roll(frame) is None

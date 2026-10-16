@@ -149,3 +149,9 @@ Format je Eintrag: Datum, Entscheidung, Grund, verworfene Alternativen.
 - **Entscheidung:** „NEXT ROUND IN“ (Template ohne Zeit) → `RoundOver(SafeStop)`: alle Tasten los, Screenshot, Exit 3. Geprüft in `CrateLoop.observe` vor allen anderen Prüfungen und im `UNKNOWN`-Handler.
 - **Grund:** Test 17.10. (`land`, Screenshot 002840): Runde endete, Heli weg, der Bot meldete „Heli-Anzeige weg (Crash oder ausgestiegen)“ und wartete 30 s auf den Watchdog. Rundenende ist kein Crash; Rejoin gehört zu Layer 4.
 - **Verworfen:** Tab-Leiste SCORE/PROGRESSION/SCOREBOARD als Merkmal (ausgewählter Tab wechselt die Farbe), weiter auf den Watchdog warten.
+
+## 2026-10-17 – Querneigung aus der Lageanzeige, HQ-Entfernung lesen
+
+- **Entscheidung:** `Vision.roll` liest die Querneigung aus den zwei Horizont-Strichen der Lageanzeige (Linien-Score über Winkel, Minimum beider Seiten). `hq_marker` liest die Entfernung rechts neben dem HQ-Marker mit denselben Glyphen wie die CZ-Entfernung (linksbündig).
+- **Grund:** Daniel: Lenken bei Tempo braucht A/D, in der Zone „Heli gerade halten“. Ohne Messung bleibt eine A/D-Neigung stehen (Video: Neigung bleibt nach dem Loslassen, driftet ~1°/s). Abgleich mit dem Tasten-Overlay (`pytest -m videos`): Tipps ≥ 0,25 s ändern die Neigung in Tipp-Richtung (D = +), 23 von 26 isolierten Tipps ≥ 3°; ~0,3 s ≈ 5–8°, ~0,5 s ≈ 13–16°. HQ-Entfernung: Daniel beginnt den Landeanflug (erstes Strg) bei 600–800 m (Bakurani 233 s / 375 s, Zestafona 221 s). Die HQ-Schrift ist grau auf hellem Grund; im Video werden ~1/3 der km-Werte falsch gelesen (1↔8, 8↔6), daher Median über `flight.distance_history` Werte.
+- **Verworfen:** Querneigung über den Mittelwert der Strich-Pixel (Rauschen bei Bäumen im Hintergrund, Konzentration < 0,4), HQ-Marker-Höhe im Bild als Entfernungsmaß (Video: y 411–427 zwischen 500 m und 1,6 km, hängt von der Nicklage ab), Nickwinkel (weiterhin nicht ablesbar).

@@ -160,6 +160,12 @@ Marker und Minimap mit 2 Bildern/s, Bestätigung 3 Bilder in Folge, Bremsen bei 
 - HQ-Marker nie zusammen mit HZ, nach dem Verlassen 0–7,5 s bis zum ersten HQ-Treffer
 - Bremspunkte nur in 2 von 7 Anflügen: Die Entfernung steht knapp über dem Marker und damit in den Videos meist unter dem Overlay-Rand (y ≤ 370); Marker gefunden, Entfernung `None`. Im Spiel ohne Overlay zu prüfen (TESTING Layer 1, Schritt 0)
 
+## Querneigung und HQ-Entfernung (17.10.)
+
+- **Querneigung:** Die zwei Horizont-Striche der Lageanzeige liegen auf einer Geraden durch (959, 945), Radius 47–58 px. Sie kippen mit der Querneigung; D kippt nach rechts (+), A nach links. Die Neigung bleibt nach dem Loslassen stehen und driftet langsam (Zestafona 148–163 s: von −2° auf −8°). Antwort auf isolierte Tipps (Overlay): 0,1–0,2 s → 0–8°, 0,3 s → 5–8°, 0,5 s → 13–16°, 1,0 s → 29–37°, Wirkung ~0,3 s verzögert. `pytest -m videos` prüft das für alle drei Videos
+- **HQ-Entfernung:** steht rechts neben dem HQ-Marker („3.4 km“, „759 m“), grau auf hellem Himmel, schlechter lesbar als die CZ-Entfernung. Daniels erstes Strg im Landeanflug: Bakurani 233 s (letzte Werte 818/839 m bei ~285 km/h), 375 s (751 m), Zestafona 221 s (828/742 m) → Landeanflug ab ~700 m
+- **Basis auf der Minimap:** Über der Base liegt das Heli-Symbol in einem blau eingefärbten Quadrat; `minimap_in_zone` ist dort `True` (Bakurani ab 236 s, Landung 251 s)
+
 ## Daniels Screenshots vom 15.10. (Dateiname = Erklärung)
 
 | Bild | Befund | Folge für den Bot |
@@ -190,6 +196,7 @@ Für spätere Layer (nur vermerkt): chat 07 Team-Auswahl, Blau links (Layer 3); 
 ## Offene Punkte
 
 - Weißer Zonenkreis: Minimap-Färbung ist dort kaum bunt (Bakurani 172 s: Buntheit 8). In den Videos wurde der Kreis nach ≤ 1 s blau, dann klappt die Erkennung. Bleibt er weiß, wirft der Bot nicht ab und stoppt nach dem Zeitlimit
+- Wie viel Grad ein W-Tipp (0,2 s) Nicklage ergibt, ist unbekannt. Annahme 4–5°, `flight.max_tilt` 3 Tipps ≈ 12–15°
 - Drehrate von Q/E in Grad pro Sekunde unbekannt (Kehrtwende ist zeitgesteuert, `flight.turnaround_s`)
 - Wie viele W-Tipps „20°“ sind, ist unbekannt; der Regler misst stattdessen Beschleunigung und Sinkrate
 - Raketenwarnung (Audio) und Flares (V) nicht umgesetzt

@@ -24,13 +24,15 @@ COLUMNS = [
     "delivered",
     "first_aid",
     "damaged",
+    "roll",
     "zone",
     "distance",
     "minimap",
     "hq",
+    "hq_distance",
     "situation",
 ]
-MARKER_COLUMNS = ("zone", "distance", "minimap", "hq")
+MARKER_COLUMNS = ("zone", "distance", "minimap", "hq", "hq_distance")
 
 
 def readings(vision: Vision, frame: np.ndarray) -> dict:
@@ -45,16 +47,19 @@ def readings(vision: Vision, frame: np.ndarray) -> dict:
         "delivered": vision.delivered(frame),
         "first_aid": vision.first_aid(frame),
         "damaged": vision.heli_damaged(frame) if lakota else None,
+        "roll": vision.roll(frame) if lakota else None,
     }
 
 
 def marker_readings(vision: Vision, frame: np.ndarray) -> dict:
     zone = vision.zone_marker(frame)
+    hq = vision.hq_marker(frame)
     return {
         "zone": zone.kind if zone else "",
         "distance": zone.distance if zone else None,
         "minimap": vision.minimap_in_zone(frame),
-        "hq": vision.hq_marker(frame) is not None,
+        "hq": hq is not None,
+        "hq_distance": hq.distance if hq else None,
     }
 
 

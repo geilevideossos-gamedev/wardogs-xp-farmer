@@ -169,6 +169,12 @@ vision:
     band: [60, 1000]
     anchor: [16, 16]
     min_score: 0.62
+    distance_strip: [17, -2, 80, 24]
+  roll:
+    center: [959, 945]
+    radius: [47, 58]
+    max_deg: 70
+    min_score: 30
 
 buy:
   clicks:

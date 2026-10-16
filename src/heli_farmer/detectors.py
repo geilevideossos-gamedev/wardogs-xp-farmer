@@ -69,6 +69,12 @@ class Vision:
         inner, outer = minimap["ring"]
         yy, xx = np.mgrid[-outer : outer + 1, -outer : outer + 1]
         self._ring = (np.hypot(xx, yy) >= inner) & (np.hypot(xx, yy) <= outer)
+        roll = config["roll"]
+        self._roll_angles = np.arange(-roll["max_deg"], roll["max_deg"] + 1)
+        radii = np.arange(roll["radius"][0], roll["radius"][1] + 1)
+        angles = np.radians(self._roll_angles)[:, None]
+        self._roll_dx = np.rint(radii * np.cos(angles)).astype(int)
+        self._roll_dy = np.rint(radii * np.sin(angles)).astype(int)
 
     def score(self, frame: np.ndarray, name: str) -> float:
         spec = self._config[name]
@@ -138,12 +144,30 @@ class Vision:
         marker = self._marker(frame, "zone_marker")
         if marker is None:
             return None
-        return replace(
-            marker, kind=self._zone_kind(frame, marker), distance=self._distance(frame, marker)
-        )
+        strip = self._config["distance"]["strip"]
+        distance = self._distance(frame, marker, strip, centered=True)
+        return replace(marker, kind=self._zone_kind(frame, marker), distance=distance)
 
     def hq_marker(self, frame: np.ndarray) -> Marker | None:
-        return self._marker(frame, "hq_marker")
+        marker = self._marker(frame, "hq_marker")
+        if marker is None:
+            return None
+        strip = self._config["hq_marker"]["distance_strip"]
+        return replace(marker, distance=self._distance(frame, marker, strip, centered=False))
+
+    def roll(self, frame: np.ndarray) -> int | None:
+        spec = self._config["roll"]
+        x, y = spec["center"]
+        r = spec["radius"][1] + 3
+        patch = cv2.cvtColor(frame[y - r : y + r + 1, x - r : x + r + 1], cv2.COLOR_BGR2GRAY)
+        tophat = cv2.morphologyEx(patch, cv2.MORPH_TOPHAT, TOPHAT_KERNEL).astype(np.float32)
+        right = tophat[r + self._roll_dy, r + self._roll_dx].mean(axis=1)
+        left = tophat[r - self._roll_dy, r - self._roll_dx].mean(axis=1)
+        score = np.minimum(left, right)
+        best = int(score.argmax())
+        if score[best] < spec["min_score"]:
+            return None
+        return int(self._roll_angles[best])
 
     def minimap_in_zone(self, frame: np.ndarray) -> bool:
         spec = self._config["minimap"]
@@ -167,9 +191,11 @@ class Vision:
         cz = best_match(gray, self._templates["zone_marker"][letters])[0]
         return "HZ" if hz > cz else "CZ"
 
-    def _distance(self, frame: np.ndarray, marker: Marker) -> int | None:
+    def _distance(
+        self, frame: np.ndarray, marker: Marker, strip: list[int], centered: bool
+    ) -> int | None:
         spec = self._config["distance"]
-        dx, dy, width, height = spec["strip"]
+        dx, dy, width, height = strip
         roi = frame[marker.y + dy : marker.y + dy + height, marker.x + dx : marker.x + dx + width]
         if marker.x + dx < 0 or roi.shape[:2] != (height, width):
             return None
@@ -179,8 +205,10 @@ class Vision:
         }
         best = (-np.inf, "", 0.0)
         for layout in spec["formats"]:
+            span = sum(spec["advance"][c] for c in layout)
+            start = -dx - span / 2 if centered else 0
             for shift in range(-spec["shift"], spec["shift"] + 1):
-                read = self._read_layout(maps, layout, -dx + shift)
+                read = self._read_layout(maps, layout, start + shift)
                 if read[0] > best[0]:
                     best = read
         _, text, weakest = best
@@ -188,10 +216,9 @@ class Vision:
             return None
         return round(float(text[:-2]) * 1000) if text.endswith("km") else int(text[:-1])
 
-    def _read_layout(self, maps: dict, layout: str, center: int) -> tuple[float, str, float]:
+    def _read_layout(self, maps: dict, layout: str, x: float) -> tuple[float, str, float]:
         spec = self._config["distance"]
         advance = spec["advance"]
-        x = center - sum(advance[c] for c in layout) / 2
         gain, text, weakest = 0.0, "", 1.0
         for slot in layout:
             if slot != " ":
