@@ -67,8 +67,12 @@ Im Heli ist die **Maus irrelevant**, nur Tastatur:
 
 - Keine Taste gedrückt: Heli schwebt und hält die Höhe
 - W ohne Shift: fliegt vorwärts und verliert Höhe
-- **Reiseflug:** ca. 20° Nase nach vorne + Shift halten → Höhe bleibt konstant
-- Hauptgefahr: zu schnell und zu tief über Bäumen (Crash bei 215 km/h und AGL 28 m)
+- **Reiseflug:** ca. **10–15°** Nase nach vorne + Shift halten → Höhe bleibt konstant. Mehr Neigung ist zu aggressiv, dann mit S zurücknehmen
+- **Mit Palette geladen:** Gewicht hinten → Heli kippt beim Schweben langsam nach hinten → mit etwas W ausgleichen
+- **Lenken bei Tempo:** Q/E (Heckrotor) allein reicht bei höherem Tempo nicht, sonst fliegt er endlos Kreise → zusätzlich mit A/D in die Kurve neigen
+- **Landen:** Strg allein reicht nicht, weil der Heli noch vorwärts fliegt → mit S abbremsen. Sinkflug etwa doppelt so früh beginnen wie bisher. Es reicht, wenn die Landefläche auf der Minimap unter dem Heli liegt, sie muss nicht im Bild zu sehen sein
+- **In der Zone:** nicht aggressiv sinken, Heli gerade halten, aus sicherer Höhe abwerfen. Nach G trägt der Schwung den Heli meist von selbst aus der Zone
+- Hauptgefahr: zu schnell und zu tief über Bäumen (Crash bei 215 km/h und AGL 28 m; Crash in der Zone durch zu schnelles, schiefes Sinken)
 
 ## Navigation
 
@@ -81,6 +85,8 @@ Im Heli ist die **Maus irrelevant**, nur Tastatur:
 ## Spielverhalten (aus Daniels Notizen)
 
 - **Ladebildschirm und Serverliste können die alte Map zeigen:** Nach Rundenende läuft der Server weiter, der Map-Name wird erst verzögert aktualisiert. Die Map daher nie aus dem Ladebildschirm bestimmen, sondern im Spiel (z. B. Minimap)
+- **Rundenende:** Bildschirm mit „NEXT ROUND IN mm:ss“ (Tabs SCORE / PROGRESSION / SCOREBOARD) → Heli ist weg, das ist kein Crash
+- Kaufmenü im Heli: „LOGISTICS SLOTS FULL“ = Palette ist schon geladen → nicht nochmal kaufen, nur „CONFIRM & EXIT“
 - Während „Waiting for world to load“ oder „Waiting for player x of 66“ (weiß, oben) nichts drücken
 - Team-Hintergrund leicht grau und nach 30 s kein Join möglich → Esc → mit der Maus „Yes“ → zurück im Hauptmenü, neuen Server suchen
 - Beim Händler kann der falsche Heli gekauft werden → Kauf prüfen
