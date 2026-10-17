@@ -44,8 +44,11 @@ class Input:
     def held(self) -> list[str]:
         return sorted(self._keys)
 
+    def in_focus(self) -> bool:
+        return self._focused is None or self._focused()
+
     def wait_for_focus(self) -> None:
-        if self._focused is None or self._focused():
+        if self.in_focus():
             return
         self.release_all()
         log.warning("Spielfenster nicht im Vordergrund: alle Tasten los, warte")

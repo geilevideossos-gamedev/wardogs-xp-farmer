@@ -96,7 +96,9 @@ Einzelbilder als PNG speichern (landen in `debug/frames/…`):
 | **F2** | Not-Aus: stoppt sofort und lässt alle Tasten los. Im Aufnahme-Tool: beenden |
 | **F9** | Aufnahme-Tool: Aufnahme starten/stoppen |
 
-Der Bot benutzt im Spiel: Shift (steigen), Strg (sinken), W/S (vorwärts/bremsen), Q/E (drehen), A/D (zur Seite neigen, in Kurven und zum Geradehalten), B (Kaufmenü), G (abwerfen) und Mausklicks im Kaufmenü.
+Der Bot benutzt im Spiel: Shift (steigen), Strg (sinken), W/S (vorwärts/bremsen), Q/E (drehen), A/D (zur Seite neigen, in Kurven und zum Geradehalten), B (Kaufmenü), G (abwerfen), V (Flares) und Mausklicks im Kaufmenü.
+
+**Raketenwarnung:** Der Bot hört die Tonausgabe von Windows mit (nur lesen, kein Eingriff ins Spiel). Läuft der Dauer-Piepton einer anfliegenden Rakete 0,66 s lang, drückt er V (Flares), danach frühestens wieder nach 3 s. Das langsame „bip bip bip“ beim Anvisieren löst noch nicht aus. Wichtig: Das Spiel muss über das **Standard-Ausgabegerät** von Windows laufen, sonst hört der Bot nichts. Im Log steht beim Start `Raketenwarnung hört mit auf: <Gerät>`, jede Auslösung als `Raketenwarnung erkannt, Flares`.
 
 ## Einstellungen
 
@@ -182,6 +184,9 @@ Die wichtigsten Einstellungen:
 | `flight.record_s` | So oft (s) schreibt der Bot im Flug eine Zeile in `logs/<Datum>/flight_<Uhrzeit>.csv` | 0.25 |
 | `flight.trace_s` | So oft (s) schreibt der Bot im Flug eine Zeile mit Höhe, Tempo, Schräglage, Neigung, Marker und gedrückten Tasten ins Log | 1.0 |
 | `loop.tick_s` / `flight.tick_s` | Pause zwischen zwei Bildschirm-Prüfungen außerhalb / in Layer 1 (Sekunden) | 0.1 / 0.05 |
+| `audio.tone_hz` / `audio.warn_s` | Tonhöhe des Raketen-Dauertons (Hz) und wie lange er laufen muss, bis V gedrückt wird (s) | 1697 / 0.66 |
+| `audio.ratio_min` | Wie deutlich der Ton aus den anderen Spielgeräuschen herausstechen muss (Anteil 0–1). Kleiner = empfindlicher, aber mehr Fehlalarme | 0.2 |
+| `audio.cooldown_s` | Mindestabstand zwischen zwei Flare-Würfen (s) | 3.0 |
 | `hold_test.*`, `recording.*`, `logging.*` | Hold-Test, Aufnahme-Tool, Log-Dateien | |
 
 Alle Werte mit Erklärung: `docs/ARCHITECTURE.md` (Abschnitt „Config-Abschnitte“).

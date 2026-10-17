@@ -13,10 +13,11 @@ dependencies = [
     "pydirectinput>=1.0.4",
     "pynput>=1.8",
     "pyyaml>=6.0",
+    "soundcard>=0.4.6",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=9.0", "ruff>=0.17"]
+dev = ["av>=19.0", "pytest>=9.0", "ruff>=0.17"]
 
 [project.scripts]
 heli-farmer = "heli_farmer.main:main"

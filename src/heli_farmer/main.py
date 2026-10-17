@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 from heli_farmer import detectors
+from heli_farmer.audio import FlareWatcher
 from heli_farmer.capture import ScreenCapture
 from heli_farmer.config import load_config
 from heli_farmer.crate_loop import STEPS, CrateLoop, LeaveLayer, StepFailed
@@ -112,6 +113,13 @@ def bot_loop(
     flight_log = run_dir / f"flight_{datetime.now():%H%M%S}.csv"
     loop = CrateLoop(vision, inp, capture.grab, stop, config, args.map, clock, flight_log)
     machine = build_machine(config, args, vision, loop, inp)
+
+    def flares() -> None:
+        if inp.in_focus():
+            inp.tap(config["keys"]["flares"], config["audio"]["tap_s"])
+            loop.stats["flares"] += 1
+
+    FlareWatcher(config["audio"], stop, flares).start()
     try:
         while True:
             frame = capture.grab()

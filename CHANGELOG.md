@@ -6,6 +6,7 @@ Alle wichtigen Änderungen an diesem Projekt. Format nach [Keep a Changelog](htt
 
 ### Hinzugefügt
 
+- Flares bei Raketenwarnung: Der Bot hört die Tonausgabe von Windows mit und drückt V, sobald der Dauer-Piepton einer anfliegenden Rakete 0,66 s läuft (danach frühestens wieder nach 3 s). Erkannt wird der Ton an seiner Tonhöhe (ca. 1700 Hz), auch wenn Rotor und Schüsse lauter sind. Geprüft an deinem Beispiel und an allen drei Videos: alle Dauertöne erkannt, in ca. 24 Minuten Spielgeräuschen kein Fehlalarm. Das langsame Piepen beim Anvisieren löst bewusst nicht aus. Neue Programmbibliothek: `soundcard` (Installation neu ausführen, siehe README)
 - Tests mit deinen echten Flugdaten vom 17.10.: Der Bot bekommt jede Zeile der Flugtabellen als Zustand und muss zeigen, dass er im Sturzflug nie W drückt und beim Abdriften mit Palette W tippt. Die beiden Crashs von heute sind außerdem in der Simulation nachgestellt
 - Flugdaten als Tabelle: Pro Lauf schreibt der Bot `logs/<Datum>/flight_<Uhrzeit>.csv` mit 4 Zeilen pro Sekunde (Höhe, Tempo, Tempo über Grund, Steigrate, Beschleunigung, Schräglage, Marker, Tasten, Schritt). Damit lassen sich Tests im Spiel genauer auswerten
 - Flug-Protokoll: Im Log steht im Flug jede Sekunde eine Zeile mit Höhe, Tempo, Schräglage, geschätzter Neigung, Marker-Position und gedrückten Tasten. Damit lassen sich Crashs aus deinen Tests im Nachhinein auswerten

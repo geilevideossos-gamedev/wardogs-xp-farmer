@@ -251,3 +251,10 @@ Format je Eintrag: Datum, Entscheidung, Grund, verworfene Alternativen.
 - **Nicht übernommen:** den geglätteten Trend auch im Tempo-Regler (`_pitch_for`). In der Simulation reagierte der Regler dann zu spät, rollte nahe Tempo 0 durch und flog rückwärts weiter (Landetest mit Absturz).
 - **Grenze:** Ohne Vorzeichen am Tempo bleibt die Flugrichtung nahe 0 km/h geraten. Kandidat: Bewegungsrichtung aus der Minimap.
 
+## 2026-10-17 – Raketenwarnung per WASAPI-Loopback (soundcard) und Ton-Detektor
+
+- **Entscheidung:** Systemaudio wird mit `soundcard` (WASAPI-Loopback des Standard-Ausgabegeräts) in einem eigenen Thread (`FlareWatcher`) mitgehört. `MissileWarning` erkennt den Dauerton bei ~1697 Hz an seinem Energieanteil im schmalen Band (±30 Hz) relativ zu 300–4000 Hz pro 40-ms-Frame. Alarm nach ≥ 0,66 s Ton, Aussetzer bis 0,2 s werden toleriert, danach 3 s Sperrzeit. V nur, wenn das Spiel im Vordergrund ist. Für Tests dekodiert `av` (PyAV, nur dev) die Aufnahmen.
+- **Grund:** Nur lesender Zugriff auf die Audioausgabe, kein Eingriff ins Spiel. Daniels Beispiel-„mp3“ ist ein MP4 mit AAC-Ton (9 s): 2,93–4,27 s langsames Lock-Piepen bei ~1610 Hz (0,12 s an/aus), 4,33–6,86 s Dauerton 1695–1703 Hz = „konstantes bipppp“. Dieselben Töne in allen drei Videos (Bakurani 299,7 s, Ozeti 214,8/220,5/226,6 s, Zestafona 305,96/316,5 s). Ein Frequenzverhältnis ist unabhängig von der Lautstärke und robust gegen Rotor (tieffrequent) und breitbandige Explosionen. Abgleich mit ca. 24 min Gameplay: kein Fehlalarm, alle Dauertöne erkannt, auch mit 3-fach lautem Gameplay überlagert. `soundcard` ist reines Python über cffi und liefert bei Stille Nullen statt zu blockieren (Stop-Event wird regelmäßig geprüft).
+- **Verworfen:** `PyAudioWPatch` (PortAudio-Fork mit C-Extension, umständlichere Loopback-Auswahl), `sounddevice` (kein Loopback), `miniaudio`/`soundfile` für Tests (kein AAC/MP4), Erkennung über Lautstärke oder Pulsmuster (lautstärkeabhängig, Verwechslung mit Lock-Piepen), ffmpeg per subprocess (externe Installation).
+- **Grenze:** Live-Loopback während des Spiels nicht getestet. Spielt das Spiel nicht über das Windows-Standardgerät, hört der Bot nichts.
+
