@@ -179,3 +179,24 @@ def test_turn_back_keeps_leave_direction():
     _, _, keys = replay_turn("turn_back_062829.csv", loaded=False, side="yaw_left")
     yaws = [key for key in keys if key in ("q", "e")]
     assert yaws and yaws[0] == "q" and yaws.count("q") > yaws.count("e")
+
+
+def test_gentle_braking_on_drop_approach():
+    config = load_config("config.yaml")
+    flight, area = config["flight"], config["maps"]["default"]
+    clock, backend = Clock(), Mock()
+    inp = Input(threading.Event(), backend=backend, clock=clock)
+    pilot = Pilot(inp, config["keys"], flight, clock)
+    floor = area["drop_agl"] - flight["agl_band"]
+    with open(FIXTURES / "drop_approach_062829.csv", encoding="utf-8") as file:
+        rows = list(csv.DictReader(file))
+    for row in rows:
+        clock.now = float(row["t"])
+        pilot.update()
+        state = number(row["agl"]), number(row["asl"]), number(row["speed"])
+        sink = flight["drop_sink_rate"]
+        pilot.fly(*state, area["drop_agl"], area["drop_speed"], floor, sink, loaded=True)
+        assert not pilot.diving
+    seconds = float(rows[-1]["t"]) - float(rows[0]["t"])
+    brakes = [call.args[0] for call in backend.keyDown.call_args_list].count("s")
+    assert brakes <= seconds / 4

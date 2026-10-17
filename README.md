@@ -126,7 +126,7 @@ Die wichtigsten Einstellungen:
 | `maps.<map>.min_agl` | Mindesthöhe im Reiseflug (m). Darunter steigt der Bot erst mit Shift und nimmt die Nase hoch, bevor er weiter beschleunigt | 80 |
 | `maps.<map>.drop_agl` / `drop_speed` | Zielhöhe (m) und Tempo (km/h) vor und in der Zone. Der Bot sinkt sanft dorthin, wirft aber nach 3 s auch höher ab (laut Spieltext zerbricht die Palette ab ca. 90 m freiem Fall) | 70 / 120 |
 | `maps.<map>.turn_agl` | So hoch (m) steigt der Bot vor dem Drehen (über die Stromleitungen in der Base) | 25 |
-| `maps.<map>.brake_distance` | Ab dieser Entfernung zum Zonenrand (m, Zahl am CZ-Marker) bremst der Bot auf Abwurf-Tempo und sinkt sanft auf Abwurfhöhe | 400 |
+| `maps.<map>.brake_distance` | Ab dieser Entfernung zum Zonenrand (m, Zahl am CZ-Marker) bremst der Bot auf Abwurf-Tempo und sinkt sanft auf Abwurfhöhe | 700 |
 | `maps.<map>.drop_min_agl` | G wird nur gedrückt, wenn der Heli mindestens so hoch ist (m). Keine Obergrenze | 30 |
 | `flight.drop_delay_s` | Wartezeit nach dem Erreichen der Zone (HZ-Marker oder Heli auf der Minimap im Zonenkreis) bis G | 3 |
 | `flight.leave_margin_s` | So lange (s) fliegt der Bot nach dem Verlassen der Zone noch geradeaus, bevor er die Base sucht | 3 |
@@ -160,7 +160,9 @@ Die wichtigsten Einstellungen:
 | `flight.turn_speed` / `turn_bank` | Tempo (km/h) und größte Schräglage (Grad) im Kurvenflug | 60 / 20 |
 | `flight.safe_agl` / `safe_speed` | Unter dieser Höhe (m) mit mehr als diesem Tempo (km/h) nur noch steigen und gerade halten | 40 / 50 |
 | `flight.dive_sink` | Sturzflug: sinkt schneller als das (m/s) bei mehr als `forward_speed` → Flügel gerade, Shift, nur S-Tipps, nie W | 5 |
-| `flight.dive_agl_rate` / `dive_accel` | Sturzflug auch, wenn die Höhe über Grund schneller als das fällt (m/s) und das Tempo stärker steigt (km/h/s) | 3 / 3 |
+| `flight.dive_accel` | Sturzflug nur, wenn das Tempo über Grund dabei wirklich steigt (km/h pro s, über `smooth_s` geglättet). Sinken beim Anflug ist kein Sturzflug | 3 |
+| `flight.smooth_s` | Über so viele Sekunden glättet der Bot die Tempo-Änderung für die Sturzflug-Erkennung | 2.0 |
+| `flight.brake_max` | So stark (km/h pro s) bremst der Bot höchstens, um auf ein langsameres Ziel-Tempo zu kommen. Kleiner = sanfter, braucht mehr Weg | 8 |
 | `flight.dive_exit` | Sturzflug vorbei, wenn er langsamer sinkt als das (m/s) | 1 |
 | `flight.dive_tap_s_per_ms` / `dive_tap_max_s` / `dive_interval_s` | S-Tipp im Sturzflug: Sekunden pro m/s Sinkrate, längster Tipp, Abstand (s) | 0.02 / 0.4 / 0.5 |
 | `flight.forward_speed` | Über diesem Tempo (km/h) gilt der Heli immer als vorwärts fliegend | 60 |

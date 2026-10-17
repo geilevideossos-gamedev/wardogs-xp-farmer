@@ -53,6 +53,7 @@ class Pilot:
         self._agl = Trend(flight["history_s"])
         self._asl = Trend(flight["history_s"])
         self._ground = Trend(flight["history_s"])
+        self._smooth = Trend(flight["smooth_s"])
         self._aim = Trend(flight["yaw_history_s"])
         self._pulses: dict[str, float] = {}
         self._taps: dict[str, deque[float]] = {"forward": deque(), "back": deque()}
@@ -83,6 +84,12 @@ class Pilot:
         if self._ground.span < self._cfg["history_s"] / 2:
             return 0.0
         return self._ground.rate()
+
+    @property
+    def trend(self) -> float:
+        if self._smooth.span < self._cfg["smooth_s"] / 2:
+            return 0.0
+        return self._smooth.rate()
 
     @property
     def yawing(self) -> bool:
@@ -120,7 +127,7 @@ class Pilot:
             return
         ground, accel, climb = self.ground, self.accel, self.climb
         fast = ground is not None and ground > self._cfg["safe_speed"]
-        self._watch_dive(ground, accel, climb)
+        self._watch_dive(ground, climb)
         low = agl < floor or (agl < self._cfg["safe_agl"] and fast)
         self.recovering = low or self.diving
         sinking_fast = sink_rate > 0 and climb < -sink_rate - self._cfg["sink_band"]
@@ -247,6 +254,7 @@ class Pilot:
         vertical = self.climb * 3.6
         self.ground = float(np.sqrt(max(speed * speed - vertical * vertical, 0.0)))
         self._ground.add(now, self.ground)
+        self._smooth.add(now, self.ground)
 
     def _lift(self, agl: int, target: float) -> bool:
         predicted = agl + self._agl.rate() * self._cfg["agl_lookahead_s"]
@@ -267,8 +275,11 @@ class Pilot:
             if drifting or braking:
                 self._tap(self._brake_key(), self._cfg["hover_tap_s"])
             return
-        limit = self._cfg["accel_max"]
-        wanted = clamp(self._cfg["speed_gain"] * (target - ground), -limit, limit)
+        wanted = clamp(
+            self._cfg["speed_gain"] * (target - ground),
+            -self._cfg["brake_max"],
+            self._cfg["accel_max"],
+        )
         lagging = ground < target - self._cfg["speed_band"] and accel <= 0
         leading = ground > target + self._cfg["speed_band"] and accel >= 0
         if (accel < wanted - band or lagging) and not sinking:
@@ -291,10 +302,8 @@ class Pilot:
         self._last_pitch = now
         self._taps["back"].append(now)
 
-    def _watch_dive(self, ground: float | None, accel: float, climb: float) -> None:
-        agl_falling = self._agl.rate() < -self._cfg["dive_agl_rate"]
-        sinking = climb < -self._cfg["dive_sink"]
-        falling = sinking or (agl_falling and accel > self._cfg["dive_accel"])
+    def _watch_dive(self, ground: float | None, climb: float) -> None:
+        falling = climb < -self._cfg["dive_sink"] and self.trend > self._cfg["dive_accel"]
         if falling and ground is not None and ground > self._cfg["forward_speed"]:
             self.diving = True
         elif not falling and climb > -self._cfg["dive_exit"]:
@@ -318,7 +327,7 @@ class Pilot:
             backward = self.reverse and loaded if last is None else last == "back"
             self.reverse = hover and backward
             self._suspect, self._learn_after = 0, now + self._cfg["history_s"]
-        elif ground < self._cfg["crossing_speed"] and now - self._last_brake < window:
+        elif ground < self._cfg["crossing_speed"] and (now - self._last_brake < window or not own):
             if self._slowing and accel > band and now >= self._learn_after:
                 self.reverse = not self.reverse
                 self._suspect, self._learn_after = 0, now + self._cfg["history_s"]

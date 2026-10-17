@@ -201,11 +201,13 @@ flight:
   edge_margin: 200
   tap_s: 0.2
   history_s: 1.0
+  smooth_s: 2.0
   agl_band: 8
   agl_lookahead_s: 1.5
   speed_band: 15
   speed_gain: 0.2
   accel_max: 15
+  brake_max: 8
   accel_band: 6
   brake_gain: 0.25
   reverse_accel: 4
@@ -215,7 +217,6 @@ flight:
   drift_accel: 1
   crossing_speed: 20
   dive_sink: 5
-  dive_agl_rate: 3
   dive_exit: 1
   dive_interval_s: 0.5
   dive_tap_s_per_ms: 0.02
@@ -294,7 +295,7 @@ maps:
     min_agl: 80
     cruise_agl: 100
     cruise_speed: 240
-    brake_distance: 400
+    brake_distance: 700
     drop_agl: 70
     drop_min_agl: 30
     drop_speed: 120

@@ -130,7 +130,7 @@ def test_no_pitch_taps_while_climbing_fast(setup):
 
 def test_dive_means_level_wings_shift_and_nose_up(setup):
     pilot, inp, clock, _ = setup
-    samples = [(120 - 3 * i, 220 - 3 * i, 150 + 2 * i) for i in range(15)]
+    samples = [(120 - 3 * i, 220 - 3 * i, 150 + 2 * i) for i in range(25)]
     feed(pilot, clock, samples, target_agl=60, target_speed=200)
     assert pilot.recovering and inp.is_down("shift") and "s" in pressed(inp)
     pilot.bank(20, 840)
