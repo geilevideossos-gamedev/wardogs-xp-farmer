@@ -27,6 +27,7 @@ Alle wichtigen Änderungen an diesem Projekt. Format nach [Keep a Changelog](htt
 
 ### Geändert
 
+- Testprotokoll vom dritten Layer-1-Test im Spiel (Regen, `docs/test-runs/2026-10-17-layer1.md`) und angepasste Test-Checkliste in `docs/TESTING.md` (Kurvenflug beim Drehen, kein Zurücklehnen, 240 km/h, Landeanflug ab 1200 m, Log-Zeilen `Flug:`). `PROJECT.md` um deine neuen Regeln ergänzt (Kurve mit A/D, nie stark nach hinten lehnen, Reisetempo, Abwurf bei 139 m ok, Wetter)
 - Reiseflug schneller: 240 statt 180 km/h, höchstens 5 W-Tipps. Der Landeanflug beginnt deshalb schon 1200 m vor der Base und wird mit der Entfernung langsamer
 - Testprotokoll vom zweiten Layer-1-Test im Spiel (`docs/test-runs/2026-10-17-layer1.md`) und angepasste Test-Checkliste in `docs/TESTING.md` (Drehen ohne Pendeln, Zone bei weißem Kreis, Abwurf ohne Höchsthöhe, Rückweg beim Landen). `PROJECT.md` um deine neuen Regeln ergänzt (Nachdrehen, 25 m Abheben, Zone über HZ oder Minimap, Base überflogen)
 - Abheben auf 25 m statt 15 m (Stromleitungen in der Base) und im Reiseflug etwas mehr Neigung nach vorne (4 statt 3 W-Tipps)
