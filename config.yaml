@@ -181,6 +181,21 @@ vision:
     ring: [12, 30]
     min_chroma: 14
     base_chroma: 10
+    region: [33, 755, 256, 215]
+    heli_template: minimap_heli.png
+    heli_radii: [3, 22]
+    heli_step_deg: 5
+    heli_body_min: 70
+    heli_min_score: 0.5
+    heli_window: 22
+    heli_separation: 8
+    foot_radius: 8
+    foot_white: 170
+    foot_pixels: 30
+    hq_template: minimap_hq.png
+    hq_dark: 80
+    hq_min_std: 12
+    hq_min_score: 0.45
   hq_marker:
     template: marker_hq.png
     band: [60, 1000]

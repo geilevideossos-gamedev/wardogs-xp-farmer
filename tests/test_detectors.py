@@ -122,6 +122,46 @@ def test_minimap_over_base(vision, entry):
     assert vision.minimap_over_base(frame_from(entry)) == entry["over_base"]
 
 
+def navmap(key: str):
+    items = [entry for entry in entries("navmap") if key in entry]
+    return pytest.mark.parametrize("entry", items, ids=ids(items))
+
+
+@navmap("heading")
+def test_minimap_heading(vision, entry):
+    heading = vision.minimap_heading(frame_from(entry))
+    if entry["heading"] is None:
+        assert heading is None
+    else:
+        assert heading is not None
+        assert abs((heading - entry["heading"] + 180) % 360 - 180) <= 15
+
+
+@navmap("heading")
+def test_minimap_position_found_with_heading(vision, entry):
+    position = vision.minimap_position(frame_from(entry))
+    assert (position is None) == (entry["heading"] is None)
+    if position is not None:
+        assert np.hypot(*position) <= vision._config["minimap"]["heli_window"]
+
+
+@navmap("hq")
+def test_minimap_hq(vision, entry):
+    hq = vision.minimap_hq(frame_from(entry))
+    if entry["hq"] is None:
+        assert hq is None
+    else:
+        assert hq == pytest.approx(entry["hq"], abs=4)
+
+
+@navmap("helis")
+def test_minimap_helis(vision, entry):
+    found = vision.minimap_helis(frame_from(entry))
+    assert len(found) == len(entry["helis"])
+    for expected in entry["helis"]:
+        assert any(heli == pytest.approx(expected, abs=4) for heli in found), expected
+
+
 def test_markers_absent_on_hud_only_frame(vision):
     frame = frame_from(entries("hud")[0])
     assert vision.zone_marker(frame) is None
@@ -135,6 +175,9 @@ def test_empty_frame_reads_nothing(vision):
     assert vision.asl(frame) is None
     assert not vision.in_lakota(frame)
     assert not vision.minimap_in_zone(frame)
+    assert vision.minimap_heading(frame) is None
+    assert vision.minimap_hq(frame) is None
+    assert vision.minimap_helis(frame) == []
     assert vision.garage_menu(frame) is None
     assert not vision.heli_damaged(frame)
     assert vision.roll(frame) is None

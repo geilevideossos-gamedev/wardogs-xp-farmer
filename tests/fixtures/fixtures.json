@@ -555,5 +555,213 @@
   "x": 940,
   "y": 900,
   "damaged": false
+ },
+ {
+  "file": "navmap_bakurani_190.png",
+  "x": 33,
+  "y": 755,
+  "heading": 180,
+  "hq": null,
+  "helis": []
+ },
+ {
+  "file": "navmap_bakurani_228.png",
+  "x": 33,
+  "y": 755,
+  "heading": 170,
+  "hq": null,
+  "helis": [
+   [
+    -46,
+    -21
+   ]
+  ]
+ },
+ {
+  "file": "navmap_bakurani_248.png",
+  "x": 33,
+  "y": 755,
+  "hq": [
+   17,
+   16.5
+  ]
+ },
+ {
+  "file": "navmap_ozeti_150.png",
+  "x": 33,
+  "y": 755,
+  "hq": [
+   -17,
+   27.5
+  ]
+ },
+ {
+  "file": "navmap_ozeti_324.png",
+  "x": 33,
+  "y": 755,
+  "heading": null,
+  "hq": [
+   -5,
+   20.5
+  ],
+  "helis": [
+   [
+    59,
+    -25
+   ],
+   [
+    15,
+    -23
+   ],
+   [
+    48,
+    -66
+   ],
+   [
+    54,
+    -96
+   ]
+  ]
+ },
+ {
+  "file": "navmap_ozeti_445.png",
+  "x": 33,
+  "y": 755,
+  "heading": 220,
+  "hq": null,
+  "helis": []
+ },
+ {
+  "file": "navmap_zestafona_165.png",
+  "x": 33,
+  "y": 755,
+  "heading": 10,
+  "hq": null,
+  "helis": []
+ },
+ {
+  "file": "navmap_zestafona_232.png",
+  "x": 33,
+  "y": 755,
+  "hq": [
+   11,
+   32.5
+  ]
+ },
+ {
+  "file": "navmap_zestafona_376.png",
+  "x": 33,
+  "y": 755,
+  "hq": [
+   15,
+   10.5
+  ]
+ },
+ {
+  "file": "navmap_rain_031444.png",
+  "x": 33,
+  "y": 755,
+  "heading": 190,
+  "hq": null,
+  "helis": []
+ },
+ {
+  "file": "navmap_rain_031533.png",
+  "x": 33,
+  "y": 755,
+  "heading": 210,
+  "hq": null,
+  "helis": []
+ },
+ {
+  "file": "navmap_rain_031555.png",
+  "x": 33,
+  "y": 755,
+  "heading": 240,
+  "hq": null,
+  "helis": []
+ },
+ {
+  "file": "navmap_rain_031755.png",
+  "x": 33,
+  "y": 755,
+  "heading": null,
+  "hq": null,
+  "helis": []
+ },
+ {
+  "file": "navmap_bot_002225.png",
+  "x": 33,
+  "y": 755,
+  "heading": 90,
+  "hq": [
+   74,
+   25.5
+  ],
+  "helis": []
+ },
+ {
+  "file": "navmap_bot_014529.png",
+  "x": 33,
+  "y": 755,
+  "heading": 20,
+  "hq": [
+   39,
+   53
+  ]
+ },
+ {
+  "file": "navmap_bot_014710.png",
+  "x": 33,
+  "y": 755,
+  "heading": 270,
+  "helis": [
+   [
+    -68,
+    53
+   ],
+   [
+    -118,
+    69
+   ],
+   [
+    -89,
+    74
+   ]
+  ]
+ },
+ {
+  "file": "navmap_bot_052937.png",
+  "x": 33,
+  "y": 755,
+  "heading": 0,
+  "hq": null,
+  "helis": []
+ },
+ {
+  "file": "navmap_bot_062126.png",
+  "x": 33,
+  "y": 755,
+  "heading": null,
+  "hq": null
+ },
+ {
+  "file": "navmap_bot_063611.png",
+  "x": 33,
+  "y": 755,
+  "heading": 235,
+  "hq": [
+   -32,
+   -64.5
+  ],
+  "helis": []
+ },
+ {
+  "file": "navmap_bot_042035.png",
+  "x": 33,
+  "y": 755,
+  "heading": 0,
+  "hq": null,
+  "helis": []
  }
 ]

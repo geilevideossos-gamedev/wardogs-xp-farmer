@@ -69,6 +69,20 @@ class Vision:
         inner, outer = minimap["ring"]
         yy, xx = np.mgrid[-outer : outer + 1, -outer : outer + 1]
         self._ring = (np.hypot(xx, yy) >= inner) & (np.hypot(xx, yy) <= outer)
+        radii = np.arange(minimap["heli_radii"][0], minimap["heli_radii"][1] + 1)
+        angles = np.radians(np.arange(0, 360, minimap["heli_step_deg"]))
+        self._polar_dx = (radii[:, None] * np.sin(angles)).astype(np.float32)
+        self._polar_dy = (-radii[:, None] * np.cos(angles)).astype(np.float32)
+        heli = self._blue(self._read_color(root / minimap["heli_template"])).astype(np.float32)
+        height, width = heli.shape
+        profile = self._polar(heli, [(width - 1) / 2], [(height - 1) / 2])[0]
+        profile -= profile.mean(axis=1, keepdims=True)
+        self._heli_spectrum = np.conj(np.fft.rfft(profile / np.linalg.norm(profile), axis=1))
+        self._hq = self._hq_features(self._read_color(root / minimap["hq_template"]))
+        foot = minimap["foot_radius"]
+        yy, xx = np.mgrid[-foot : foot + 1, -foot : foot + 1]
+        self._foot_disk = np.hypot(xx, yy) <= foot
+        self._refine = np.stack(np.meshgrid([-1, 0, 1], [-1, 0, 1]), axis=-1).reshape(-1, 2)
         roll = config["roll"]
         self._roll_angles = np.arange(-roll["max_deg"], roll["max_deg"] + 1)
         radii = np.arange(roll["radius"][0], roll["radius"][1] + 1)
@@ -174,6 +188,124 @@ class Vision:
 
     def minimap_over_base(self, frame: np.ndarray) -> bool:
         return self._minimap_chroma(frame) >= self._config["minimap"]["base_chroma"]
+
+    def minimap_heading(self, frame: np.ndarray) -> float | None:
+        if self._on_foot(frame):
+            return None
+        own = self._own_heli(self._heli_detections(frame))
+        return None if own is None else own[3]
+
+    def minimap_position(self, frame: np.ndarray) -> tuple[float, float] | None:
+        if self._on_foot(frame):
+            return None
+        own = self._own_heli(self._heli_detections(frame))
+        if own is None:
+            return None
+        cx, cy = self._minimap_center()
+        return own[1] - cx, own[2] - cy
+
+    def minimap_helis(self, frame: np.ndarray) -> list[tuple[float, float]]:
+        spec = self._config["minimap"]
+        detections = self._heli_detections(frame)
+        own = None if self._on_foot(frame) else self._own_heli(detections)
+        kept: list[tuple[float, float, float, float]] = []
+        for detection in sorted(detections, key=lambda d: -d[0]):
+            if all(
+                np.hypot(detection[1] - k[1], detection[2] - k[2]) >= spec["heli_separation"]
+                for k in kept + ([own] if own else [])
+            ):
+                kept.append(detection)
+        cx, cy = self._minimap_center()
+        return [(x - cx, y - cy) for _, x, y, _ in kept]
+
+    def minimap_hq(self, frame: np.ndarray) -> tuple[float, float] | None:
+        spec = self._config["minimap"]
+        x, y, width, height = spec["region"]
+        features = self._hq_features(frame[y : y + height, x : x + width])
+        scores = np.nan_to_num(cv2.matchTemplate(features, self._hq, cv2.TM_CCOEFF_NORMED))
+        th, tw = self._hq.shape[:2]
+        blue = features[..., 0].astype(np.float32)
+        mean = cv2.blur(blue, (tw, th))
+        std = np.sqrt(np.maximum(cv2.blur(blue * blue, (tw, th)) - mean * mean, 0))
+        std = std[th // 2 : th // 2 + scores.shape[0], tw // 2 : tw // 2 + scores.shape[1]]
+        scores[std < spec["hq_min_std"]] = -1
+        _, score, _, (left, top) = cv2.minMaxLoc(scores)
+        if score < spec["hq_min_score"]:
+            return None
+        cx, cy = self._minimap_center()
+        return left + (tw - 1) / 2 - cx, top + (th - 1) / 2 - cy
+
+    def _minimap_center(self) -> tuple[int, int]:
+        spec = self._config["minimap"]
+        return spec["center"][0] - spec["region"][0], spec["center"][1] - spec["region"][1]
+
+    def _on_foot(self, frame: np.ndarray) -> bool:
+        spec = self._config["minimap"]
+        x, y = spec["center"]
+        r = spec["foot_radius"]
+        patch = frame[y - r : y + r + 1, x - r : x + r + 1].min(axis=2)
+        return int((patch[self._foot_disk] >= spec["foot_white"]).sum()) >= spec["foot_pixels"]
+
+    def _own_heli(self, detections: list) -> tuple | None:
+        spec = self._config["minimap"]
+        cx, cy = self._minimap_center()
+        near = [d for d in detections if np.hypot(d[1] - cx, d[2] - cy) <= spec["heli_window"]]
+        return max(near, default=None)
+
+    def _heli_detections(self, frame: np.ndarray) -> list[tuple[float, float, float, float]]:
+        spec = self._config["minimap"]
+        x, y, width, height = spec["region"]
+        roi = frame[y : y + height, x : x + width]
+        blue = self._blue(roi)
+        body = cv2.blur(blue, (5, 5))
+        peaks = (body >= cv2.dilate(body, TOPHAT_KERNEL)) & (body >= spec["heli_body_min"])
+        count, _, _, centers = cv2.connectedComponentsWithStats(peaks.astype(np.uint8))
+        if count < 2:
+            return []
+        gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY).astype(np.float32)
+        features = gray + blue.astype(np.float32)
+        points = np.rint(centers[1:])[:, None, :] + self._refine
+        profiles = self._polar(features, points[..., 0].ravel(), points[..., 1].ravel())
+        profiles -= profiles.mean(axis=2, keepdims=True)
+        norm = np.linalg.norm(profiles, axis=(1, 2))[:, None] + 1e-6
+        spectrum = np.fft.rfft(profiles, axis=2) * self._heli_spectrum
+        scores = np.fft.irfft(spectrum, n=profiles.shape[2], axis=2).sum(axis=1) / norm
+        scores = scores.reshape(len(points), -1)
+        detections = []
+        for index, flat in enumerate(scores.argmax(axis=1)):
+            score = float(scores[index, flat])
+            if score >= spec["heli_min_score"]:
+                offset, shift = divmod(int(flat), profiles.shape[2])
+                px, py = points[index, offset]
+                heading = float(shift * spec["heli_step_deg"])
+                detections.append((score, float(px), float(py), heading))
+        return detections
+
+    def _polar(self, image: np.ndarray, xs: np.ndarray, ys: np.ndarray) -> np.ndarray:
+        xs = np.asarray(xs, np.float32).reshape(-1, 1, 1)
+        ys = np.asarray(ys, np.float32).reshape(-1, 1, 1)
+        angles = self._polar_dx.shape[1]
+        map_x = (xs + self._polar_dx).reshape(-1, angles)
+        map_y = (ys + self._polar_dy).reshape(-1, angles)
+        sampled = cv2.remap(image, map_x, map_y, cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+        return sampled.reshape(len(xs), -1, angles)
+
+    def _hq_features(self, image: np.ndarray) -> np.ndarray:
+        b, g, r = cv2.split(image)
+        dark = cv2.subtract(self._config["minimap"]["hq_dark"], cv2.max(cv2.max(b, g), r))
+        return cv2.merge([cv2.subtract(b, r), cv2.add(dark, dark)])
+
+    @staticmethod
+    def _blue(image: np.ndarray) -> np.ndarray:
+        b, _, r = cv2.split(image)
+        return cv2.subtract(b, r)
+
+    @staticmethod
+    def _read_color(path: Path) -> np.ndarray:
+        image = cv2.imread(str(path))
+        if image is None:
+            raise FileNotFoundError(f"Template fehlt: {path}")
+        return image
 
     def _minimap_chroma(self, frame: np.ndarray) -> float:
         spec = self._config["minimap"]
