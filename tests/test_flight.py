@@ -219,9 +219,9 @@ def test_fly_trims_backward_drift_with_crate(setup):
 
 def test_bank_into_turn_only_at_speed(setup):
     pilot, inp, clock, flight = setup
-    pilot.bank(0, flight["bank_speed"] - 1, 1800)
+    pilot.bank(0, flight["bank_speed"] - 1, 840)
     assert not inp.is_down("d")
-    pilot.bank(0, flight["bank_speed"], 1800)
+    pilot.bank(0, flight["bank_speed"], 840)
     assert inp.is_down("d") and not inp.is_down("a")
 
 
@@ -258,17 +258,54 @@ def test_fly_does_not_accelerate_while_sinking(setup):
     assert not inp.is_down("shift") and not inp.is_down("w")
 
 
-def test_yaw_pulses_toward_marker_and_reports_centered(setup):
+def aim(pilot, clock, *xs, start=10.0):
+    for step, x in enumerate(xs):
+        clock.now = start + step * 0.1
+        pilot.yaw(x)
+
+
+def test_yaw_reports_on_target_only_when_centered_and_still(setup):
     pilot, inp, clock, flight = setup
-    assert pilot.yaw(flight["center_x"] + 10) is True
-    assert pilot.yaw(flight["center_x"] + 400) is False
+    center = flight["center_x"]
+    aim(pilot, clock, center + 10)
+    assert not pilot.on_target
+    aim(pilot, clock, center + 10, center + 10)
+    assert pilot.on_target and not inp.is_down("e")
+    aim(pilot, clock, center + 70, center + 10, start=11)
+    assert not pilot.on_target
+
+
+def test_yaw_pulses_toward_marker_and_waits_for_coasting(setup):
+    pilot, inp, clock, flight = setup
+    aim(pilot, clock, flight["center_x"] + 400, flight["center_x"] + 400)
     assert inp.is_down("e") and not inp.is_down("q")
-    clock.now = flight["yaw_max_s"] + 0.01
+    clock.now += flight["yaw_max_s"]
     pilot.update()
     assert not inp.is_down("e")
-    clock.now += flight["yaw_interval_s"]
+    clock.now += flight["yaw_wait_s"] - 0.1
+    pilot.yaw(flight["center_x"] + 400)
+    assert not inp.is_down("e")
+
+
+def test_yaw_brakes_with_counter_key_when_overshoot_ahead(setup):
+    pilot, inp, clock, flight = setup
+    center = flight["center_x"]
+    aim(pilot, clock, center + 300, center + 200, center + 100)
+    assert pilot.lead < -flight["yaw_coast_band"]
+    assert inp.is_down("q") and not inp.is_down("e")
+
+
+def test_yaw_lets_heli_coast_into_target(setup):
+    pilot, inp, clock, flight = setup
+    center = flight["center_x"]
+    aim(pilot, clock, center + 200, center + 180, center + 160)
+    assert not inp.is_down("q") and not inp.is_down("e")
+
+
+def test_yaw_at_screen_edge_turns_toward_it(setup):
+    pilot, inp, clock, flight = setup
     pilot.yaw(120)
-    assert inp.is_down("q")
+    assert inp.is_down("q") and not pilot.on_target
 
 
 def test_descend_holds_rate(setup):
@@ -304,6 +341,6 @@ def test_release_lets_go_of_all_flight_keys(setup):
     pilot, inp, _, _ = setup
     fly(pilot, 10, 0, target_speed=200)
     pilot.yaw(1800)
-    pilot.bank(0, 200, 1800)
+    pilot.bank(0, 200, 840)
     pilot.release()
     assert not any(inp.is_down(key) for key in ("shift", "ctrl", "w", "s", "q", "e", "a", "d"))

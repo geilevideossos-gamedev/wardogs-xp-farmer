@@ -20,6 +20,13 @@ class Trend:
         while self._samples and t - self._samples[0][0] > self._window_s:
             self._samples.popleft()
 
+    def reset(self) -> None:
+        self._samples.clear()
+
+    @property
+    def ready(self) -> bool:
+        return len(self._samples) >= 2
+
     def rate(self) -> float:
         if len(self._samples) < 2:
             return 0.0
@@ -40,11 +47,14 @@ class Pilot:
         self._agl = Trend(flight["history_s"])
         self._asl = Trend(flight["history_s"])
         self._speed = Trend(flight["history_s"])
+        self._aim = Trend(flight["yaw_history_s"])
         self._pulses: dict[str, float] = {}
         self._last_pitch = -1e9
-        self._last_yaw = -1e9
+        self._yaw_free_at = -1e9
         self._last_roll = -1e9
         self.tilt = 0
+        self.lead: float | None = None
+        self.on_target = False
 
     @property
     def yawing(self) -> bool:
@@ -122,31 +132,44 @@ class Pilot:
         if speed is not None:
             self._pitch_for(speed, 0, self._speed.rate(), False)
 
-    def yaw(self, x: float) -> bool:
-        error = x - self._cfg["center_x"]
-        if abs(error) <= self._cfg["yaw_deadband"]:
-            return True
+    def yaw(self, x: float) -> None:
         now = self._clock()
-        if self.yawing or now - self._last_yaw < self._cfg["yaw_interval_s"]:
-            return False
+        error = x - self._cfg["center_x"]
+        if abs(error) >= self._cfg["center_x"] - self._cfg["edge_margin"]:
+            self._aim.reset()
+            self.lead, self.on_target = error, False
+            self._yaw_pulse("yaw_right" if error > 0 else "yaw_left", self._cfg["yaw_max_s"])
+            return
+        self._aim.add(now, x)
+        if not self._aim.ready:
+            self.lead, self.on_target = error, False
+            return
+        rate = self._aim.rate()
+        self.lead = error + rate * self._cfg["yaw_lookahead_s"]
+        deadband = self._cfg["yaw_deadband"]
+        still = abs(rate) <= self._cfg["yaw_still"]
+        self.on_target = abs(error) <= deadband and still and not self.yawing
+        if abs(self.lead) <= (deadband if still else self._cfg["yaw_coast_band"]):
+            return
         seconds = clamp(
-            abs(error) * self._cfg["yaw_s_per_px"], self._cfg["yaw_min_s"], self._cfg["yaw_max_s"]
+            abs(self.lead) * self._cfg["yaw_s_per_px"],
+            self._cfg["yaw_min_s"],
+            self._cfg["yaw_max_s"],
         )
-        self._pulse(self._keys["yaw_right" if error > 0 else "yaw_left"], seconds)
-        self._last_yaw = now
-        return False
+        self._yaw_pulse("yaw_right" if self.lead > 0 else "yaw_left", seconds)
 
     def search(self, direction: str = "yaw_right") -> None:
-        if not self.yawing:
-            self._pulse(self._keys[direction], self._cfg["yaw_max_s"])
+        self._aim.reset()
+        self.on_target = False
+        self._yaw_pulse(direction, self._cfg["yaw_max_s"])
 
-    def bank(self, roll: int | None, speed: int | None, x: float | None = None) -> None:
+    def bank(self, roll: int | None, speed: int | None, lead: float | None = None) -> None:
         if roll is None:
             return
         target = 0.0
-        if x is not None and speed is not None and speed >= self._cfg["bank_speed"]:
+        if lead is not None and speed is not None and speed >= self._cfg["bank_speed"]:
             limit = self._cfg["max_bank"]
-            target = clamp((x - self._cfg["center_x"]) * self._cfg["bank_per_px"], -limit, limit)
+            target = clamp(lead * self._cfg["bank_per_px"], -limit, limit)
         error = target - roll
         now = self._clock()
         rolling = (
@@ -221,6 +244,13 @@ class Pilot:
         self._last_pitch = now
         if counted:
             self.tilt += 1 if key == "forward" else -1
+
+    def _yaw_pulse(self, direction: str, seconds: float) -> None:
+        now = self._clock()
+        if self.yawing or now < self._yaw_free_at:
+            return
+        self._pulse(self._keys[direction], seconds)
+        self._yaw_free_at = now + seconds + self._cfg["yaw_wait_s"]
 
     def _pulse(self, key: str, seconds: float) -> None:
         self._inp.key_down(key)

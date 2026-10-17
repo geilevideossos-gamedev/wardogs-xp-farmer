@@ -130,7 +130,7 @@ Die wichtigsten Einstellungen:
 | `maps.<map>.drop_max_agl` | G wird nur gedrückt, wenn der Heli höchstens so hoch ist (m) | 85 |
 | `flight.drop_delay_s` | Wartezeit nach dem Erreichen der Zone (Minimap + HZ) bis G | 3 |
 | `flight.leave_margin_s` | So lange (s) fliegt der Bot nach dem Verlassen der Zone noch geradeaus, bevor er die Base sucht | 3 |
-| `flight.turnaround_s` | So lange (s) dreht der Bot nach dem Abwurf, bevor er aus der Zone fliegt. Mehr = weiter umdrehen | 4 |
+| `flight.turnaround_s` | So lange (s) dreht der Bot nach dem Abwurf, bevor er aus der Zone fliegt. Mehr = weiter umdrehen | 6 |
 | `maps.<map>.land_distance` | Ab dieser Entfernung zur Base (m, Zahl neben dem HQ-Marker) beginnt der Landeanflug: bremsen und sinken. Größer = früher | 700 |
 | `maps.<map>.hq_approach_y` | Ersatz, falls die Entfernung nicht lesbar ist: Landeanflug, wenn der HQ-Marker so weit unten im Bild ist | 560 |
 | `maps.<map>.approach_agl` / `approach_speed` | Höhe (m) und Tempo (km/h) im Landeanflug, bis die Base auf der Minimap unter dem Heli ist | 40 / 40 |
@@ -146,7 +146,12 @@ Die wichtigsten Einstellungen:
 | `buy.hover_s` / `press_s` | Pause nach dem Hinbewegen der Maus und Dauer des Klicks (Sekunden). Reagiert ein Knopf nicht, größer machen | 0.2 / 0.1 |
 | `buy.confirm_attempts` | So oft klickt der Bot CONFIRM & EXIT, bis das Kaufmenü zu ist | 3 |
 | `flight.agl_band` | Erlaubte Abweichung von der Zielhöhe (m) | 8 |
-| `flight.yaw_deadband` | Marker gilt als mittig bei dieser Abweichung (Pixel) | 40 |
+| `flight.yaw_deadband` | Marker gilt als mittig bei dieser Abweichung (Pixel) | 80 |
+| `flight.yaw_s_per_px` | Länge eines Q/E-Tipps pro Pixel Abstand zum Ziel (s). Pendelt der Heli beim Drehen: kleiner | 0.0006 |
+| `flight.yaw_lookahead_s` | So weit (s) rechnet der Bot das Nachdrehen voraus. Schießt der Marker über die Mitte: größer; bremst er zu früh und kriecht: kleiner | 0.7 |
+| `flight.yaw_wait_s` | Pause nach jedem Q/E-Tipp, bis die Wirkung sichtbar ist (s) | 0.5 |
+| `flight.yaw_settle_s` | So lange (s) muss der Marker ruhig in der Mitte stehen, bis das Drehen fertig ist | 1.0 |
+| `flight.turn_timeout_s` | Danach bricht das Drehen mit sicherem Stopp ab (s) | 30 |
 | `flight.sink_rate` | Sinkrate bei der Landung (m/s) | 4 |
 | `flight.speed_limits` | Höchsttempo je Höhe über Grund als Paare `[Höhe m, km/h]`, dazwischen wird gemittelt. Schützt vor Baum-Crashs wie bei 215 km/h in 28 m Höhe | 20 m → 40, 40 → 100, 60 → 160, 80 → 220, 120 → 280 |
 | `flight.sink_guard` | Sinkt der Heli trotz Shift schneller als das (m/s), ist die Nase zu weit unten und der Bot tippt S | 1.5 |

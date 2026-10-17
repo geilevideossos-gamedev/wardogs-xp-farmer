@@ -166,6 +166,17 @@ Marker und Minimap mit 2 Bildern/s, Bestätigung 3 Bilder in Folge, Bremsen bei 
 - **HQ-Entfernung:** steht rechts neben dem HQ-Marker („3.4 km“, „759 m“), grau auf hellem Himmel, schlechter lesbar als die CZ-Entfernung. Daniels erstes Strg im Landeanflug: Bakurani 233 s (letzte Werte 818/839 m bei ~285 km/h), 375 s (751 m), Zestafona 221 s (828/742 m) → Landeanflug ab ~700 m
 - **Basis auf der Minimap:** Über der Base liegt das Heli-Symbol in einem blau eingefärbten Quadrat; `minimap_in_zone` ist dort `True` (Bakurani ab 236 s, Landung 251 s)
 
+## Nachdrehen nach Q/E (17.10.)
+
+Marker-x mit 10 Bildern/s nach isolierten Q/E-Tipps (Overlay-Zeiten):
+
+| Video | Tipp | Verlauf |
+|---|---|---|
+| Zestafona 116,9–117,23 s | Q 0,33 s, 44 km/h | Marker 770 px bewegt sich erst ab ~117,3 s, Spitze ~200 px/s bei 117,7–118,0 s, steht bei ~119,1 s auf 984 px (+216 px) |
+| Ozeti 155,3–155,8 s und 156,2–157,0 s | E 0,43 s + 0,8 s, 30–47 km/h | 1630 → 660 px; nach dem Loslassen bei 157,0 s noch 0,7 s mit ~560 px/s, dann Auslauf bis ~159 s |
+
+Modell (Ausgleichsrechnung auf Zestafona, mittlere Abweichung 2,3 px bei 16,8 px/°): Totzeit 0,3 s, Anlauf (Tiefpass) 0,2 s, Auslauf 0,5 s, Enddrehrate 40°/s. Gesamtdrehung ≈ 40° pro Sekunde Tastendruck, nach dem Loslassen dreht der Heli noch ~1 s weiter. Angeheftete Marker: Liegt das Ziel außerhalb des Bildes, klebt der Zonen-Marker am Rand (x ≈ 120 bzw. 1800, Screenshots 015014, 015543). Bildtakt des Bots mit Marker-Suche ~7 Bilder/s (Marker-Suche ~71 ms).
+
 ## Daniels Screenshots vom 15.10. (Dateiname = Erklärung)
 
 | Bild | Befund | Folge für den Bot |
@@ -197,7 +208,7 @@ Für spätere Layer (nur vermerkt): chat 07 Team-Auswahl, Blau links (Layer 3); 
 
 - Weißer Zonenkreis: Minimap-Färbung ist dort kaum bunt (Bakurani 172 s: Buntheit 8). In den Videos wurde der Kreis nach ≤ 1 s blau, dann klappt die Erkennung. Bleibt er weiß, wirft der Bot nicht ab und stoppt nach dem Zeitlimit
 - Wie viel Grad ein W-Tipp (0,2 s) Nicklage ergibt, ist unbekannt. Annahme 4–5°, `flight.max_tilt` 3 Tipps ≈ 12–15°
-- Drehrate von Q/E in Grad pro Sekunde unbekannt (Kehrtwende ist zeitgesteuert, `flight.turnaround_s`)
+- Drehrate von Q/E gemessen (Abschnitt „Nachdrehen nach Q/E“); im Spiel mit dem Bot noch zu bestätigen
 - Wie viele W-Tipps „20°“ sind, ist unbekannt; der Regler misst stattdessen Beschleunigung und Sinkrate
 - Raketenwarnung (Audio) und Flares (V) nicht umgesetzt
 - Ob B auch in der Luft funktioniert, ist nicht geprüft (Bot landet vorher)

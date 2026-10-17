@@ -1,5 +1,6 @@
 import math
 import threading
+from collections import deque
 from unittest.mock import Mock
 
 import numpy as np
@@ -17,6 +18,9 @@ TICK = 0.05
 GROUND_ASL = 100.0
 PITCH_RATE = 25.0
 YAW_RATE = 40.0
+YAW_DELAY = 0.3
+YAW_LAG = 0.2
+YAW_COAST = 0.5
 ROLL_RATE = 35.0
 CRATE_DRIFT = 0.3
 SHIFT_LIFT = 1 / math.cos(math.radians(15))
@@ -36,6 +40,11 @@ class World:
         self.climb = 0.0
         self.pos = [0.0, 0.0]
         self.heading = 90.0
+        self.yaw_rate = 0.0
+        self._yaw_input = 0.0
+        self._yaw_queue = deque([0] * round(YAW_DELAY / TICK), maxlen=round(YAW_DELAY / TICK))
+        self.substeps = 1
+        self.errors: list[float] = []
         self.zone = (0.0, 2000.0)
         self.radius = 250.0
         self.tint = True
@@ -104,12 +113,20 @@ class World:
         return self.menu == "main" and self.crate
 
     def step(self) -> np.ndarray:
-        self.now += TICK
-        if not self.menu:
-            self.fly()
-        if self.inside() and self.entered is None:
-            self.entered, self.entry_speed = self.now, abs(self.speed)
+        for _ in range(self.substeps):
+            self.now += TICK
+            if not self.menu:
+                self.fly()
+            if self.inside() and self.entered is None:
+                self.entered, self.entry_speed = self.now, abs(self.speed)
         return FRAME
+
+    def yaw(self) -> None:
+        delayed = self._yaw_queue[0]
+        self._yaw_queue.append(1 if "e" in self.keys else -1 if "q" in self.keys else 0)
+        self._yaw_input += (delayed - self._yaw_input) * TICK / YAW_LAG
+        authority = YAW_RATE * max(0.2, 1 - abs(self.speed) / 200)
+        self.yaw_rate += (authority * self._yaw_input - self.yaw_rate) * TICK / YAW_COAST
 
     def fly(self) -> None:
         if "w" in self.keys:
@@ -127,13 +144,13 @@ class World:
         wanted = 80 * (lift * tilt - 1)
         self.climb += (wanted - self.climb) * TICK / 0.5
         self.agl = max(0.0, self.agl + self.climb * TICK)
+        self.yaw()
         if self.agl == 0:
             self.climb, self.speed = max(0.0, self.climb), 0.0
-            self.pitch = self.roll = 0.0
+            self.pitch = self.roll = self.yaw_rate = 0.0
             return
         self.speed += (1.2 * self.pitch - 0.1 * self.speed) * TICK
-        yaw = YAW_RATE * max(0.2, 1 - abs(self.speed) / 200)
-        turn = yaw if "e" in self.keys else -yaw if "q" in self.keys else 0
+        turn = self.yaw_rate
         velocity = max(abs(self.speed) / 3.6, 15.0)
         turn += math.degrees(9.81 * math.tan(math.radians(self.roll)) / velocity)
         self.heading = (self.heading + turn * TICK) % 360
@@ -321,21 +338,56 @@ def test_climb_lifts_off_a_few_meters(loop, world, config):
     assert not world.keys
 
 
+def first_yaw(world: World) -> str:
+    return next(key for key in world.pressed if key in ("q", "e"))
+
+
+def assert_aimed(world, target, config):
+    flight = config["flight"]
+    assert abs(world.marker(target).x - flight["center_x"]) <= flight["yaw_deadband"]
+    assert abs(world.yaw_rate) < 3
+
+
 def test_turn_yaws_to_zone_marker_only(loop, world, config):
     world.crate = True
-    airborne(loop, world, 15, 0, 90)
+    airborne(loop, world, 25, 0, 90)
     loop.step("turn")
-    assert abs(world.marker(world.zone).x - config["flight"]["center_x"]) <= 40
+    assert_aimed(world, world.zone, config)
     assert abs(world.speed) < 5
 
 
 def test_turn_toward_marker_at_left_edge_never_searches_right(loop, world, config):
     world.crate = True
-    airborne(loop, world, 15, 0, 90)
+    airborne(loop, world, 25, 0, 90)
     world.zone = (-350.0, 2000.0)
     loop.step("turn")
-    assert abs(world.marker(world.zone).x - config["flight"]["center_x"]) <= 40
-    assert "q" in world.pressed and "e" not in world.pressed
+    assert_aimed(world, world.zone, config)
+    assert first_yaw(world) == "q"
+
+
+@pytest.mark.parametrize("substeps", [1, 3])
+@pytest.mark.parametrize("heading", [0, 45, 90, 180, 300])
+def test_turn_settles_without_pendulum(loop, world, config, heading, substeps):
+    world.crate, world.substeps = True, substeps
+    airborne(loop, world, 25, 0, heading)
+    errors = []
+    grab = loop._grab
+    loop._grab = lambda: (errors.append(world.marker(world.zone).x - 960), grab())[1]
+    loop.step("turn")
+    assert_aimed(world, world.zone, config)
+    pairs = zip(errors, errors[1:], strict=False)
+    overshoots = sum(1 for a, b in pairs if a * b < 0 and abs(b) > 80)
+    assert overshoots <= 1
+    assert world.now < config["flight"]["turn_timeout_s"] / 2
+
+
+def test_turn_brakes_heli_that_still_rotates(loop, world, config):
+    world.crate = True
+    airborne(loop, world, 25, 0, 355)
+    world.yaw_rate = 40.0
+    loop.step("turn")
+    assert first_yaw(world) == "q"
+    assert_aimed(world, world.zone, config)
 
 
 def test_hover_with_crate_holds_position(loop, world):
@@ -349,7 +401,7 @@ def test_hover_with_crate_holds_position(loop, world):
 def test_turn_searches_hq_when_not_visible(loop, world, config):
     airborne(loop, world, 100, 0, 90, pos=(0, 1500))
     loop.step("turn")
-    assert abs(world.marker(world.base).x - config["flight"]["center_x"]) <= 40
+    assert_aimed(world, world.base, config)
 
 
 def test_drop_waits_three_seconds_inside_and_drops_low(loop, world, config):

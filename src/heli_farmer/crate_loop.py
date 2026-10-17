@@ -53,6 +53,8 @@ class CrateLoop:
         self._clock = clock
         self._pilot = Pilot(inp, self._keys, self._flight, clock)
         self._heli_lost_since: float | None = None
+        self._side = "yaw_right"
+        self._settled: float | None = None
         self.stats: Counter = Counter()
 
     def run(self, steps: tuple[str, ...] = (), once: bool = False) -> None:
@@ -186,20 +188,11 @@ class CrateLoop:
         outbound = self._vision.crate_loaded(self.observe())
         target = self._map["turn_agl"] if outbound else self._map["cruise_agl"]
         deadline = self._clock() + self._flight["turn_timeout_s"]
-        side = "yaw_right"
-        centered = 0
+        self._side, self._settled = "yaw_right", None
         while self._clock() < deadline:
             frame = self.observe()
-            self._fly(frame, target, 0)
             marker = self._vision.zone_marker(frame) if outbound else self._vision.hq_marker(frame)
-            if marker is None:
-                centered = 0
-                self._pilot.search(side)
-                continue
-            side = "yaw_right" if marker.x > self._flight["center_x"] else "yaw_left"
-            on_target = self._pilot.yaw(marker.x) and not self._pilot.yawing
-            centered = centered + 1 if on_target else 0
-            if centered >= self._confirm:
+            if self._align(frame, marker, target):
                 log.info("Zielrichtung erreicht: Marker bei x=%d", marker.x)
                 return
         raise StepFailed("Drehen zum Ziel dauert zu lange")
@@ -224,8 +217,6 @@ class CrateLoop:
                 log.info("In der Zone (HZ + Minimap), Abwurf in %s s", self._flight["drop_delay_s"])
             if entered is None:
                 x = marker.x if marker is not None else None
-                if x is not None:
-                    self._pilot.yaw(x)
                 if marker is not None and marker.kind == "CZ" and marker.distance is not None:
                     distances.append(marker.distance)
                 if not approach and len(distances) == distances.maxlen:
@@ -301,8 +292,6 @@ class CrateLoop:
             distance = statistics.median(distances) if full else None
             if phase == "cruise":
                 x = marker.x if marker is not None else None
-                if x is not None:
-                    self._pilot.yaw(x)
                 self._cruise(frame, x)
                 near = distance is not None and distance <= self._map["land_distance"]
                 low = (
@@ -314,8 +303,6 @@ class CrateLoop:
             elif phase == "approach":
                 close = distance is not None and distance <= self._flight["hq_overhead_distance"]
                 x = marker.x if marker is not None and not close else None
-                if x is not None:
-                    self._pilot.yaw(x)
                 self._fly(
                     frame,
                     self._map["approach_agl"],
@@ -366,6 +353,21 @@ class CrateLoop:
             self.stats["delivered"] += 1
             log.info("Lieferung bestätigt")
 
+    def _align(self, frame: np.ndarray, marker: Marker | None, agl: float) -> bool:
+        if marker is None:
+            self._settled = None
+            self._fly(frame, agl, 0)
+            self._pilot.search(self._side)
+            return False
+        self._side = "yaw_right" if marker.x > self._flight["center_x"] else "yaw_left"
+        _, speed = self._fly(frame, agl, 0, x=marker.x)
+        slow = speed is not None and speed <= self._flight["hover_speed"]
+        if not (self._pilot.on_target and slow):
+            self._settled = None
+            return False
+        self._settled = self._settled or self._clock()
+        return self._clock() - self._settled >= self._flight["yaw_settle_s"]
+
     def _outside(self, frame: np.ndarray) -> bool:
         marker = self._vision.zone_marker(frame)
         if marker is not None:
@@ -402,7 +404,11 @@ class CrateLoop:
         asl = self._vision.asl(frame)
         loaded = self._vision.crate_loaded(frame)
         self._pilot.fly(current_agl, asl, current_speed, agl, speed, floor, sink_rate, loaded)
-        self._pilot.bank(self._vision.roll(frame), current_speed, x)
+        lead = None
+        if x is not None:
+            self._pilot.yaw(x)
+            lead = self._pilot.lead
+        self._pilot.bank(self._vision.roll(frame), current_speed, lead)
         return current_agl, current_speed
 
     def _at_edge(self, marker: Marker) -> bool:

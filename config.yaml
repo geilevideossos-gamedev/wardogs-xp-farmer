@@ -214,11 +214,16 @@ flight:
   sink_guard: 1.5
   hover_speed: 10
   speed_limits: [[20, 40], [40, 100], [60, 160], [80, 220], [120, 280]]
-  yaw_deadband: 40
-  yaw_s_per_px: 0.0015
+  yaw_deadband: 80
+  yaw_s_per_px: 0.0006
   yaw_min_s: 0.08
   yaw_max_s: 0.6
-  yaw_interval_s: 0.4
+  yaw_wait_s: 0.5
+  yaw_history_s: 0.3
+  yaw_lookahead_s: 0.7
+  yaw_still: 60
+  yaw_coast_band: 150
+  yaw_settle_s: 1.0
   bank_speed: 80
   bank_per_px: 0.04
   max_bank: 15
@@ -228,9 +233,9 @@ flight:
   roll_max_s: 0.4
   roll_interval_s: 0.6
   climb_timeout_s: 30
-  turn_timeout_s: 25
+  turn_timeout_s: 30
   leg_timeout_s: 240
-  turnaround_s: 4
+  turnaround_s: 6
   leave_margin_s: 3
   outside_check_s: 1
   drop_delay_s: 3
