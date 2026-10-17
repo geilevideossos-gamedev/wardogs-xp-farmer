@@ -72,6 +72,8 @@ Im Heli ist die **Maus irrelevant**, nur Tastatur:
 - **Drehen hat Schwung:** Nach Q/E dreht der Heli nach. Vor dem Ziel mit der Gegentaste abbremsen, sonst pendelt er um das Ziel
 - **Abheben:** in der Base gibt es Stromleitungen → vor dem Drehen auf ca. 25 m steigen
 - **Lenken bei Tempo:** Q/E (Heckrotor) allein reicht bei höherem Tempo nicht, sonst fliegt er endlos Kreise → zusätzlich mit A/D in die Kurve neigen. Das gilt auch beim Umdrehen nach der Zone: mit Schwung eine Kurve mit A/D fliegen, nicht erst mit S stark abbremsen
+- **Kurve mit A/D:** Sobald A/D geneigt wird, Höhe mit Shift halten und mit W/S die Längsneigung ausgleichen. Schräglage moderat halten (ca. 20°), 40–45° kosten sofort Höhe
+- **Drehen nach dem Abheben (schwebend):** nur drehen, keine W-Tipps. Sonst nimmt er Fahrt auf und schaltet in den Kurvenflug
 - **Nie stark nach hinten lehnen:** Viel S auf einmal kippt den Heli weit nach hinten, er verliert Höhe und crasht (3 Crashes beim Drehen am 17.10.)
 - **Reisetempo:** 230–250 km/h sind mit etwas mehr Neigung + Shift gut machbar
 - **Landen:** Strg allein reicht nicht, weil der Heli noch vorwärts fliegt → mit S abbremsen. Sinkflug etwa doppelt so früh beginnen wie bisher. Es reicht, wenn die Landefläche auf der Minimap unter dem Heli liegt, sie muss nicht im Bild zu sehen sein
