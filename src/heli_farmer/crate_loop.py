@@ -56,6 +56,7 @@ class CrateLoop:
         self._side = "yaw_right"
         self._settled: float | None = None
         self._curving: bool | None = None
+        self._traced = -1e9
         self.stats: Counter = Counter()
 
     def run(self, steps: tuple[str, ...] = (), once: bool = False) -> None:
@@ -378,7 +379,9 @@ class CrateLoop:
         agl = self._vision.agl(frame)
         speed = self._vision.speed(frame)
         self._pilot.descend(agl, self._vision.asl(frame), speed)
-        self._pilot.bank(self._vision.roll(frame), speed)
+        roll = self._vision.roll(frame)
+        self._pilot.bank(roll, speed)
+        self._trace(agl, speed, roll, None)
         on_ground = agl is not None and agl <= self._flight["landed_agl"]
         return on_ground and speed is not None and speed <= self._flight["landed_speed"]
 
@@ -488,7 +491,24 @@ class CrateLoop:
             lead = self._pilot.lead
         roll = self._vision.roll(frame)
         self._pilot.bank(roll, current_speed, lead, bank)
+        self._trace(current_agl, current_speed, roll, x)
         return current_agl, current_speed
+
+    def _trace(self, agl: int | None, speed: int | None, roll: int | None, x: float | None) -> None:
+        now = self._clock()
+        if now - self._traced < self._flight["trace_s"]:
+            return
+        self._traced = now
+        log.info(
+            "Flug: AGL %s m, %s km/h, Schräglage %s°, Neigung %+.1f Tipps, Marker %s, Tasten %s%s",
+            agl,
+            speed,
+            roll,
+            self._pilot.tilt,
+            "-" if x is None else round(x),
+            ",".join(self._inp.held()) or "-",
+            ", Sicherheit: steigen" if self._pilot.recovering else "",
+        )
 
     def _at_edge(self, marker: Marker) -> bool:
         margin = self._flight["edge_margin"]

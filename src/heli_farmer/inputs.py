@@ -41,6 +41,9 @@ class Input:
     def is_down(self, key: str) -> bool:
         return key in self._keys
 
+    def held(self) -> list[str]:
+        return sorted(self._keys)
+
     def wait_for_focus(self) -> None:
         if self._focused is None or self._focused():
             return

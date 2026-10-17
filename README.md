@@ -167,6 +167,7 @@ Die wichtigsten Einstellungen:
 | `flight.pitch_tap_s` / `pitch_interval_s` | Dauer eines W/S-Tipps und Mindestabstand zwischen zwei Tipps (Sekunden) | 0.2 / 0.7 |
 | `vision.minimap.min_chroma` / `base_chroma` | Wie bunt die Minimap um das Heli-Symbol sein muss: Zone / Base beim Landen | 14 / 10 |
 | `vision.*` | Positionen, Vorlagenbilder und Schwellen der Bilderkennung | |
+| `flight.trace_s` | So oft (s) schreibt der Bot im Flug eine Zeile mit Höhe, Tempo, Schräglage, Neigung, Marker und gedrückten Tasten ins Log | 1.0 |
 | `loop.tick_s` / `flight.tick_s` | Pause zwischen zwei Bildschirm-Prüfungen außerhalb / in Layer 1 (Sekunden) | 0.1 / 0.05 |
 | `hold_test.*`, `recording.*`, `logging.*` | Hold-Test, Aufnahme-Tool, Log-Dateien | |
 
@@ -174,7 +175,7 @@ Alle Werte mit Erklärung: `docs/ARCHITECTURE.md` (Abschnitt „Config-Abschnitt
 
 ## Logs
 
-Jeder Start schreibt eine Log-Datei nach `logs/<Datum>/`. Stoppt das Programm von selbst, liegt dort zusätzlich ein Screenshot unter `screenshots/`.
+Jeder Start schreibt eine Log-Datei nach `logs/<Datum>/`. Im Flug steht dort jede Sekunde eine Zeile `Flug: AGL … m, … km/h, Schräglage …°, Neigung … Tipps, Marker …, Tasten …` (mit „Sicherheit: steigen“, wenn die Höhe Vorrang hat). Stoppt das Programm von selbst, liegt dort zusätzlich ein Screenshot unter `screenshots/`.
 
 ## Für Entwickler
 
