@@ -306,17 +306,6 @@ def aim(pilot, clock, *xs, start=10.0):
         pilot.yaw(x)
 
 
-def test_yaw_reports_on_target_only_when_centered_and_still(setup):
-    pilot, inp, clock, flight = setup
-    center = flight["center_x"]
-    aim(pilot, clock, center + 10)
-    assert not pilot.on_target
-    aim(pilot, clock, center + 10, center + 10)
-    assert pilot.on_target and not inp.is_down("e")
-    aim(pilot, clock, center + 70, center + 10, start=11)
-    assert not pilot.on_target
-
-
 def test_yaw_pulses_toward_marker_and_waits_for_coasting(setup):
     pilot, inp, clock, flight = setup
     aim(pilot, clock, flight["center_x"] + 400, flight["center_x"] + 400)
@@ -347,7 +336,7 @@ def test_yaw_lets_heli_coast_into_target(setup):
 def test_yaw_at_screen_edge_turns_toward_it(setup):
     pilot, inp, clock, flight = setup
     pilot.yaw(120)
-    assert inp.is_down("q") and not pilot.on_target
+    assert inp.is_down("q")
 
 
 def test_descend_holds_rate(setup):

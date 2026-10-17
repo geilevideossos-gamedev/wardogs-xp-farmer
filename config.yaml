@@ -243,12 +243,12 @@ flight:
   yaw_lookahead_s: 0.7
   yaw_still: 60
   yaw_coast_band: 150
-  yaw_settle_s: 1.0
+  turn_done_px_s: 200
   bank_speed: 80
   curve_min_speed: 40
   curve_exit_speed: 20
   turn_hover_speed: 15
-  side_band: 500
+  curve_min_agl: 60
   turn_speed: 60
   turn_bank: 20
   bank_per_px: 0.04

@@ -152,9 +152,10 @@ Die wichtigsten Einstellungen:
 | `flight.yaw_s_per_px` | Länge eines Q/E-Tipps pro Pixel Abstand zum Ziel (s). Pendelt der Heli beim Drehen: kleiner | 0.0006 |
 | `flight.yaw_lookahead_s` | So weit (s) rechnet der Bot das Nachdrehen voraus. Schießt der Marker über die Mitte: größer; bremst er zu früh und kriecht: kleiner | 0.7 |
 | `flight.yaw_wait_s` | Pause nach jedem Q/E-Tipp, bis die Wirkung sichtbar ist (s) | 0.5 |
-| `flight.yaw_settle_s` | So lange (s) muss der Marker ruhig in der Mitte stehen, bis das Drehen fertig ist | 1.0 |
+| `flight.turn_done_px_s` | Drehen ist fertig, sobald der Marker im Bild ist (nicht am Rand) und sich langsamer als so viele Pixel pro Sekunde bewegt. Feinlenken übernehmen danach Hinflug und Landung | 200 |
 | `flight.turn_timeout_s` | Danach bricht das Drehen mit sicherem Stopp ab (s) | 60 |
 | `flight.curve_min_speed` / `curve_exit_speed` | Ab diesem Tempo über Grund (km/h) dreht der Bot im Kurvenflug, erst unter dem zweiten Wert wieder auf der Stelle | 40 / 20 |
+| `flight.curve_min_agl` | Kurvenflug (A/D) erst ab dieser Höhe über Grund (m). Darunter, z. B. nach dem Abheben über der Base, nur Q/E auf der Stelle | 60 |
 | `flight.turn_hover_speed` | Auf der Stelle: wird der Heli schneller (km/h), bremst er erst, bevor er weiterdreht | 15 |
 | `flight.turn_speed` / `turn_bank` | Tempo (km/h) und größte Schräglage (Grad) im Kurvenflug | 60 / 20 |
 | `flight.safe_agl` / `safe_speed` | Unter dieser Höhe (m) mit mehr als diesem Tempo (km/h) nur noch steigen und gerade halten | 40 / 50 |

@@ -29,6 +29,7 @@ Alle wichtigen Änderungen an diesem Projekt. Format nach [Keep a Changelog](htt
 
 ### Geändert
 
+- Drehen (`turn`) nach deiner Regel: fertig, sobald der Marker im Bild ist und sich kaum noch bewegt (unter 200 Pixel pro Sekunde). Kein Feinzentrieren und kein Warten auf Stillstand mehr, das Nachlenken machen Hinflug und Landung. Nach dem Umdrehen in der Zone dreht der Bot in dieselbe Richtung weiter (Q nach Q, E nach E). Läuft der Marker aus der Mitte weg, steuert er sofort gegen. Kurvenflug mit A/D erst ab 60 m über Grund, nach dem Abheben über der Base also nur Q/E auf der Stelle (beide Crashs am 17.10. kamen vom Kurvenflug in 25–40 m Höhe)
 - Flugregler mit eindeutigen Regeln statt Raten: Über 60 km/h fliegt der Heli für den Bot immer vorwärts, nur darunter lernt er die Richtung aus seinen Tipps. Sturzflug (sinkt schneller als 5 m/s oder Höhe fällt bei steigendem Tempo) hat Vorrang: Shift, Flügel gerade, nur S-Tipps (je schneller er sinkt, desto länger), nie W, bis er kaum noch sinkt. Beim Reiseflug höchstens ein W/S-Tipp pro Sekunde, dann Wirkung abwarten
 - `drop` startet den Vorwärtsflug jetzt selbst mit W, auch aus dem Schweben mit Palette (beim Test hing er 12 s still in der Luft)
 - Drehen auf der Stelle mit Palette: Wird der Heli ohne Taste schneller, tippt der Bot kurz W (Palette zieht nach hinten) und gleicht eine Rest-Schräglage schon ab 3° mit A/D aus (vorher erst ab 8°, und 8° Schräglage schieben den Heli spürbar seitlich weg)

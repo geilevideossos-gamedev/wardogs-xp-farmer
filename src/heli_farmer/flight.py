@@ -67,8 +67,8 @@ class Pilot:
         self._last_brake = -1e9
         self._slowing = False
         self.ground: float | None = None
+        self.height: int | None = None
         self.lead: float | None = None
-        self.on_target = False
         self.recovering = False
         self.diving = False
         self.drifting = False
@@ -179,23 +179,21 @@ class Pilot:
         error = x - self._cfg["center_x"]
         if self.recovering or abs(self._roll) > self._cfg["roll_limit"]:
             self._aim.reset()
-            self.lead, self.on_target = None, False
+            self.lead = None
             return
         if abs(error) >= self._cfg["center_x"] - self._cfg["edge_margin"]:
             self._aim.reset()
-            self.lead, self.on_target = error, False
+            self.lead = error
             self._yaw_pulse("yaw_right" if error > 0 else "yaw_left", self._cfg["yaw_max_s"])
             return
         self._aim.add(now, x)
         if not self._aim.ready:
-            self.lead, self.on_target = error, False
+            self.lead = error
             return
         rate = self._aim.rate()
         self.lead = error + rate * self._cfg["yaw_lookahead_s"]
-        deadband = self._cfg["yaw_deadband"]
         still = abs(rate) <= self._cfg["yaw_still"]
-        self.on_target = abs(error) <= deadband and still and not self.yawing
-        if abs(self.lead) <= (deadband if still else self._cfg["yaw_coast_band"]):
+        if abs(self.lead) <= self._cfg["yaw_deadband" if still else "yaw_coast_band"]:
             return
         seconds = clamp(
             abs(self.lead) * self._cfg["yaw_s_per_px"],
@@ -206,7 +204,6 @@ class Pilot:
 
     def search(self, direction: str = "yaw_right") -> None:
         self._aim.reset()
-        self.on_target = False
         self._yaw_pulse(direction, self._cfg["yaw_max_s"])
 
     def bank(
@@ -240,6 +237,7 @@ class Pilot:
 
     def _track(self, agl: int | None, asl: int | None, speed: int | None) -> None:
         now = self._clock()
+        self.height = agl if agl is not None else self.height
         self._agl.add(now, agl)
         self._asl.add(now, asl)
         settled = max(self._asl.span, self._agl.span) >= self._cfg["history_s"] / 2

@@ -410,8 +410,9 @@ def first_yaw(world: World) -> str:
 
 def assert_aimed(world, target, config):
     flight = config["flight"]
-    assert abs(world.marker(target).x - flight["center_x"]) <= flight["yaw_deadband"]
-    assert abs(world.yaw_rate) < 3
+    x = world.marker(target).x
+    assert flight["edge_margin"] < x < 2 * flight["center_x"] - flight["edge_margin"]
+    assert abs(world.yaw_rate) * 900 / FOV_HALF < 1.5 * flight["turn_done_px_s"]
 
 
 def test_turn_yaws_to_zone_marker_only(loop, world, config):
@@ -611,7 +612,7 @@ def test_land_never_touches_down_outside_base(loop, world, config, caplog):
     assert not world.keys
 
 
-@pytest.mark.parametrize("bearing", [30, 100, 170, -120])
+@pytest.mark.parametrize("bearing", [70, 100, 170, -120])
 def test_turn_with_speed_flies_a_safe_curve(loop, world, config, bearing):
     airborne(loop, world, 90, 150, 0, pos=(0.0, 0.0))
     world.base = (
@@ -771,3 +772,12 @@ def test_turn_on_the_spot_with_crate_and_residual_bank(loop, world, config, roll
     loop.step("turn")
     assert_aimed(world, world.zone, config)
     assert world.min_agl > 25 and world.max_ground < 45
+
+
+def test_turn_counter_steers_when_marker_runs_off_center(loop, world, config):
+    airborne(loop, world, 100, 0, 10, pos=(0, -1500))
+    world.yaw_rate = 30.0
+    loop.step("turn")
+    assert first_yaw(world) == "q"
+    assert_aimed(world, world.base, config)
+    assert world.now < 5

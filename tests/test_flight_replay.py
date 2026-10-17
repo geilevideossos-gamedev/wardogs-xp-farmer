@@ -3,14 +3,18 @@ import threading
 from pathlib import Path
 from unittest.mock import Mock
 
+import numpy as np
 import pytest
 
 from heli_farmer.config import load_config
+from heli_farmer.crate_loop import CrateLoop, StepFailed
+from heli_farmer.detectors import Marker
 from heli_farmer.flight import Pilot
 from heli_farmer.inputs import Input
 
 FIXTURES = Path("tests/fixtures/flight")
 FILES = ["turn_crash_052616.csv", "drop_crash_052853.csv"]
+FRAME = np.zeros((4, 4, 3), np.uint8)
 
 
 class Clock:
@@ -81,3 +85,97 @@ def test_hover_drift_with_crate_gets_w():
     assert drift
     pitch = [key for keys in drift for key in sorted(keys) if key in ("w", "s")]
     assert pitch and pitch[0] == "w"
+
+
+class RowVision:
+    def __init__(self, loaded: bool):
+        self.loaded = loaded
+        self.row: dict = {}
+
+    def round_over(self, frame):
+        return False
+
+    def first_aid(self, frame):
+        return False
+
+    def in_lakota(self, frame):
+        return True
+
+    def heli_damaged(self, frame):
+        return False
+
+    def crate_loaded(self, frame):
+        return self.loaded
+
+    def agl(self, frame):
+        return number(self.row["agl"])
+
+    def asl(self, frame):
+        return number(self.row["asl"])
+
+    def speed(self, frame):
+        return number(self.row["speed"])
+
+    def roll(self, frame):
+        return number(self.row["roll"])
+
+    def zone_marker(self, frame):
+        return self.marker()
+
+    def hq_marker(self, frame):
+        return self.marker()
+
+    def marker(self) -> Marker | None:
+        x = self.row["marker"]
+        return None if x in ("", "-", "0", "1920") else Marker(int(x), 500, 0.9)
+
+
+def replay_turn(name: str, loaded: bool, side: str | None = None):
+    config = load_config("config.yaml")
+    config["flight"]["tick_s"] = 0
+    with open(FIXTURES / name, encoding="utf-8") as file:
+        rows = iter(list(csv.DictReader(file)))
+    vision, clock, backend = RowVision(loaded), Clock(), Mock()
+    inp = Input(threading.Event(), backend=backend, clock=clock)
+    modes = []
+
+    def grab():
+        if vision.row:
+            modes.append((vision.row, loop._curving))
+        vision.row = next(rows)
+        clock.now = float(vision.row["t"])
+        return FRAME
+
+    loop = CrateLoop(vision, inp, grab, threading.Event(), config, clock=clock)
+    loop._turn_side = side
+    try:
+        loop.step("turn")
+        end = clock.now
+    except (StopIteration, StepFailed):
+        end = None
+    keys = [call.args[0] for call in backend.keyDown.call_args_list]
+    return end, modes, keys
+
+
+def test_turn_after_climb_ends_once_marker_in_view():
+    end, modes, _ = replay_turn("turn_climb_063523.csv", loaded=True)
+    assert end is not None and end < 134320
+    assert not any(curving for _, curving in modes)
+
+
+def test_turn_after_climb_never_curves():
+    _, modes, _ = replay_turn("turn_climb_063300.csv", loaded=True)
+    assert modes and not any(curving for _, curving in modes)
+
+
+@pytest.mark.parametrize("name", ["turn_climb_063300.csv", "turn_climb_063523.csv"])
+def test_turn_never_curves_below_curve_height(name):
+    _, modes, _ = replay_turn(name, loaded=False)
+    low = [curving for row, curving in modes if number(row["agl"]) and int(row["agl"]) < 50]
+    assert low and not any(low)
+
+
+def test_turn_back_keeps_leave_direction():
+    _, _, keys = replay_turn("turn_back_062829.csv", loaded=False, side="yaw_left")
+    yaws = [key for key in keys if key in ("q", "e")]
+    assert yaws and yaws[0] == "q" and yaws.count("q") > yaws.count("e")

@@ -72,7 +72,8 @@ class CrateLoop:
         self._pilot = Pilot(inp, self._keys, self._flight, clock)
         self._heli_lost_since: float | None = None
         self._side: str | None = None
-        self._settled: float | None = None
+        self._turn_side: str | None = None
+        self._seen: tuple[float, int] | None = None
         self._curving: bool | None = None
         self._traced = self._recorded = -1e9
         self._flight_log = flight_log
@@ -211,12 +212,15 @@ class CrateLoop:
         outbound = self._vision.crate_loaded(self.observe())
         target = self._map["turn_agl"] if outbound else self._map["cruise_agl"]
         deadline = self._clock() + self._flight["turn_timeout_s"]
-        self._side, self._settled, self._curving = None, None, None
+        self._side = None if outbound else self._turn_side
+        self._turn_side, self._seen, self._curving = None, None, None
+        if self._side is not None:
+            log.info("Drehrichtung wie beim Umdrehen: %s", self._keys[self._side].upper())
         while self._clock() < deadline:
             frame = self.observe()
             marker = self._vision.zone_marker(frame) if outbound else self._vision.hq_marker(frame)
-            if self._align(frame, marker, target):
-                log.info("Zielrichtung erreicht: Marker bei x=%d", marker.x)
+            if self._align(frame, marker, target, curve=not outbound):
+                log.info("Ziel im Bild: Marker bei x=%d", marker.x)
                 return
         raise StepFailed("Drehen zum Ziel dauert zu lange")
 
@@ -279,6 +283,7 @@ class CrateLoop:
         marker = self._vision.zone_marker(self.observe())
         right = marker is not None and marker.x > self._flight["center_x"]
         away = "yaw_left" if right else "yaw_right"
+        self._turn_side = away
         log.info("Umdrehen mit %s", self._keys[away].upper())
         turned = self._clock() + self._flight["turnaround_s"]
         deadline = turned + self._flight["leg_timeout_s"]
@@ -314,7 +319,7 @@ class CrateLoop:
         over_base = away = 0
         landed_since = None
         seen = self._clock()
-        self._side, self._settled = "yaw_right", None
+        self._side, self._seen = "yaw_right", None
         while self._clock() < deadline:
             frame = self.observe()
             now = self._clock()
@@ -336,14 +341,14 @@ class CrateLoop:
                     log.info("Sinkflug (Kauf-Hinweis)")
                     phase, away = "descend", 0
                 elif self._align(frame, marker, agl):
-                    log.info("HQ-Marker mittig, weiter Richtung Base")
+                    log.info("HQ-Marker im Bild, weiter Richtung Base")
                     phase = "cruise" if land_deadline is None else "approach"
                     distances.clear()
                     nearest, over_base, seen = None, 0, now
             elif phase == "cruise":
                 if lost:
                     log.info("HQ-Marker weg: anhalten und suchen")
-                    phase, self._settled = "turn", None
+                    phase, self._seen = "turn", None
                     continue
                 self._cruise(frame, marker.x if marker is not None else None)
                 near = distance is not None and distance <= self._map["land_distance"]
@@ -373,7 +378,7 @@ class CrateLoop:
                 )
                 if farther or (lost and not over_base):
                     log.info("Base überflogen (HQ %s m, vorher %s m): umdrehen", distance, nearest)
-                    phase, self._settled = "turn", None
+                    phase, self._seen = "turn", None
                 elif prompt or (over_base >= self._confirm and (close or lost)):
                     log.info("Sinkflug (%s)", "Kauf-Hinweis" if prompt else "Base unter dem Heli")
                     phase, away = "descend", 0
@@ -382,7 +387,7 @@ class CrateLoop:
                 away = 0 if below else away + 1
                 if away >= self._confirm:
                     log.info("Base nicht mehr unter dem Heli: steigen, umdrehen")
-                    phase, self._settled, landed_since = "turn", None, None
+                    phase, self._seen, landed_since = "turn", None, None
                     continue
                 if self._descend(frame):
                     landed_since = landed_since or now
@@ -425,38 +430,39 @@ class CrateLoop:
             self.stats["delivered"] += 1
             log.info("Lieferung bestätigt")
 
-    def _align(self, frame: np.ndarray, marker: Marker | None, agl: float) -> bool:
+    def _align(
+        self, frame: np.ndarray, marker: Marker | None, agl: float, curve: bool = True
+    ) -> bool:
         center = self._flight["center_x"]
-        if marker is not None:
-            central = abs(marker.x - center) < self._flight["side_band"]
-            if self._side is None or central:
-                self._side = "yaw_right" if marker.x > center else "yaw_left"
+        seen = marker is not None and not self._at_edge(marker)
+        if marker is not None and (self._side is None or seen):
+            self._side = "yaw_right" if marker.x > center else "yaw_left"
         side = self._side or "yaw_right"
-        ground = self._pilot.ground
-        if ground is not None:
-            edge = "curve_exit_speed" if self._curving else "curve_min_speed"
-            curve = ground > self._flight[edge]
-            if curve != self._curving:
-                self._curving = curve
-                mode = "im Kurvenflug" if curve else "auf der Stelle"
-                log.info("Drehen %s (%.0f km/h über Grund)", mode, ground)
+        ground, height = self._pilot.ground, self._pilot.height
+        if ground is not None and height is not None:
+            speed = self._flight["curve_exit_speed" if self._curving else "curve_min_speed"]
+            lowest = self._flight["curve_min_agl"]
+            if self._curving:
+                lowest -= self._flight["agl_band"]
+            curving = curve and ground > speed and height >= lowest
+            if curving != self._curving:
+                self._curving = curving
+                mode = "im Kurvenflug" if curving else "auf der Stelle"
+                log.info("Drehen %s (%.0f km/h über Grund, AGL %d m)", mode, ground, height)
         if self._curving:
-            self._curve(frame, agl, marker.x if marker is not None else self._edge(side))
-            done = marker is not None and self._pilot.on_target
+            self._curve(frame, agl, marker.x if seen else self._edge(side))
         else:
-            fast = ground is not None and ground > self._flight["turn_hover_speed"]
-            x = marker.x if marker is not None and not fast else None
-            hold = fast or self._vision.crate_loaded(frame)
+            drifting = ground is not None and ground > self._flight["turn_hover_speed"]
+            hold = drifting or self._vision.crate_loaded(frame)
+            x = marker.x if seen and not drifting else None
             self._fly(frame, agl, 0 if hold else None, x=x, lean=False)
-            if marker is None and not fast:
+            if not seen and not drifting:
                 self._pilot.search(side)
-            slow = ground is not None and not fast
-            done = marker is not None and self._pilot.on_target and slow
-        if not done:
-            self._settled = None
+        now = self._clock()
+        last, self._seen = self._seen, (now, marker.x) if seen else None
+        if not seen or last is None or now <= last[0]:
             return False
-        self._settled = self._settled or self._clock()
-        return self._clock() - self._settled >= self._flight["yaw_settle_s"]
+        return abs(marker.x - last[1]) / (now - last[0]) < self._flight["turn_done_px_s"]
 
     def _curve(self, frame: np.ndarray, agl: float, x: float, floor: float | None = None) -> None:
         band = self._flight["agl_band"]
