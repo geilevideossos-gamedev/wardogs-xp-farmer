@@ -206,9 +206,15 @@ flight:
   accel_band: 6
   brake_accel: 5
   reverse_accel: 2
+  reverse_max_speed: 60
+  max_back_tilt: 2
+  back_window_s: 4
+  back_taps: 2
+  safe_agl: 40
+  safe_speed: 50
   pitch_tap_s: 0.2
   pitch_interval_s: 0.7
-  max_tilt: 4
+  max_tilt: 5
   trim_speed: 4
   trim_accel: 4
   trim_tap_s: 0.1
@@ -226,15 +232,18 @@ flight:
   yaw_coast_band: 150
   yaw_settle_s: 1.0
   bank_speed: 80
+  curve_min_speed: 30
+  turn_speed: 60
+  turn_bank: 20
   bank_per_px: 0.04
   max_bank: 15
-  roll_band: 4
+  roll_band: 3
   roll_s_per_deg: 0.02
   roll_min_s: 0.1
   roll_max_s: 0.4
   roll_interval_s: 0.6
   climb_timeout_s: 30
-  turn_timeout_s: 30
+  turn_timeout_s: 45
   leg_timeout_s: 240
   turnaround_s: 6
   leave_margin_s: 3
@@ -251,6 +260,7 @@ flight:
   hq_lost_s: 3
   hq_overhead_distance: 60
   hq_overshoot_m: 50
+  approach_speed_per_m: 0.15
   drop_sink_rate: 2
   approach_sink_rate: 3
   sink_rate: 4
@@ -265,14 +275,14 @@ maps:
     turn_agl: 25
     min_agl: 80
     cruise_agl: 100
-    cruise_speed: 180
+    cruise_speed: 240
     brake_distance: 400
     drop_agl: 70
     drop_min_agl: 30
     drop_speed: 120
     approach_agl: 40
     approach_speed: 40
-    land_distance: 700
+    land_distance: 1200
     hq_approach_y: 560
   bakurani: {}
   ozeti: {}

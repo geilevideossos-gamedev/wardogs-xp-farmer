@@ -55,6 +55,7 @@ class CrateLoop:
         self._heli_lost_since: float | None = None
         self._side = "yaw_right"
         self._settled: float | None = None
+        self._curving: bool | None = None
         self.stats: Counter = Counter()
 
     def run(self, steps: tuple[str, ...] = (), once: bool = False) -> None:
@@ -264,8 +265,12 @@ class CrateLoop:
         while self._clock() < deadline:
             frame = self.observe()
             if self._clock() < turned:
-                self._fly(frame, self._map["cruise_agl"], 0)
-                self._pilot.search(away)
+                speed = self._vision.speed(frame)
+                if speed is not None and speed > self._flight["curve_min_speed"]:
+                    self._curve(frame, self._map["cruise_agl"], 0, self._edge(away))
+                else:
+                    self._fly(frame, self._map["cruise_agl"], 0)
+                    self._pilot.search(away)
                 continue
             self._cruise(frame)
             if left is not None:
@@ -305,7 +310,10 @@ class CrateLoop:
             prompt = self._vision.buy_prompt(frame)
             if phase == "turn":
                 agl = self._map["cruise_agl" if land_deadline is None else "approach_agl"]
-                if self._align(frame, marker, agl):
+                if prompt and land_deadline is not None:
+                    log.info("Sinkflug (Kauf-Hinweis)")
+                    phase, away = "descend", 0
+                elif self._align(frame, marker, agl):
                     log.info("HQ-Marker mittig, weiter Richtung Base")
                     phase = "cruise" if land_deadline is None else "approach"
                     distances.clear()
@@ -331,7 +339,7 @@ class CrateLoop:
                 self._fly(
                     frame,
                     self._map["approach_agl"],
-                    self._map["approach_speed"],
+                    self._approach_speed(distance),
                     sink_rate=self._flight["approach_sink_rate"],
                     x=marker.x if marker is not None and not close else None,
                 )
@@ -394,19 +402,48 @@ class CrateLoop:
             log.info("Lieferung bestätigt")
 
     def _align(self, frame: np.ndarray, marker: Marker | None, agl: float) -> bool:
-        if marker is None:
-            self._settled = None
+        center = self._flight["center_x"]
+        if marker is not None:
+            self._side = "yaw_right" if marker.x > center else "yaw_left"
+        speed = self._vision.speed(frame)
+        threshold = self._flight["curve_min_speed"]
+        if self._curving:
+            threshold -= self._flight["speed_band"]
+        curve = speed is not None and speed > threshold
+        if curve != self._curving:
+            self._curving = curve
+            log.info("Drehen %s (%s km/h)", "im Kurvenflug" if curve else "auf der Stelle", speed)
+        if curve:
+            x = marker.x if marker is not None else self._edge(self._side)
+            floor = min(self._map["min_agl"], agl - self._flight["agl_band"])
+            self._curve(frame, agl, floor, x)
+            done = marker is not None and self._pilot.on_target
+        elif marker is None:
             self._fly(frame, agl, 0)
             self._pilot.search(self._side)
-            return False
-        self._side = "yaw_right" if marker.x > self._flight["center_x"] else "yaw_left"
-        _, speed = self._fly(frame, agl, 0, x=marker.x)
-        slow = speed is not None and speed <= self._flight["hover_speed"]
-        if not (self._pilot.on_target and slow):
+            done = False
+        else:
+            _, speed = self._fly(frame, agl, 0, x=marker.x)
+            slow = speed is not None and speed <= self._flight["hover_speed"]
+            done = self._pilot.on_target and slow
+        if not done:
             self._settled = None
             return False
         self._settled = self._settled or self._clock()
         return self._clock() - self._settled >= self._flight["yaw_settle_s"]
+
+    def _curve(self, frame: np.ndarray, agl: float, floor: float, x: float) -> None:
+        speed, bank = self._flight["turn_speed"], self._flight["turn_bank"]
+        self._fly(frame, agl, speed, floor, x=x, bank=bank)
+
+    def _approach_speed(self, distance: float | None) -> float:
+        slowest = self._map["approach_speed"]
+        if distance is None:
+            return slowest
+        return max(slowest, distance * self._flight["approach_speed_per_m"])
+
+    def _edge(self, side: str) -> float:
+        return 2 * self._flight["center_x"] if side == "yaw_right" else 0
 
     def _outside(self, frame: np.ndarray) -> bool:
         marker = self._vision.zone_marker(frame)
@@ -438,6 +475,7 @@ class CrateLoop:
         floor: float = 0,
         sink_rate: float = 0,
         x: float | None = None,
+        bank: float = 0,
     ) -> tuple[int | None, int | None]:
         current_agl = self._vision.agl(frame)
         current_speed = self._vision.speed(frame)
@@ -448,7 +486,8 @@ class CrateLoop:
         if x is not None:
             self._pilot.yaw(x)
             lead = self._pilot.lead
-        self._pilot.bank(self._vision.roll(frame), current_speed, lead)
+        roll = self._vision.roll(frame)
+        self._pilot.bank(roll, current_speed, lead, bank)
         return current_agl, current_speed
 
     def _at_edge(self, marker: Marker) -> bool:

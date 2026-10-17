@@ -122,7 +122,7 @@ Die wichtigsten Einstellungen:
 | `timeouts.max_hold_s` | Keine Taste wird länger am Stück gehalten (Sekunden) | 20 |
 | `timeouts.heli_lost_s` | So lange darf die Heli-Anzeige fehlen, bevor Layer 1 verlassen wird | 2 |
 | `maps.<map>.cruise_agl` | Reiseflughöhe über Grund (m) | 100 |
-| `maps.<map>.cruise_speed` | Reisetempo (km/h). Bestimmt, wie weit der Bot die Nase im Reiseflug nach vorne nimmt | 180 |
+| `maps.<map>.cruise_speed` | Reisetempo (km/h). Bestimmt, wie weit der Bot die Nase im Reiseflug nach vorne nimmt | 240 |
 | `maps.<map>.min_agl` | Mindesthöhe im Reiseflug (m). Darunter steigt der Bot erst mit Shift und nimmt die Nase hoch, bevor er weiter beschleunigt | 80 |
 | `maps.<map>.drop_agl` / `drop_speed` | Zielhöhe (m) und Tempo (km/h) vor und in der Zone. Der Bot sinkt sanft dorthin, wirft aber nach 3 s auch höher ab (laut Spieltext zerbricht die Palette ab ca. 90 m freiem Fall) | 70 / 120 |
 | `maps.<map>.turn_agl` | So hoch (m) steigt der Bot vor dem Drehen (über die Stromleitungen in der Base) | 25 |
@@ -131,7 +131,8 @@ Die wichtigsten Einstellungen:
 | `flight.drop_delay_s` | Wartezeit nach dem Erreichen der Zone (HZ-Marker oder Heli auf der Minimap im Zonenkreis) bis G | 3 |
 | `flight.leave_margin_s` | So lange (s) fliegt der Bot nach dem Verlassen der Zone noch geradeaus, bevor er die Base sucht | 3 |
 | `flight.turnaround_s` | So lange (s) dreht der Bot nach dem Abwurf, bevor er aus der Zone fliegt. Mehr = weiter umdrehen | 6 |
-| `maps.<map>.land_distance` | Ab dieser Entfernung zur Base (m, Zahl neben dem HQ-Marker) beginnt der Landeanflug: bremsen und sinken. Größer = früher | 700 |
+| `maps.<map>.land_distance` | Ab dieser Entfernung zur Base (m, Zahl neben dem HQ-Marker) beginnt der Landeanflug: bremsen und sinken. Größer = früher | 1200 |
+| `flight.approach_speed_per_m` | Im Landeanflug wird das Soll-Tempo mit der Entfernung kleiner: so viele km/h pro Meter, mindestens `approach_speed`. Kleiner = früher langsam | 0.15 |
 | `maps.<map>.hq_approach_y` | Ersatz, falls die Entfernung nicht lesbar ist: Landeanflug, wenn der HQ-Marker so weit unten im Bild ist | 560 |
 | `maps.<map>.approach_agl` / `approach_speed` | Höhe (m) und Tempo (km/h) im Landeanflug, bis die Base auf der Minimap unter dem Heli ist | 40 / 40 |
 | `flight.hq_overhead_distance` | Ab dieser Entfernung zum HQ (m) über der Base: senkrecht runter | 60 |
@@ -140,10 +141,10 @@ Die wichtigsten Einstellungen:
 | `flight.land_timeout_s` | Höchstdauer ab Beginn des Landeanflugs (s), danach sicherer Stopp | 120 |
 | `flight.approach_sink_rate` / `drop_sink_rate` | Höchste Sinkrate (m/s) im Landeanflug / vor und in der Zone | 3 / 2 |
 | `flight.touchdown_speed` | Unter 10 m sinkt der Bot erst weiter, wenn er langsamer als das ist (km/h) | 15 |
-| `flight.max_tilt` | So viele W-Tipps nimmt der Bot die Nase höchstens nach vorne (ein Tipp geschätzt 3–5°). Neigt er zu stark: kleiner | 4 |
+| `flight.max_tilt` | So viele W-Tipps nimmt der Bot die Nase höchstens nach vorne (ein Tipp geschätzt 3–5°). Neigt er zu stark: kleiner | 5 |
 | `flight.trim_speed` / `trim_accel` / `trim_tap_s` | Ausgleich, wenn die Palette die Nase hochzieht: kurzer W-Tipp (s), wenn der Heli beim Schweben schneller als `trim_speed` km/h wird bzw. im Reiseflug kaum noch beschleunigt | 4 / 4 / 0.1 |
 | `flight.bank_speed` / `max_bank` | Ab diesem Tempo (km/h) lenkt der Bot zusätzlich mit A/D, höchstens so schräg (Grad) | 80 / 15 |
-| `flight.roll_band` | So viel Schräglage (Grad) gilt noch als gerade | 4 |
+| `flight.roll_band` | So viel Schräglage (Grad) gilt noch als gerade | 3 |
 | `flight.outside_check_s` | So lange (s) prüft der Bot nach dem Abwurf, ob er schon aus der Zone raus ist | 1 |
 | `buy.clicks` | Klickpunkte im Kaufmenü (Logistics, Pallets, Ammo-Palette, Confirm & Exit) | |
 | `buy.hover_s` / `press_s` | Pause nach dem Hinbewegen der Maus und Dauer des Klicks (Sekunden). Reagiert ein Knopf nicht, größer machen | 0.2 / 0.1 |
@@ -154,7 +155,12 @@ Die wichtigsten Einstellungen:
 | `flight.yaw_lookahead_s` | So weit (s) rechnet der Bot das Nachdrehen voraus. Schießt der Marker über die Mitte: größer; bremst er zu früh und kriecht: kleiner | 0.7 |
 | `flight.yaw_wait_s` | Pause nach jedem Q/E-Tipp, bis die Wirkung sichtbar ist (s) | 0.5 |
 | `flight.yaw_settle_s` | So lange (s) muss der Marker ruhig in der Mitte stehen, bis das Drehen fertig ist | 1.0 |
-| `flight.turn_timeout_s` | Danach bricht das Drehen mit sicherem Stopp ab (s) | 30 |
+| `flight.turn_timeout_s` | Danach bricht das Drehen mit sicherem Stopp ab (s) | 45 |
+| `flight.curve_min_speed` | Ab diesem Tempo (km/h) dreht der Bot im Kurvenflug (A/D + Q/E), darunter auf der Stelle | 30 |
+| `flight.turn_speed` / `turn_bank` | Tempo (km/h) und größte Schräglage (Grad) im Kurvenflug | 60 / 20 |
+| `flight.safe_agl` / `safe_speed` | Unter dieser Höhe (m) mit mehr als diesem Tempo (km/h) nur noch steigen und gerade halten | 40 / 50 |
+| `flight.max_back_tilt` | So viele S-Tipps darf der Bot die Nase höchstens hinter die Mitte nehmen | 2 |
+| `flight.back_taps` / `back_window_s` | Höchstens so viele solche S-Tipps in so vielen Sekunden | 2 / 4 |
 | `flight.sink_rate` | Sinkrate bei der Landung (m/s) | 4 |
 | `flight.speed_limits` | Höchsttempo je Höhe über Grund als Paare `[Höhe m, km/h]`, dazwischen wird gemittelt. Schützt vor Baum-Crashs wie bei 215 km/h in 28 m Höhe | 20 m → 40, 40 → 100, 60 → 160, 80 → 220, 120 → 280 |
 | `flight.sink_guard` | Sinkt der Heli trotz Shift schneller als das (m/s), ist die Nase zu weit unten und der Bot tippt S | 1.5 |

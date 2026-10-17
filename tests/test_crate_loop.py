@@ -21,6 +21,9 @@ YAW_RATE = 40.0
 YAW_DELAY = 0.3
 YAW_LAG = 0.2
 YAW_COAST = 0.5
+WEATHERVANE = 60.0
+SIDE_FORCE = 20.0
+TRANSLATIONAL_LIFT = 0.05
 ROLL_RATE = 35.0
 CRATE_DRIFT = 0.3
 SHIFT_LIFT = 1 / math.cos(math.radians(15))
@@ -34,7 +37,7 @@ class World:
     def __init__(self, clicks: dict):
         self.now = 0.0
         self.agl = 0.0
-        self.speed = 0.0
+        self.vel = [0.0, 0.0]
         self.pitch = 0.0
         self.roll = 0.0
         self.climb = 0.0
@@ -71,6 +74,8 @@ class World:
         self.track: list[tuple[float, float]] = []
         self.pressed: list[str] = []
         self.max_pitch = 0.0
+        self.min_pitch = 0.0
+        self.min_agl = math.inf
         self.zone_samples: list[tuple[float, float]] = []
 
     def press(self, name: str, down: bool) -> None:
@@ -87,7 +92,7 @@ class World:
                     "t": self.now,
                     "inside": self.inside(),
                     "agl": self.agl,
-                    "speed": abs(self.speed),
+                    "speed": self.ground_speed,
                     "roll": self.roll,
                 }
                 self.drops.append(drop)
@@ -120,21 +125,41 @@ class World:
             if not self.menu:
                 self.fly()
             if self.inside() and self.entered is None:
-                self.entered, self.entry_speed = self.now, abs(self.speed)
+                self.entered, self.entry_speed = self.now, self.ground_speed
         return FRAME
+
+    @property
+    def speed(self) -> float:
+        h = math.radians(self.heading)
+        return self.vel[0] * math.sin(h) + self.vel[1] * math.cos(h)
+
+    @speed.setter
+    def speed(self, value: float) -> None:
+        h = math.radians(self.heading)
+        self.vel = [value * math.sin(h), value * math.cos(h)]
+
+    @property
+    def ground_speed(self) -> float:
+        return math.hypot(*self.vel)
+
+    def sideslip(self) -> float:
+        if self.ground_speed < 1:
+            return 0.0
+        track = math.degrees(math.atan2(self.vel[0], self.vel[1]))
+        return (track - self.heading + 180) % 360 - 180
 
     def yaw(self) -> None:
         delayed = self._yaw_queue[0]
         self._yaw_queue.append(1 if "e" in self.keys else -1 if "q" in self.keys else 0)
         self._yaw_input += (delayed - self._yaw_input) * TICK / YAW_LAG
-        authority = YAW_RATE * max(0.2, 1 - abs(self.speed) / 200)
+        authority = YAW_RATE * max(0.2, 1 - self.ground_speed / 200)
         self.yaw_rate += (authority * self._yaw_input - self.yaw_rate) * TICK / YAW_COAST
 
     def fly(self) -> None:
         if "w" in self.keys:
             self.pitch = min(35.0, self.pitch + PITCH_RATE * TICK)
         if "s" in self.keys:
-            self.pitch = max(-20.0, self.pitch - PITCH_RATE * TICK)
+            self.pitch = max(-40.0, self.pitch - PITCH_RATE * TICK)
         if "d" in self.keys:
             self.roll = min(60.0, self.roll + ROLL_RATE * TICK)
         if "a" in self.keys:
@@ -143,6 +168,7 @@ class World:
             self.pitch -= CRATE_DRIFT * TICK
         lift = SHIFT_LIFT if "shift" in self.keys else CTRL_LIFT if "ctrl" in self.keys else 1.0
         tilt = math.cos(math.radians(self.pitch)) * math.cos(math.radians(self.roll))
+        tilt *= 1 + TRANSLATIONAL_LIFT * (self.ground_speed / 250) ** 2
         wanted = 80 * (lift * tilt - 1)
         self.climb += (wanted - self.climb) * TICK / 0.5
         self.agl = max(0.0, self.agl + self.climb * TICK)
@@ -151,16 +177,22 @@ class World:
             self.climb, self.speed = max(0.0, self.climb), 0.0
             self.pitch = self.roll = self.yaw_rate = 0.0
             return
-        self.speed += (1.2 * self.pitch - 0.1 * self.speed) * TICK
-        turn = self.yaw_rate
-        velocity = max(abs(self.speed) / 3.6, 15.0)
-        turn += math.degrees(9.81 * math.tan(math.radians(self.roll)) / velocity)
+        h = math.radians(self.heading)
+        forward, right = (math.sin(h), math.cos(h)), (math.cos(h), -math.sin(h))
+        slip = math.sin(math.radians(self.sideslip()))
+        grip = (self.ground_speed / 150) ** 2
+        push = 1.2 * self.pitch
+        side = 3.6 * 9.81 * math.tan(math.radians(self.roll)) + SIDE_FORCE * slip * grip
+        for i in range(2):
+            self.vel[i] += (push * forward[i] + side * right[i] - 0.1 * self.vel[i]) * TICK
+        turn = self.yaw_rate + WEATHERVANE * slip * grip
         self.heading = (self.heading + turn * TICK) % 360
-        step = self.speed / 3.6 * TICK
-        self.pos[0] += step * math.sin(math.radians(self.heading))
-        self.pos[1] += step * math.cos(math.radians(self.heading))
-        self.track.append((self.agl, abs(self.speed)))
+        self.pos[0] += self.vel[0] / 3.6 * TICK
+        self.pos[1] += self.vel[1] / 3.6 * TICK
+        self.track.append((self.agl, self.ground_speed))
         self.max_pitch = max(self.max_pitch, self.pitch)
+        self.min_pitch = min(self.min_pitch, self.pitch)
+        self.min_agl = min(self.min_agl, self.agl)
         if self.inside() and self.crate:
             self.zone_samples.append((self.climb, self.roll))
 
@@ -223,7 +255,7 @@ class FakeVision:
         return round(GROUND_ASL + self.w.agl) if self.w.lakota else None
 
     def speed(self, frame):
-        return round(abs(self.w.speed)) if self.w.lakota else None
+        return round(self.w.ground_speed) if self.w.lakota else None
 
     def roll(self, frame):
         return round(self.w.roll) if self.w.lakota else None
@@ -276,7 +308,8 @@ def loop(config, world):
 def airborne(
     loop: CrateLoop, world: World, agl: float, speed: float, heading: float, pos=(0.0, 0.0)
 ) -> None:
-    world.agl, world.speed, world.heading, world.pos = agl, speed, heading, list(pos)
+    world.agl, world.heading, world.pos = agl, heading, list(pos)
+    world.speed = speed
     tap = PITCH_RATE * loop._flight["pitch_tap_s"]
     loop._pilot.tilt = round(speed / 12 / tap)
     world.pitch = loop._pilot.tilt * tap
@@ -337,7 +370,7 @@ def test_buy_gives_up_without_money(loop, world):
 def test_climb_lifts_off_a_few_meters(loop, world, config):
     loop.step("climb")
     assert config["maps"]["default"]["turn_agl"] - 1 <= world.agl < 40
-    assert abs(world.speed) < 5
+    assert world.ground_speed < 5
     assert not world.keys
 
 
@@ -356,7 +389,7 @@ def test_turn_yaws_to_zone_marker_only(loop, world, config):
     airborne(loop, world, 25, 0, 90)
     loop.step("turn")
     assert_aimed(world, world.zone, config)
-    assert abs(world.speed) < 5
+    assert world.ground_speed < 5
 
 
 def test_turn_toward_marker_at_left_edge_never_searches_right(loop, world, config):
@@ -397,7 +430,7 @@ def test_hover_with_crate_holds_position(loop, world):
     world.crate = True
     loop.step("climb")
     loop.step("turn")
-    assert abs(world.speed) < 10
+    assert world.ground_speed < 10
     assert "w" in world.pressed
 
 
@@ -418,11 +451,12 @@ def test_drop_waits_three_seconds_inside(loop, world, config):
     assert_never_low_and_fast(world, config)
 
 
-def test_cruise_keeps_tilt_moderate(loop, world):
+def test_cruise_keeps_tilt_moderate(loop, world, config):
     world.crate = True
     airborne(loop, world, 100, 0, 0)
     loop.step("drop")
-    assert world.max_pitch <= 20
+    flight = config["flight"]
+    assert world.max_pitch <= flight["max_tilt"] * PITCH_RATE * flight["pitch_tap_s"] + 3
 
 
 def test_zone_hold_is_level_and_sinks_gently(loop, world, config):
@@ -443,7 +477,7 @@ def test_drop_banks_into_turn_at_speed(loop, world):
 
 
 def test_drop_brakes_before_zone(loop, world, config):
-    world.crate = True
+    world.crate, world.zone = True, (0.0, 5000.0)
     airborne(loop, world, 100, 0, 0)
     loop.step("drop")
     cruise_speed = config["maps"]["default"]["cruise_speed"]
@@ -507,13 +541,14 @@ def test_land_brakes_descends_and_checks_prompt(loop, world, config, caplog):
     land_distance = config["maps"]["default"]["land_distance"]
     (approach,) = [r.args[0] for r in caplog.records if "Landeanflug" in r.msg]
     assert land_distance - 100 <= approach <= land_distance
-    assert world.agl <= 1 and abs(world.speed) <= 3
+    assert world.agl <= 1 and world.ground_speed <= 3
     assert world.buy_prompt()
     assert not world.keys
 
 
 def test_land_turns_back_when_hq_distance_grows(loop, world, caplog):
-    airborne(loop, world, 40, -60, 180, pos=(0, 450))
+    airborne(loop, world, 60, 200, 180, pos=(0, 450))
+    world.base_tint_until = 0.0
     with caplog.at_level("INFO"):
         loop.step("land")
     assert any("überflogen" in r.msg for r in caplog.records)
@@ -539,6 +574,31 @@ def test_land_never_touches_down_outside_base(loop, world, config, caplog):
     assert any("nicht mehr unter dem Heli" in r.msg for r in caplog.records)
     assert min(lowest[40:]) > config["flight"]["landed_agl"]
     assert not world.keys
+
+
+@pytest.mark.parametrize("bearing", [30, 100, 170, -120])
+def test_turn_with_speed_flies_a_safe_curve(loop, world, config, bearing):
+    airborne(loop, world, 90, 150, 0, pos=(0.0, 0.0))
+    world.base = (
+        3000 * math.sin(math.radians(bearing)),
+        3000 * math.cos(math.radians(bearing)),
+    )
+    world.lakota = True
+    loop.step("turn")
+    assert_aimed(world, world.base, config)
+    assert world.min_agl > 40
+    assert world.min_pitch > -15
+    assert "a" in world.pressed or "d" in world.pressed
+
+
+@pytest.mark.parametrize("heading", [90, 180, 270])
+def test_turn_hovering_with_crate_stays_safe(loop, world, config, heading):
+    world.crate = True
+    airborne(loop, world, 25, 0, heading)
+    loop.step("turn")
+    assert_aimed(world, world.zone, config)
+    assert world.min_agl > 15
+    assert world.min_pitch > -15
 
 
 def test_first_aid_leaves_layer(loop, world):

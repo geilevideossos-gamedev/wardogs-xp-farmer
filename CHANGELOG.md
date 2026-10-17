@@ -26,6 +26,7 @@ Alle wichtigen Änderungen an diesem Projekt. Format nach [Keep a Changelog](htt
 
 ### Geändert
 
+- Reiseflug schneller: 240 statt 180 km/h, höchstens 5 W-Tipps. Der Landeanflug beginnt deshalb schon 1200 m vor der Base und wird mit der Entfernung langsamer
 - Testprotokoll vom zweiten Layer-1-Test im Spiel (`docs/test-runs/2026-10-17-layer1.md`) und angepasste Test-Checkliste in `docs/TESTING.md` (Drehen ohne Pendeln, Zone bei weißem Kreis, Abwurf ohne Höchsthöhe, Rückweg beim Landen). `PROJECT.md` um deine neuen Regeln ergänzt (Nachdrehen, 25 m Abheben, Zone über HZ oder Minimap, Base überflogen)
 - Abheben auf 25 m statt 15 m (Stromleitungen in der Base) und im Reiseflug etwas mehr Neigung nach vorne (4 statt 3 W-Tipps)
 - Testprotokoll vom ersten Layer-1-Test im Spiel (`docs/test-runs/2026-10-17-layer1.md`) und neue Test-Checkliste für Layer 1 in `docs/TESTING.md` (Countdown, Kurzbefehl `bot`, neue Erwartungen für Kaufen, Drehen, Zone und Landen, Fensterwechsel, Rundenende)
@@ -45,6 +46,8 @@ Alle wichtigen Änderungen an diesem Projekt. Format nach [Keep a Changelog](htt
 
 ### Behoben
 
+- Drehen mit Fahrt: Hat der Heli Tempo (z. B. nach dem Verlassen der Zone), fliegt der Bot jetzt eine Kurve mit A/D und Q/E und wird dabei nur sanft langsamer. Auf der Stelle dreht er nur noch, wenn er fast steht. Vorher drehte er nur mit Q/E und bremste mit S, lehnte sich dabei weit nach hinten und crashte. Das Umdrehen in der Zone (`leave`) fliegt die gleiche Kurve
+- Fluglage hat Vorrang: Der Bot lehnt sich nie mehr als 2 S-Tipps nach hinten, sinkt der Heli langsam trotz Shift, nimmt er die Nase nach vorn statt weiter nach hinten. Unter 40 m mit Fahrt oder unter der Mindesthöhe steigt er nur noch und hält die Lage gerade, gedreht wird erst danach
 - Landen: Fliegt der Bot über die Base hinaus (Entfernung zum HQ wird wieder größer), dreht er um und fliegt neu an. Er sinkt nur, wenn die Base auf der Minimap unter dem Heli ist oder der Kauf-Hinweis kommt, und erst nachdem er unter 30 km/h abgebremst hat. Verschwindet die Base beim Sinken von der Minimap, steigt er wieder und dreht um. Findet er den HQ-Marker nicht, hält er an und sucht, statt geradeaus weiterzufliegen. Nach 2 Minuten Landeanflug ohne Erfolg stoppt er sicher
 - Abwurf: Die Zone gilt jetzt als erreicht, wenn der Marker HZ zeigt **oder** das Heli-Symbol auf der Minimap im Zonenkreis liegt. Bei weißem Kreis kam die Erkennung vorher 25 Sekunden zu spät. Außerdem wartet der Bot nicht mehr, bis er unter 85 m ist (nur noch mindestens 30 m), damit er nicht durch die Zone durchfliegt
 - Bremsen: Driftet der Heli nach dem Abbremsen rückwärts, merkt der Bot das jetzt (er wird trotz S schneller) und bremst mit W. Vorher konnte er sich in der Simulation rückwärts immer schneller machen, weil das Tempo im HUD kein Vorzeichen hat
