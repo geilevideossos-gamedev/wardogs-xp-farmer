@@ -9,7 +9,7 @@ Das Programm liest nur den Bildschirm und drückt Tasten/Maus wie ein Mensch. Es
 ## Stand
 
 - Fertig: **Fundament** (Not-Aus mit F2, Tastensteuerung, Bildschirmaufnahme, Log-Dateien, Ablaufsteuerung) und **Layer 1 – Crate-Schleife**: Palette kaufen, ein paar Meter steigen, zur Zone drehen und fliegen, vor der Zone bremsen, in der Zone abwerfen, umdrehen, aus der Zone raus, Base suchen, zurückfliegen, landen
-- Die Bilderkennung wurde an deinen Videos getestet. Layer 1 wurde am 17.10. zum ersten Mal im Spiel getestet (`docs/test-runs/2026-10-17-layer1.md`), die Korrekturen daraus sind drin, aber noch **nicht im Spiel geprüft**. Die Flugwerte in `config.yaml` sind weiter Startwerte
+- Die Bilderkennung wurde an deinen Videos getestet. Layer 1 wurde am 17.10. zweimal im Spiel getestet (`docs/test-runs/2026-10-17-layer1.md`). Kaufen, Abheben und Bremsen klappen; die Korrekturen aus dem zweiten Test (gedämpftes Drehen, Zone bei weißem Kreis, Landung mit Rückweg) sind drin, aber noch **nicht im Spiel geprüft**. Die Flugwerte in `config.yaml` sind weiter Startwerte
 - Noch nicht gebaut: Heli kaufen (Layer 2), Team (Layer 3), Server (Layer 4). Braucht der Bot einen davon (z. B. nach einem Absturz), hält er sicher an und speichert einen Screenshot
 
 ## Installation

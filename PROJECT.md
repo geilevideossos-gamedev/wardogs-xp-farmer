@@ -69,6 +69,8 @@ Im Heli ist die **Maus irrelevant**, nur Tastatur:
 - W ohne Shift: fliegt vorwärts und verliert Höhe
 - **Reiseflug:** ca. **10–15°** Nase nach vorne + Shift halten → Höhe bleibt konstant. Mehr Neigung ist zu aggressiv, dann mit S zurücknehmen
 - **Mit Palette geladen:** Gewicht hinten → Heli kippt beim Schweben langsam nach hinten → mit etwas W ausgleichen
+- **Drehen hat Schwung:** Nach Q/E dreht der Heli nach. Vor dem Ziel mit der Gegentaste abbremsen, sonst pendelt er um das Ziel
+- **Abheben:** in der Base gibt es Stromleitungen → vor dem Drehen auf ca. 25 m steigen
 - **Lenken bei Tempo:** Q/E (Heckrotor) allein reicht bei höherem Tempo nicht, sonst fliegt er endlos Kreise → zusätzlich mit A/D in die Kurve neigen
 - **Landen:** Strg allein reicht nicht, weil der Heli noch vorwärts fliegt → mit S abbremsen. Sinkflug etwa doppelt so früh beginnen wie bisher. Es reicht, wenn die Landefläche auf der Minimap unter dem Heli liegt, sie muss nicht im Bild zu sehen sein
 - **In der Zone:** nicht aggressiv sinken, Heli gerade halten, aus sicherer Höhe abwerfen. Nach G trägt der Schwung den Heli meist von selbst aus der Zone
@@ -78,7 +80,8 @@ Im Heli ist die **Maus irrelevant**, nur Tastatur:
 
 - **Goldener CZ-Marker** = Richtung zur Zone, mit Entfernung in m/km daneben
 - CZ-Marker nicht sichtbar beim Start: mit Shift ein paar Meter steigen, dann nur Q/E drehen, bis der CZ-Marker im Bild ist
-- **In der Zone:** Heli-Symbol auf der Minimap liegt im Zonen-Kreis (Kreis blau, grün, rot oder weiß) und der CZ-Marker wird durch HZ ersetzt → 3 s warten → G
+- **In der Zone:** Heli-Symbol auf der Minimap liegt im Zonen-Kreis (Kreis blau, grün, rot oder **weiß**) **oder** der CZ-Marker wird durch HZ ersetzt. Eines davon reicht → 3 s warten → G. Keine Obergrenze für die Abwurfhöhe, sonst fliegt er durch die Zone durch
+- **Base überflogen:** Wird die HQ-Entfernung beim Landeanflug wieder größer, umdrehen und neu anfliegen. Nie irgendwo außerhalb der Base landen
 - Heli-Symbol nicht im Kreis = noch nicht in der Zone, weiter Richtung CZ
 - Nach „SUPPLIES DELIVERED“ umdrehen. In der Zone ist der HQ-Marker (blauer Kreis) nicht sichtbar → erst aus der Zone rausfliegen, dann HQ-Marker suchen und zur Base fliegen
 

@@ -26,6 +26,7 @@ Alle wichtigen Änderungen an diesem Projekt. Format nach [Keep a Changelog](htt
 
 ### Geändert
 
+- Testprotokoll vom zweiten Layer-1-Test im Spiel (`docs/test-runs/2026-10-17-layer1.md`) und angepasste Test-Checkliste in `docs/TESTING.md` (Drehen ohne Pendeln, Zone bei weißem Kreis, Abwurf ohne Höchsthöhe, Rückweg beim Landen). `PROJECT.md` um deine neuen Regeln ergänzt (Nachdrehen, 25 m Abheben, Zone über HZ oder Minimap, Base überflogen)
 - Abheben auf 25 m statt 15 m (Stromleitungen in der Base) und im Reiseflug etwas mehr Neigung nach vorne (4 statt 3 W-Tipps)
 - Testprotokoll vom ersten Layer-1-Test im Spiel (`docs/test-runs/2026-10-17-layer1.md`) und neue Test-Checkliste für Layer 1 in `docs/TESTING.md` (Countdown, Kurzbefehl `bot`, neue Erwartungen für Kaufen, Drehen, Zone und Landen, Fensterwechsel, Rundenende)
 
