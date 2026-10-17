@@ -158,7 +158,13 @@ Die wichtigsten Einstellungen:
 | `flight.turn_hover_speed` | Auf der Stelle: wird der Heli schneller (km/h), bremst er erst, bevor er weiterdreht | 15 |
 | `flight.turn_speed` / `turn_bank` | Tempo (km/h) und größte Schräglage (Grad) im Kurvenflug | 60 / 20 |
 | `flight.safe_agl` / `safe_speed` | Unter dieser Höhe (m) mit mehr als diesem Tempo (km/h) nur noch steigen und gerade halten | 40 / 50 |
-| `flight.dive_sink` / `dive_accel` | Sturzflug: sinkt schneller als das (m/s) und wird schneller als das (km/h/s) → Flügel gerade, Shift, Nase dosiert hoch | 2 / 3 |
+| `flight.dive_sink` | Sturzflug: sinkt schneller als das (m/s) bei mehr als `forward_speed` → Flügel gerade, Shift, nur S-Tipps, nie W | 5 |
+| `flight.dive_agl_rate` / `dive_accel` | Sturzflug auch, wenn die Höhe über Grund schneller als das fällt (m/s) und das Tempo stärker steigt (km/h/s) | 3 / 3 |
+| `flight.dive_exit` | Sturzflug vorbei, wenn er langsamer sinkt als das (m/s) | 1 |
+| `flight.dive_tap_s_per_ms` / `dive_tap_max_s` / `dive_interval_s` | S-Tipp im Sturzflug: Sekunden pro m/s Sinkrate, längster Tipp, Abstand (s) | 0.02 / 0.4 / 0.5 |
+| `flight.forward_speed` | Über diesem Tempo (km/h) gilt der Heli immer als vorwärts fliegend | 60 |
+| `flight.learn_speed` | Nur darunter (km/h) lernt der Bot die Flugrichtung aus seinen Tipps | 40 |
+| `flight.drift_accel` | Wird der Heli ohne eigenen W/S-Tipp schneller als das (km/h/s), driftet er: mit Palette W-Tipps, Schräglage ausgleichen | 1 |
 | `flight.lean_accel` | Wird der Heli schon stärker als das langsamer (km/h/s), kein weiteres S (nicht weiter zurücklehnen) | 6 |
 | `flight.window_taps` / `tap_window_s` | Höchstens so viele W- bzw. S-Tipps in so vielen Sekunden | 3 / 4 |
 | `flight.roll_limit` | Größte Schräglage (Grad): darüber sofort gegensteuern, kein Q/E | 25 |
@@ -167,7 +173,7 @@ Die wichtigsten Einstellungen:
 | `flight.sink_rate` | Sinkrate bei der Landung (m/s) | 2.5 |
 | `flight.speed_limits` | Höchsttempo je Höhe über Grund als Paare `[Höhe m, km/h]`, dazwischen wird gemittelt. Schützt vor Baum-Crashs wie bei 215 km/h in 28 m Höhe | 20 m → 40, 40 → 100, 60 → 160, 80 → 220, 120 → 280 |
 | `flight.sink_guard` | Sinkt der Heli trotz Shift schneller als das (m/s), ist die Nase zu weit unten und der Bot tippt S | 1.5 |
-| `flight.pitch_tap_s` / `pitch_interval_s` | Dauer eines W/S-Tipps und Mindestabstand zwischen zwei Tipps (Sekunden) | 0.2 / 0.7 |
+| `flight.pitch_tap_s` / `pitch_interval_s` | Dauer eines W/S-Tipps und Mindestabstand zwischen zwei Tipps (Sekunden) | 0.2 / 1.0 |
 | `vision.minimap.min_chroma` / `base_chroma` | Wie bunt die Minimap um das Heli-Symbol sein muss: Zone / Base beim Landen | 14 / 10 |
 | `vision.*` | Positionen, Vorlagenbilder und Schwellen der Bilderkennung | |
 | `flight.record_s` | So oft (s) schreibt der Bot im Flug eine Zeile in `logs/<Datum>/flight_<Uhrzeit>.csv` | 0.25 |
@@ -179,7 +185,7 @@ Alle Werte mit Erklärung: `docs/ARCHITECTURE.md` (Abschnitt „Config-Abschnitt
 
 ## Logs
 
-Jeder Start schreibt eine Log-Datei nach `logs/<Datum>/`. Im Flug steht dort jede Sekunde eine Zeile `Flug: AGL … m, … km/h (Boden …, Steigen …, Beschl. …), Schräglage …°, Marker …, Tasten …` (mit „Sicherheit: Lage und Höhe zuerst“, wenn die Sicherheit Vorrang hat). Dazu kommt pro Lauf eine Tabelle `flight_<Uhrzeit>.csv` mit 4 Zeilen pro Sekunde (Höhe, Tempo, Tempo über Grund, Steigrate, Beschleunigung, Schräglage, Marker, Tasten). Stoppt das Programm von selbst, liegt dort zusätzlich ein Screenshot unter `screenshots/`.
+Jeder Start schreibt eine Log-Datei nach `logs/<Datum>/`. Im Flug steht dort jede Sekunde eine Zeile `Flug: AGL … m, … km/h (Boden …, Steigen …, Beschl. …), Schräglage …°, Marker …, Tasten …` (mit „Sicherheit: Lage und Höhe zuerst“, wenn die Sicherheit Vorrang hat, bzw. „Sicherheit: Sturzflug abfangen“). Dazu kommt pro Lauf eine Tabelle `flight_<Uhrzeit>.csv` mit 4 Zeilen pro Sekunde (Höhe, Tempo, Tempo über Grund, Steigrate, Beschleunigung, Schräglage, Marker, Tasten). Stoppt das Programm von selbst, liegt dort zusätzlich ein Screenshot unter `screenshots/`.
 
 ## Für Entwickler
 

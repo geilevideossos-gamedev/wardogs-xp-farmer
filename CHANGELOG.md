@@ -6,6 +6,7 @@ Alle wichtigen Änderungen an diesem Projekt. Format nach [Keep a Changelog](htt
 
 ### Hinzugefügt
 
+- Tests mit deinen echten Flugdaten vom 17.10.: Der Bot bekommt jede Zeile der Flugtabellen als Zustand und muss zeigen, dass er im Sturzflug nie W drückt und beim Abdriften mit Palette W tippt. Die beiden Crashs von heute sind außerdem in der Simulation nachgestellt
 - Flugdaten als Tabelle: Pro Lauf schreibt der Bot `logs/<Datum>/flight_<Uhrzeit>.csv` mit 4 Zeilen pro Sekunde (Höhe, Tempo, Tempo über Grund, Steigrate, Beschleunigung, Schräglage, Marker, Tasten, Schritt). Damit lassen sich Tests im Spiel genauer auswerten
 - Flug-Protokoll: Im Log steht im Flug jede Sekunde eine Zeile mit Höhe, Tempo, Schräglage, geschätzter Neigung, Marker-Position und gedrückten Tasten. Damit lassen sich Crashs aus deinen Tests im Nachhinein auswerten
 - Bilderkennung liest die seitliche Neigung des Helis aus der Lageanzeige unten mittig (gegen deine A/D-Tasten in allen drei Videos geprüft) und die Entfernung zur Base neben dem HQ-Marker („759 m“, „1.3 km“)
@@ -28,6 +29,9 @@ Alle wichtigen Änderungen an diesem Projekt. Format nach [Keep a Changelog](htt
 
 ### Geändert
 
+- Flugregler mit eindeutigen Regeln statt Raten: Über 60 km/h fliegt der Heli für den Bot immer vorwärts, nur darunter lernt er die Richtung aus seinen Tipps. Sturzflug (sinkt schneller als 5 m/s oder Höhe fällt bei steigendem Tempo) hat Vorrang: Shift, Flügel gerade, nur S-Tipps (je schneller er sinkt, desto länger), nie W, bis er kaum noch sinkt. Beim Reiseflug höchstens ein W/S-Tipp pro Sekunde, dann Wirkung abwarten
+- `drop` startet den Vorwärtsflug jetzt selbst mit W, auch aus dem Schweben mit Palette (beim Test hing er 12 s still in der Luft)
+- Drehen auf der Stelle mit Palette: Wird der Heli ohne Taste schneller, tippt der Bot kurz W (Palette zieht nach hinten) und gleicht eine Rest-Schräglage schon ab 3° mit A/D aus (vorher erst ab 8°, und 8° Schräglage schieben den Heli spürbar seitlich weg)
 - Testprotokoll vom vierten Layer-1-Test im Spiel (`docs/test-runs/2026-10-17-layer1.md`) und angepasste Test-Checkliste in `docs/TESTING.md` (Reihenfolge der nächsten Tests, Drehen auf der Stelle nur mit Q/E, Kurve höchstens ca. 25°, Sicherheit bei Sturzflug, Landung mit F2 bereit). `PROJECT.md` um deine neuen Regeln ergänzt (Kurve mit A/D plus Shift und W/S, Drehen nach dem Abheben ohne W)
 - Testprotokoll vom dritten Layer-1-Test im Spiel (Regen, `docs/test-runs/2026-10-17-layer1.md`) und angepasste Test-Checkliste in `docs/TESTING.md` (Kurvenflug beim Drehen, kein Zurücklehnen, 240 km/h, Landeanflug ab 1200 m, Log-Zeilen `Flug:`). `PROJECT.md` um deine neuen Regeln ergänzt (Kurve mit A/D, nie stark nach hinten lehnen, Reisetempo, Abwurf bei 139 m ok, Wetter)
 - Reiseflug schneller: 240 statt 180 km/h, höchstens 5 W-Tipps. Der Landeanflug beginnt deshalb schon 1200 m vor der Base und wird mit der Entfernung langsamer

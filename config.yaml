@@ -210,8 +210,16 @@ flight:
   brake_gain: 0.25
   reverse_accel: 4
   brake_effect: 1.5
+  forward_speed: 60
+  learn_speed: 40
+  drift_accel: 1
   crossing_speed: 20
-  dive_sink: 2
+  dive_sink: 5
+  dive_agl_rate: 3
+  dive_exit: 1
+  dive_interval_s: 0.5
+  dive_tap_s_per_ms: 0.02
+  dive_tap_max_s: 0.4
   vertical_limit: 3
   dive_accel: 3
   lean_accel: 6
@@ -221,7 +229,7 @@ flight:
   safe_speed: 50
   pitch_tap_s: 0.2
   hover_tap_s: 0.1
-  pitch_interval_s: 0.7
+  pitch_interval_s: 1.0
   trim_speed: 4
   sink_guard: 1.5
   hover_speed: 10

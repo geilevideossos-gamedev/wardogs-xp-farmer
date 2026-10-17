@@ -61,7 +61,7 @@ class Pilot:
         self._last_roll = -1e9
         self._roll = 0
         self.reverse = False
-        self._tapped: tuple[bool, float, float] | None = None
+        self._tapped: tuple[bool, float] | None = None
         self._suspect = 0
         self._learn_after = -1e9
         self._last_brake = -1e9
@@ -70,6 +70,8 @@ class Pilot:
         self.lead: float | None = None
         self.on_target = False
         self.recovering = False
+        self.diving = False
+        self.drifting = False
         self._sinking = False
 
     @property
@@ -118,9 +120,9 @@ class Pilot:
             return
         ground, accel, climb = self.ground, self.accel, self.climb
         fast = ground is not None and ground > self._cfg["safe_speed"]
-        diving = climb < -self._cfg["dive_sink"] and accel > self._cfg["dive_accel"]
+        self._watch_dive(ground, accel, climb)
         low = agl < floor or (agl < self._cfg["safe_agl"] and fast)
-        self.recovering = low or diving
+        self.recovering = low or self.diving
         sinking_fast = sink_rate > 0 and climb < -sink_rate - self._cfg["sink_band"]
         lift = self.recovering or sinking_fast or self._lift(agl, target_agl)
         predicted = agl + self._agl.rate() * self._cfg["agl_lookahead_s"]
@@ -131,21 +133,24 @@ class Pilot:
         )
         if ground is None:
             return
-        self._watch_direction(speed, ground, accel, loaded)
+        hover = target_speed is not None and target_speed <= self._cfg["hover_speed"]
+        self._watch_direction(speed, ground, accel, loaded, hover)
         band = self._cfg["accel_band"]
         sinking = climb < -self._cfg["sink_guard"]
         sagging = lift and sinking and not sink_rate
         too_fast = ground > self.speed_limit(agl) + self._cfg["speed_band"]
-        if self.recovering or sagging:
-            if accel > 0 and (fast or diving or sagging):
-                self._tap(brake=True)
+        if self.diving:
+            self._pull_up(ground, accel, climb)
+        elif low or sagging:
+            if accel > 0 and (fast or sagging):
+                self._tap(self._brake_key())
             elif accel < -band and sinking:
-                self._tap(brake=False)
+                self._tap("forward")
         elif too_fast:
-            self._tap(brake=True)
+            self._tap(self._brake_key())
         elif target_speed is not None and abs(climb) <= self._cfg["vertical_limit"]:
             target = min(target_speed, self.speed_limit(agl))
-            self._pitch_for(ground, target, accel, sinking, loaded)
+            self._pitch_for(ground, target, accel, sinking)
 
     def descend(self, agl: int | None, asl: int | None, speed: int | None) -> None:
         self._track(agl, asl, speed)
@@ -166,7 +171,7 @@ class Pilot:
         self._inp.hold(self._keys["down"], climb > target + band)
         if ground is None or abs(climb) > self._cfg["vertical_limit"]:
             return
-        self._watch_direction(speed, ground, accel, False)
+        self._watch_direction(speed, ground, accel, False, True)
         self._pitch_for(ground, 0, accel, False)
 
     def yaw(self, x: float) -> None:
@@ -253,37 +258,69 @@ class Pilot:
             return False
         return self._inp.is_down(self._keys["up"])
 
-    def _pitch_for(
-        self, ground: float, target: float, accel: float, sinking: bool, loaded: bool = False
-    ) -> None:
+    def _pitch_for(self, ground: float, target: float, accel: float, sinking: bool) -> None:
         hover = self._cfg["hover_speed"]
-        trim = self._cfg["trim_speed"]
         band = self._cfg["accel_band"]
         if target <= hover or self.reverse:
-            drifting = trim < ground <= hover and accel > 0
+            drifting = (
+                self._cfg["trim_speed"] < ground <= hover and accel > self._cfg["drift_accel"]
+            )
             braking = ground > hover and accel > -self._cfg["brake_gain"] * ground
             if drifting or braking:
-                self._tap(brake=True, seconds=self._cfg["hover_tap_s"])
+                self._tap(self._brake_key(), self._cfg["hover_tap_s"])
             return
         limit = self._cfg["accel_max"]
         wanted = clamp(self._cfg["speed_gain"] * (target - ground), -limit, limit)
         lagging = ground < target - self._cfg["speed_band"] and accel <= 0
         leading = ground > target + self._cfg["speed_band"] and accel >= 0
         if (accel < wanted - band or lagging) and not sinking:
-            self._tap(brake=False)
+            self._tap("forward")
         elif accel > wanted + band or leading:
-            self._tap(brake=True)
+            self._tap(self._brake_key())
 
-    def _watch_direction(self, speed: int, ground: float, accel: float, loaded: bool) -> None:
+    def _pull_up(self, ground: float, accel: float, climb: float) -> None:
         now = self._clock()
+        if now - self._last_pitch < self._cfg["dive_interval_s"]:
+            return
+        if accel < -self._cfg["lean_accel"] or ground <= self._cfg["hover_speed"]:
+            return
+        seconds = clamp(
+            -climb * self._cfg["dive_tap_s_per_ms"],
+            self._cfg["hover_tap_s"],
+            self._cfg["dive_tap_max_s"],
+        )
+        self._pulse(self._keys["back"], seconds)
+        self._last_pitch = now
+        self._taps["back"].append(now)
+
+    def _watch_dive(self, ground: float | None, accel: float, climb: float) -> None:
+        agl_falling = self._agl.rate() < -self._cfg["dive_agl_rate"]
+        sinking = climb < -self._cfg["dive_sink"]
+        falling = sinking or (agl_falling and accel > self._cfg["dive_accel"])
+        if falling and ground is not None and ground > self._cfg["forward_speed"]:
+            self.diving = True
+        elif not falling and climb > -self._cfg["dive_exit"]:
+            self.diving = False
+
+    def _watch_direction(
+        self, speed: int, ground: float, accel: float, loaded: bool, hover: bool
+    ) -> None:
+        now = self._clock()
+        window = self._cfg["tap_window_s"]
+        moving = speed > self._cfg["trim_speed"]
+        own = now - self._last_pitch < window
+        self.drifting = moving and not own and accel > self._cfg["drift_accel"]
+        if ground > self._cfg["forward_speed"]:
+            self.reverse, self._suspect, self._slowing = False, 0, False
+            return
         band = self._cfg["reverse_accel"]
-        braked = now - self._last_brake < self._cfg["tap_window_s"]
-        if speed <= self._cfg["trim_speed"]:
+        if not moving:
             recent = [(t, key) for key, taps in self._taps.items() for t in taps]
             last = max(recent)[1] if recent else None
-            self.reverse = last == "back" if last else loaded
+            backward = self.reverse and loaded if last is None else last == "back"
+            self.reverse = hover and backward
             self._suspect, self._learn_after = 0, now + self._cfg["history_s"]
-        elif ground < self._cfg["crossing_speed"] and braked:
+        elif ground < self._cfg["crossing_speed"] and now - self._last_brake < window:
             if self._slowing and accel > band and now >= self._learn_after:
                 self.reverse = not self.reverse
                 self._suspect, self._learn_after = 0, now + self._cfg["history_s"]
@@ -292,12 +329,16 @@ class Pilot:
             self._slowing = True
         elif accel > band:
             self._slowing = False
+        if ground >= self._cfg["learn_speed"]:
+            return
+        if loaded and hover and self.drifting:
+            self.reverse = True
         self._learn_direction(ground, accel)
 
     def _learn_direction(self, ground: float, accel: float) -> None:
         if self._tapped is None or not self._pitch_ready():
             return
-        brake, before, _ = self._tapped
+        brake, before = self._tapped
         self._tapped = None
         if self._clock() < self._learn_after:
             return
@@ -310,16 +351,18 @@ class Pilot:
     def _pitch_ready(self) -> bool:
         return self._clock() - self._last_pitch >= self._cfg["pitch_interval_s"]
 
-    def _tap(self, brake: bool, seconds: float = 0) -> None:
-        backward = brake != self.reverse
-        key = "back" if backward else "forward"
+    def _brake_key(self) -> str:
+        return "forward" if self.reverse else "back"
+
+    def _tap(self, key: str, seconds: float = 0) -> None:
+        brake = key == self._brake_key()
         if not self._pitch_ready() or not self._may_tap(key, brake):
             return
         now = self._clock()
         self._pulse(self._keys[key], seconds or self._cfg["pitch_tap_s"])
         self._last_pitch = now
         self._taps[key].append(now)
-        self._tapped = (brake, self.accel, now)
+        self._tapped = (brake, self.accel)
         if brake:
             self._last_brake = now
 

@@ -205,7 +205,7 @@ def test_brakes_with_w_after_braking_through_zero(setup):
 
 def test_fly_brakes_with_w_when_s_keeps_speeding_up(setup):
     pilot, inp, clock, flight = setup
-    speeds = [20 + 3 * step for step in range(40)]
+    speeds = [12 + step for step in range(25)]
     for step, speed in enumerate(speeds):
         clock.now = step * 0.2
         pilot.update()

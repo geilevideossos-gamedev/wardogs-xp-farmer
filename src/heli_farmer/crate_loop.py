@@ -446,7 +446,8 @@ class CrateLoop:
         else:
             fast = ground is not None and ground > self._flight["turn_hover_speed"]
             x = marker.x if marker is not None and not fast else None
-            self._fly(frame, agl, 0 if fast else None, x=x, lean=False)
+            hold = fast or self._vision.crate_loaded(frame)
+            self._fly(frame, agl, 0 if hold else None, x=x, lean=False)
             if marker is None and not fast:
                 self._pilot.search(side)
             slow = ground is not None and not fast
@@ -517,7 +518,7 @@ class CrateLoop:
             self._pilot.yaw(x)
             lead = self._pilot.lead if lean else None
         roll = self._vision.roll(frame)
-        band = 0 if lean else self._flight["hover_roll_band"]
+        band = 0 if lean or self._pilot.drifting else self._flight["hover_roll_band"]
         self._pilot.bank(roll, lead, bank, band)
         self._trace(current_agl, current_speed, roll, x, asl)
         return current_agl, current_speed
@@ -537,6 +538,11 @@ class CrateLoop:
         marker = "-" if x is None else round(x)
         if now - self._traced >= self._flight["trace_s"]:
             self._traced = now
+            safety = ""
+            if pilot.recovering:
+                safety = ", Sicherheit: " + (
+                    "Sturzflug abfangen" if pilot.diving else "Lage und Höhe zuerst"
+                )
             log.info(
                 "Flug: AGL %s m, %s km/h (Boden %s, Steigen %+.1f m/s, Beschl. %+.0f km/h/s), "
                 "Schräglage %s°, Marker %s, Tasten %s%s",
@@ -548,7 +554,7 @@ class CrateLoop:
                 roll,
                 marker,
                 keys,
-                ", Sicherheit: Lage und Höhe zuerst" if pilot.recovering else "",
+                safety,
             )
         if self._flight_log is None or now - self._recorded < self._flight["record_s"]:
             return
