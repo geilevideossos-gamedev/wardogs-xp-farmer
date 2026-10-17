@@ -456,5 +456,104 @@
   "x": 779,
   "y": 368,
   "distance": 2200
+ },
+ {
+  "file": "hud_rain_031444.png",
+  "x": 780,
+  "y": 905,
+  "speed": 156,
+  "agl": 80,
+  "asl": 145
+ },
+ {
+  "file": "hud_rain_031533.png",
+  "x": 780,
+  "y": 905,
+  "speed": 81,
+  "agl": 34,
+  "asl": 103
+ },
+ {
+  "file": "hud_rain_031555.png",
+  "x": 780,
+  "y": 905,
+  "speed": 91,
+  "agl": 6,
+  "asl": 140
+ },
+ {
+  "file": "roll_rain_031444.png",
+  "x": 889,
+  "y": 875,
+  "roll": 6
+ },
+ {
+  "file": "roll_rain_031533.png",
+  "x": 889,
+  "y": 875,
+  "roll": -5
+ },
+ {
+  "file": "roll_rain_031555.png",
+  "x": 889,
+  "y": 875,
+  "roll": -16
+ },
+ {
+  "file": "hqdist_rain_031444.png",
+  "x": 1399,
+  "y": 303,
+  "distance": 3400
+ },
+ {
+  "file": "hqdist_rain_031555.png",
+  "x": 882,
+  "y": 283,
+  "distance": 5100
+ },
+ {
+  "file": "hq_rain_031533.png",
+  "x": 1306,
+  "y": 302
+ },
+ {
+  "file": "badges_rain_031444.png",
+  "x": 1700,
+  "y": 895,
+  "lakota": true,
+  "crate": false
+ },
+ {
+  "file": "badges_rain_031555.png",
+  "x": 1700,
+  "y": 895,
+  "lakota": true,
+  "crate": false
+ },
+ {
+  "file": "minimap_rain_031533.png",
+  "x": 120,
+  "y": 822,
+  "in_zone": false,
+  "over_base": false
+ },
+ {
+  "file": "minimap_rain_031755.png",
+  "x": 120,
+  "y": 822,
+  "in_zone": false,
+  "over_base": true
+ },
+ {
+  "file": "damage_rain_031555.png",
+  "x": 940,
+  "y": 900,
+  "damaged": true
+ },
+ {
+  "file": "damage_rain_031533.png",
+  "x": 940,
+  "y": 900,
+  "damaged": false
  }
 ]

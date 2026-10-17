@@ -113,6 +113,15 @@ def test_minimap_in_zone(vision, entry):
     assert vision.minimap_in_zone(frame_from(entry)) == entry["in_zone"]
 
 
+@pytest.mark.parametrize(
+    "entry",
+    [e for e in entries("minimap") if "over_base" in e],
+    ids=ids([e for e in entries("minimap") if "over_base" in e]),
+)
+def test_minimap_over_base(vision, entry):
+    assert vision.minimap_over_base(frame_from(entry)) == entry["over_base"]
+
+
 def test_markers_absent_on_hud_only_frame(vision):
     frame = frame_from(entries("hud")[0])
     assert vision.zone_marker(frame) is None

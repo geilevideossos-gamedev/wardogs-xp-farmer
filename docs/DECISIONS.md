@@ -211,3 +211,9 @@ Format je Eintrag: Datum, Entscheidung, Grund, verworfene Alternativen.
 - **Entscheidung (Reiseflug):** `cruise_speed` 180 → 240, `max_tilt` 4 → 5, Landeanflug ab `land_distance` 1200 m (vorher 700) mit Tempo-Soll ∝ Entfernung (`approach_speed_per_m` 0,15 km/h pro m, mindestens `approach_speed`), weil die Rücklage-Grenze härteres Bremsen verbietet.
 - **Grenzen:** Ursache des Crashs im `--once`-Lauf (031630, Drehen direkt nach dem Abheben mit Palette) nicht sicher geklärt, es gibt keinen Screenshot und das Log hatte keine Flugdaten. Wahrscheinlich dieselbe Spirale (Palette zieht die Nase hoch → sinkt trotz Shift → S). In der Simulation landet der Bot in 21 von 27 Varianten (Bildtakt 0,05–0,15 s, Drehdynamik, Windfahne); die Fehlschläge liegen alle in der Landung (seitliches Abdriften, Landung neben der Fläche → sicherer Stopp).
 - **Verworfen:** Erst auf Schwebeflug abbremsen, dann drehen (Daniel: nicht; Simulation: Rückwärtsrutschen); feste Kurvengeschwindigkeit 140 km/h (Kurve zu weit, Höhenverlust bis zur Mindesthöhe); Rücklage nur über den Tipp-Zähler (driftet mit Palette und Tippdauer); engere Roll-Toleranz beim Schweben und Erholung mit Hysterese (in der Simulation schlechter).
+
+## 2026-10-17 – Base auf der Minimap mit eigener Schwelle
+
+- **Entscheidung:** `Vision.minimap_over_base` mit `minimap.base_chroma` 10 für `land` (Sinkflug starten und abbrechen); `minimap_in_zone` bleibt bei 14 für Zone und `leave`.
+- **Grund:** Regen-Screenshot 031755: Base-Färbung Buntheit 12; Ozeti-Video nach der Landung 11–13 bei klarem Wetter. In `land` ist die Minimap nur nahe der Base gefragt (Entfernung ≤ `hq_overhead_distance` oder HQ weg), Fehlalarme kosten dort wenig. In `drop` würde eine niedrige Schwelle bis zu ~300 m vor der Zone abwerfen (Videos: 10–13 auch kurz vor Zonen).
+- **Verworfen:** gemeinsame Schwelle 10 oder 12, Blau-Anteil (B − R) statt Buntheit (die Tönung ist immer bläulich, keine bessere Trennung).

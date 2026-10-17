@@ -179,6 +179,20 @@ Marker-x mit 10 Bildern/s nach isolierten Q/E-Tipps (Overlay-Zeiten):
 
 Modell (Ausgleichsrechnung auf Zestafona, mittlere Abweichung 2,3 px bei 16,8 px/°): Totzeit 0,3 s, Anlauf (Tiefpass) 0,2 s, Auslauf 0,5 s, Enddrehrate 40°/s. Gesamtdrehung ≈ 40° pro Sekunde Tastendruck, nach dem Loslassen dreht der Heli noch ~1 s weiter. Angeheftete Marker: Liegt das Ziel außerhalb des Bildes, klebt der Zonen-Marker am Rand (x ≈ 120 bzw. 1800, Screenshots 015014, 015543). Bildtakt des Bots mit Marker-Suche ~7 Bilder/s (Marker-Suche ~71 ms).
 
+## Regen und Nebel (Test 17.10., 3. Durchgang)
+
+Screenshots 031444, 031533, 031555 (starker Regen, Nebel) und 031755 (zu Fuß in der Base). Testbilder `*_rain_*` in `tests/fixtures/`.
+
+| Merkmal | Ergebnis |
+|---|---|
+| Tempo, AGL, ASL | alle 9 Werte richtig (156/80/145, 81/34/103, 91/6/140) |
+| Querneigung | +6°, −5°, −16°, passt zu den Horizont-Strichen |
+| Z20 LAKOTA, G-Feld, rotes Heli-Symbol | richtig |
+| HQ-Marker | in allen drei Flug-Screenshots gefunden (Score 0,63–0,69) |
+| HQ-Entfernung | 3,4 km und 5,1 km richtig, 4,9 km als 4,5 km gelesen (9 bei Regen kaum von 0/5/6/8 zu unterscheiden, Scores 0,62–0,66). Der Median über `distance_history` filtert einzelne Fehllesungen |
+| CZ-Entfernung am Bildrand (x = 120) | nicht gelesen (`None`), der Text „2.7 km“ steht im Gras |
+| Minimap | im Regen fast farblos: außerhalb Buntheit 0, Base 12 (zu Fuß) → mit `min_chroma` 14 keine Base. Auch bei klarem Wetter ist die Base teils nur 11–13 bunt (Ozeti 301–338 s nach der Landung). Im Flug außerhalb der Base 10–13 vor allem nahe Zone/Base (Videos, 2 Bilder/s) → Base mit eigener Schwelle `base_chroma` 10 nur in `land`, Zone bleibt bei 14 |
+
 ## Daniels Screenshots vom 15.10. (Dateiname = Erklärung)
 
 | Bild | Befund | Folge für den Bot |

@@ -46,6 +46,7 @@ Alle wichtigen Änderungen an diesem Projekt. Format nach [Keep a Changelog](htt
 
 ### Behoben
 
+- Bilderkennung bei Regen und Nebel geprüft: Tempo, Höhe, Schräglage, Marker und Heli-Schaden werden richtig gelesen (15 neue Testbilder aus deinen Regen-Screenshots). Die Base auf der Minimap war im Regen und teils auch bei klarem Wetter zu blass und wurde übersehen; beim Landen gilt jetzt eine niedrigere Schwelle
 - Drehen mit Fahrt: Hat der Heli Tempo (z. B. nach dem Verlassen der Zone), fliegt der Bot jetzt eine Kurve mit A/D und Q/E und wird dabei nur sanft langsamer. Auf der Stelle dreht er nur noch, wenn er fast steht. Vorher drehte er nur mit Q/E und bremste mit S, lehnte sich dabei weit nach hinten und crashte. Das Umdrehen in der Zone (`leave`) fliegt die gleiche Kurve
 - Fluglage hat Vorrang: Der Bot lehnt sich nie mehr als 2 S-Tipps nach hinten, sinkt der Heli langsam trotz Shift, nimmt er die Nase nach vorn statt weiter nach hinten. Unter 40 m mit Fahrt oder unter der Mindesthöhe steigt er nur noch und hält die Lage gerade, gedreht wird erst danach
 - Landen: Fliegt der Bot über die Base hinaus (Entfernung zum HQ wird wieder größer), dreht er um und fliegt neu an. Er sinkt nur, wenn die Base auf der Minimap unter dem Heli ist oder der Kauf-Hinweis kommt, und erst nachdem er unter 30 km/h abgebremst hat. Verschwindet die Base beim Sinken von der Minimap, steigt er wieder und dreht um. Findet er den HQ-Marker nicht, hält er an und sucht, statt geradeaus weiterzufliegen. Nach 2 Minuten Landeanflug ohne Erfolg stoppt er sicher

@@ -343,7 +343,7 @@ class CrateLoop:
                     sink_rate=self._flight["approach_sink_rate"],
                     x=marker.x if marker is not None and not close else None,
                 )
-                over_base = over_base + 1 if self._vision.minimap_in_zone(frame) else 0
+                over_base = over_base + 1 if self._vision.minimap_over_base(frame) else 0
                 farther = (
                     distance is not None
                     and nearest is not None
@@ -356,7 +356,7 @@ class CrateLoop:
                     log.info("Sinkflug (%s)", "Kauf-Hinweis" if prompt else "Base unter dem Heli")
                     phase, away = "descend", 0
             else:
-                below = prompt or self._vision.minimap_in_zone(frame)
+                below = prompt or self._vision.minimap_over_base(frame)
                 away = 0 if below else away + 1
                 if away >= self._confirm:
                     log.info("Base nicht mehr unter dem Heli: steigen, umdrehen")

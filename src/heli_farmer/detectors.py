@@ -170,12 +170,18 @@ class Vision:
         return int(self._roll_angles[best])
 
     def minimap_in_zone(self, frame: np.ndarray) -> bool:
+        return self._minimap_chroma(frame) >= self._config["minimap"]["min_chroma"]
+
+    def minimap_over_base(self, frame: np.ndarray) -> bool:
+        return self._minimap_chroma(frame) >= self._config["minimap"]["base_chroma"]
+
+    def _minimap_chroma(self, frame: np.ndarray) -> float:
         spec = self._config["minimap"]
         x, y = spec["center"]
         outer = spec["ring"][1]
         patch = frame[y - outer : y + outer + 1, x - outer : x + outer + 1]
         median = np.median(patch[self._ring], axis=0)
-        return bool(median.max() - median.min() >= spec["min_chroma"])
+        return float(median.max() - median.min())
 
     def _zone_kind(self, frame: np.ndarray, marker: Marker) -> str:
         spec = self._config["zone_marker"]

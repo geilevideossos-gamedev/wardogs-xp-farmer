@@ -272,6 +272,9 @@ class FakeVision:
             return None
         return self.w.marker(self.w.base, distance=round(self.w.bearing(self.w.base)[1]))
 
+    def minimap_over_base(self, frame):
+        return self.minimap_in_zone(frame)
+
     def minimap_in_zone(self, frame):
         over_base = self.w.bearing(self.w.base)[1] < BASE_AREA
         over_base = over_base and self.w.now < self.w.base_tint_until

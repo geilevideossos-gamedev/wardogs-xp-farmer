@@ -166,6 +166,7 @@ vision:
     center: [160, 862]
     ring: [12, 30]
     min_chroma: 14
+    base_chroma: 10
   hq_marker:
     template: marker_hq.png
     band: [60, 1000]
