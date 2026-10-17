@@ -150,6 +150,19 @@ def test_fly_brakes_with_s_until_slow(setup):
     assert inp.is_down("s")
 
 
+def test_fly_brakes_with_w_when_s_makes_it_faster(setup):
+    pilot, inp, clock, flight = setup
+    speeds = (20, 22, 24, 27, 31, 36)
+    pressed = []
+    for step, speed in enumerate(speeds):
+        clock.now = step * flight["pitch_interval_s"]
+        pilot.update()
+        fly(pilot, 30, speed, target_speed=0)
+        pressed.append("w" if inp.is_down("w") else "s" if inp.is_down("s") else "")
+    assert pressed[0] == "s" and pressed[-1] == "w"
+    assert pilot.reverse
+
+
 def test_fly_counts_pitch_taps(setup):
     pilot, _, _, _ = setup
     fly(pilot, 100, 0, target_speed=200)

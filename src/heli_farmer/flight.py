@@ -53,6 +53,8 @@ class Pilot:
         self._yaw_free_at = -1e9
         self._last_roll = -1e9
         self.tilt = 0
+        self.reverse = False
+        self._brake_accel: float | None = None
         self.lead: float | None = None
         self.on_target = False
 
@@ -210,13 +212,17 @@ class Pilot:
         hover = self._cfg["hover_speed"]
         band = self._cfg["accel_band"]
         if target <= hover:
+            if speed <= self._cfg["trim_speed"]:
+                self.reverse, self._brake_accel = False, None
             if speed <= hover:
                 if speed > self._cfg["trim_speed"] and accel > 0:
                     self._drift(loaded)
-            elif self.tilt < 0 and accel > band:
-                self._pitch("forward")
-            elif accel > -self._cfg["brake_accel"]:
-                self._pitch("back")
+            elif accel > -self._cfg["brake_accel"] and self._pitch_ready():
+                last = self._brake_accel
+                if last is not None and accel > max(last, self._cfg["reverse_accel"]):
+                    self.reverse = not self.reverse
+                self._pitch("forward" if self.reverse else "back")
+                self._brake_accel = accel
             return
         limit = self._cfg["accel_max"]
         wanted = clamp(self._cfg["speed_gain"] * (target - speed), -limit, limit)
@@ -231,17 +237,19 @@ class Pilot:
     def _drift(self, loaded: bool) -> None:
         if self.tilt > 0:
             self._pitch("back")
-        elif self.tilt < 0:
+        elif self.tilt < 0 or self.reverse:
             self._pitch("forward")
         elif loaded:
             self._pitch("forward", self._cfg["trim_tap_s"], counted=False)
 
+    def _pitch_ready(self) -> bool:
+        return self._clock() - self._last_pitch >= self._cfg["pitch_interval_s"]
+
     def _pitch(self, key: str, seconds: float | None = None, counted: bool = True) -> None:
-        now = self._clock()
-        if now - self._last_pitch < self._cfg["pitch_interval_s"]:
+        if not self._pitch_ready():
             return
         self._pulse(self._keys[key], seconds or self._cfg["pitch_tap_s"])
-        self._last_pitch = now
+        self._last_pitch = self._clock()
         if counted:
             self.tilt += 1 if key == "forward" else -1
 

@@ -205,6 +205,7 @@ flight:
   accel_max: 15
   accel_band: 6
   brake_accel: 5
+  reverse_accel: 2
   pitch_tap_s: 0.2
   pitch_interval_s: 0.7
   max_tilt: 3
