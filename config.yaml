@@ -293,7 +293,8 @@ flight:
   climb_timeout_s: 30
   turn_timeout_s: 60
   leg_timeout_s: 240
-  turnaround_s: 6
+  turnaround_s: 14
+  leave_turn_deg: 170
   leave_margin_s: 3
   outside_check_s: 1
   drop_delay_s: 3
@@ -308,6 +309,15 @@ flight:
   hq_lost_s: 3
   hq_overhead_distance: 60
   hq_overshoot_m: 50
+  minimap_px_per_deg: 20
+  base_facing_deg: 45
+  base_speed_per_px: 1.0
+  pad_radius_px: 8
+  pad_match_px: 4
+  pad_still_s: 2
+  pad_wait_s: 5
+  minimap_motion_s: 1.0
+  minimap_motion_px_s: 2
   approach_speed_per_m: 0.15
   drop_sink_rate: 2
   approach_sink_rate: 3

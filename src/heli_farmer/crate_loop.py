@@ -1,5 +1,6 @@
 import csv
 import logging
+import math
 import statistics
 import threading
 import time
@@ -11,7 +12,7 @@ import numpy as np
 
 from heli_farmer.config import merge
 from heli_farmer.detectors import Marker, Vision
-from heli_farmer.flight import Pilot
+from heli_farmer.flight import Pilot, Trend, clamp
 from heli_farmer.inputs import Input
 from heli_farmer.killswitch import wait
 from heli_farmer.states import RoundOver
@@ -45,6 +46,33 @@ class StepFailed(Exception):
     pass
 
 
+class Pads:
+    def __init__(self, match_px: float, still_s: float):
+        self._match_px = match_px
+        self._still_s = still_s
+        self._tracks: list[tuple[float, float, float]] = []
+        self.kept: tuple[float, float] | None = None
+        self.kept_at = 0.0
+
+    def update(
+        self, now: float, hq: tuple[float, float], helis: list[tuple[float, float]]
+    ) -> list[tuple[float, float]]:
+        tracks, parked = [], []
+        for x, y in helis:
+            rx, ry = x - hq[0], y - hq[1]
+            match = self._match_px
+            near = [t for t in self._tracks if math.hypot(t[0] - rx, t[1] - ry) <= match]
+            if near:
+                rx, ry, first = near[0]
+            else:
+                first = now
+            tracks.append((rx, ry, first))
+            if now - first >= self._still_s:
+                parked.append((x, y))
+        self._tracks = tracks
+        return parked
+
+
 class CrateLoop:
     def __init__(
         self,
@@ -70,6 +98,8 @@ class CrateLoop:
         self._map = merge(config["maps"]["default"], config["maps"].get(map_name) or {})
         self._clock = clock
         self._pilot = Pilot(inp, self._keys, self._flight, clock)
+        self._hq_x = Trend(self._flight["minimap_motion_s"])
+        self._hq_y = Trend(self._flight["minimap_motion_s"])
         self._heli_lost_since: float | None = None
         self._side: str | None = None
         self._turn_side: str | None = None
@@ -103,6 +133,7 @@ class CrateLoop:
             getattr(self, name)()
         finally:
             self._pilot.release()
+            self._pilot.backward = None
 
     def observe(self) -> np.ndarray:
         wait(self._stop, self._flight["tick_s"])
@@ -289,8 +320,16 @@ class CrateLoop:
         deadline = turned + self._flight["leg_timeout_s"]
         outside_hits = 0
         left: float | None = None
+        heading, total = None, 0.0
         while self._clock() < deadline:
             frame = self.observe()
+            now_heading = self._vision.minimap_heading(frame)
+            if heading is not None and now_heading is not None:
+                total += (now_heading - heading + 180) % 360 - 180
+            heading = now_heading if now_heading is not None else heading
+            if self._clock() < turned and abs(total) >= self._flight["leave_turn_deg"]:
+                log.info("Umgedreht: %.0f° laut Minimap", abs(total))
+                turned = self._clock()
             if self._clock() < turned:
                 speed = self._vision.speed(frame)
                 if speed is not None and speed > self._flight["curve_min_speed"]:
@@ -316,39 +355,53 @@ class CrateLoop:
         phase = "cruise"
         distances: deque[int] = deque(maxlen=self._flight["distance_history"])
         nearest: float | None = None
-        over_base = away = 0
+        over_base = away = rising = 0
+        waited: float | None = None
         landed_since = None
         seen = self._clock()
         self._side, self._seen = "yaw_right", None
+        pads = Pads(self._flight["pad_match_px"], self._flight["pad_still_s"])
         while self._clock() < deadline:
             frame = self.observe()
             now = self._clock()
             if land_deadline is not None and now > land_deadline:
                 raise StepFailed("Landeanflug dauert zu lange")
             marker = self._vision.hq_marker(frame)
+            reading = None
             if marker is not None:
                 seen = now
                 self._side = "yaw_right" if marker.x > self._flight["center_x"] else "yaw_left"
-                if marker.distance is not None:
-                    distances.append(marker.distance)
+                reading = marker.distance
+                if reading is not None:
+                    distances.append(reading)
             full = len(distances) == distances.maxlen
             distance = statistics.median(distances) if full else None
             lost = now - seen > self._flight["hq_lost_s"]
             prompt = self._vision.buy_prompt(frame)
+            target, parked, heading = self._base_view(frame, pads, now)
+            off_pad = target is not None and math.hypot(*target) > 2 * self._flight["pad_radius_px"]
             if phase == "turn":
                 agl = self._map["cruise_agl" if land_deadline is None else "approach_agl"]
                 if prompt and land_deadline is not None:
                     log.info("Sinkflug (Kauf-Hinweis)")
                     phase, away = "descend", 0
+                elif target is not None and land_deadline is not None:
+                    log.info("HQ auf der Minimap: danach fliegen")
+                    phase, away = "base", 0
                 elif self._align(frame, marker, agl):
                     log.info("HQ-Marker im Bild, weiter Richtung Base")
                     phase = "cruise" if land_deadline is None else "approach"
                     distances.clear()
-                    nearest, over_base, seen = None, 0, now
+                    nearest, over_base, rising, seen = None, 0, 0, now
             elif phase == "cruise":
                 if lost:
-                    log.info("HQ-Marker weg: anhalten und suchen")
-                    phase, self._seen = "turn", None
+                    if target is not None:
+                        log.info("HQ-Marker weg, HQ auf der Minimap: danach fliegen")
+                        phase, away = "base", 0
+                        land_deadline = now + self._flight["land_timeout_s"]
+                    else:
+                        log.info("HQ-Marker weg: anhalten und suchen")
+                        phase, self._seen = "turn", None
                     continue
                 self._cruise(frame, marker.x if marker is not None else None)
                 near = distance is not None and distance <= self._map["land_distance"]
@@ -371,23 +424,49 @@ class CrateLoop:
                     x=marker.x if marker is not None and not close else None,
                 )
                 over_base = over_base + 1 if self._vision.minimap_over_base(frame) else 0
-                farther = (
-                    distance is not None
-                    and nearest is not None
-                    and distance > nearest + self._flight["hq_overshoot_m"]
-                )
-                if farther or (lost and not over_base):
+                if reading is not None and distance is not None and nearest is not None:
+                    farther = distance > nearest + self._flight["hq_overshoot_m"]
+                    rising = rising + 1 if farther else 0
+                if prompt:
+                    log.info("Sinkflug (Kauf-Hinweis)")
+                    phase, away = "descend", 0
+                elif rising >= self._confirm:
                     log.info("Base überflogen (HQ %s m, vorher %s m): umdrehen", distance, nearest)
                     phase, self._seen = "turn", None
-                elif prompt or (over_base >= self._confirm and (close or lost)):
-                    log.info("Sinkflug (%s)", "Kauf-Hinweis" if prompt else "Base unter dem Heli")
+                elif lost and target is not None:
+                    log.info("HQ-Marker weg, HQ auf der Minimap: danach fliegen")
+                    phase, away = "base", 0
+                elif lost:
+                    log.info("HQ-Marker weg, kein HQ auf der Minimap: anhalten und suchen")
+                    phase, self._seen = "turn", None
+                elif over_base >= self._confirm and close:
+                    log.info("Sinkflug (Base unter dem Heli)")
                     phase, away = "descend", 0
+            elif phase == "base":
+                away = 0 if target is not None else away + 1
+                if prompt:
+                    log.info("Sinkflug (Kauf-Hinweis)")
+                    phase, away = "descend", 0
+                elif away >= self._confirm:
+                    log.info("HQ nicht mehr auf der Minimap: anhalten und suchen")
+                    phase, self._seen = "turn", None
+                elif target is not None and self._to_base(frame, target, heading):
+                    waited = waited or now
+                    if parked or now - waited >= self._flight["pad_wait_s"]:
+                        log.info("Über der Landezone (%s)", "Helis" if parked else "HQ")
+                        phase, away = "descend", 0
+                else:
+                    waited = None
             else:
                 below = prompt or self._vision.minimap_over_base(frame)
                 away = 0 if below else away + 1
                 if away >= self._confirm:
                     log.info("Base nicht mehr unter dem Heli: steigen, umdrehen")
                     phase, self._seen, landed_since = "turn", None, None
+                    continue
+                if off_pad and not prompt:
+                    log.info("Landezone weggerutscht: nachfliegen (Minimap)")
+                    phase, waited, landed_since = "base", None, None
                     continue
                 if self._descend(frame):
                     landed_since = landed_since or now
@@ -400,6 +479,63 @@ class CrateLoop:
                 else:
                     landed_since = None
         raise StepFailed("Landung dauert zu lange")
+
+    def _base_view(
+        self, frame: np.ndarray, pads: Pads, now: float
+    ) -> tuple[tuple[float, float] | None, list[tuple[float, float]], float | None]:
+        hq = self._vision.minimap_hq(frame)
+        heading = self._vision.minimap_heading(frame)
+        own = self._vision.minimap_position(frame) or (0.0, 0.0)
+        if hq is not None:
+            hq = (hq[0] - own[0], hq[1] - own[1])
+        self._pilot.backward = self._backward(now, hq, heading)
+        helis = [(x - own[0], y - own[1]) for x, y in self._vision.minimap_helis(frame)]
+        parked = [] if hq is None else pads.update(now, hq, helis)
+        target = None if hq is None else min(parked or [hq], key=lambda p: math.hypot(*p))
+        if target is not None:
+            pads.kept, pads.kept_at = target, now
+        elif pads.kept is not None and now - pads.kept_at <= self._flight["hq_lost_s"]:
+            target = pads.kept
+        return target, parked, heading
+
+    def _backward(
+        self, now: float, hq: tuple[float, float] | None, heading: float | None
+    ) -> bool | None:
+        if hq is None:
+            self._hq_x.reset()
+            self._hq_y.reset()
+            return None
+        self._hq_x.add(now, hq[0])
+        self._hq_y.add(now, hq[1])
+        if heading is None or self._hq_x.span < self._flight["minimap_motion_s"] / 2:
+            return None
+        vx, vy = -self._hq_x.rate(), -self._hq_y.rate()
+        if math.hypot(vx, vy) < self._flight["minimap_motion_px_s"]:
+            return None
+        h = math.radians(heading)
+        return vx * math.sin(h) - vy * math.cos(h) < 0
+
+    def _to_base(
+        self, frame: np.ndarray, target: tuple[float, float], heading: float | None
+    ) -> bool:
+        dx, dy = target
+        distance = math.hypot(dx, dy)
+        x, speed = None, 0.0
+        if heading is not None:
+            error = (math.degrees(math.atan2(dx, -dy)) - heading + 180) % 360 - 180
+            center = self._flight["center_x"]
+            x = clamp(center + error * self._flight["minimap_px_per_deg"], 0, 2 * center)
+            if abs(error) <= self._flight["base_facing_deg"]:
+                slowest = self._map["approach_speed"]
+                speed = min(slowest, distance * self._flight["base_speed_per_px"])
+        self._fly(
+            frame,
+            self._map["approach_agl"],
+            speed,
+            sink_rate=self._flight["approach_sink_rate"],
+            x=x,
+        )
+        return distance <= self._flight["pad_radius_px"]
 
     def _descend(self, frame: np.ndarray) -> bool:
         agl = self._vision.agl(frame)

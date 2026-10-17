@@ -62,6 +62,7 @@ class Pilot:
         self._last_roll = -1e9
         self._roll = 0
         self.reverse = False
+        self.backward: bool | None = None
         self._tapped: tuple[bool, float] | None = None
         self._suspect = 0
         self._learn_after = -1e9
@@ -317,6 +318,9 @@ class Pilot:
         moving = speed > self._cfg["trim_speed"]
         own = now - self._last_pitch < window
         self.drifting = moving and not own and accel > self._cfg["drift_accel"]
+        if self.backward is not None:
+            self.reverse, self._suspect = self.backward, 0
+            return
         if ground > self._cfg["forward_speed"]:
             self.reverse, self._suspect, self._slowing = False, 0, False
             return

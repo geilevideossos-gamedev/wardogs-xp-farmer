@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 from heli_farmer.config import load_config
-from heli_farmer.crate_loop import CrateLoop, LeaveLayer, StepFailed
+from heli_farmer.crate_loop import CrateLoop, LeaveLayer, Pads, StepFailed
 from heli_farmer.detectors import Marker
 from heli_farmer.flight import Pilot
 from heli_farmer.inputs import Input
@@ -36,6 +36,8 @@ CTRL_LIFT = 0.93
 FOV_HALF = 45.0
 BASE_RADIUS = 80.0
 BASE_AREA = 200.0
+MINIMAP_PX_PER_M = 0.5
+MINIMAP_HALF_PX = 120
 
 
 class World:
@@ -59,6 +61,10 @@ class World:
         self.hz = True
         self.base_tint_until = math.inf
         self.base = (0.0, 0.0)
+        self.pad: tuple[float, float] | None = None
+        self.hq_hidden = 0.0
+        self.hq_spikes: list[int] = []
+        self.parked: list[tuple[float, float]] = []
         self.crate = False
         self.menu = None
         self.prompt = True
@@ -235,7 +241,13 @@ class World:
         return self.bearing(self.zone)[1] < self.radius
 
     def buy_prompt(self) -> bool:
-        return self.prompt and self.bearing(self.base)[1] < BASE_RADIUS and self.agl < 40
+        pad = self.pad or self.base
+        return self.prompt and self.bearing(pad)[1] < BASE_RADIUS and self.agl < 40
+
+    def minimap(self, target: tuple[float, float]) -> tuple[float, float] | None:
+        dx = (target[0] - self.pos[0]) * MINIMAP_PX_PER_M
+        dy = -(target[1] - self.pos[1]) * MINIMAP_PX_PER_M
+        return (dx, dy) if max(abs(dx), abs(dy)) <= MINIMAP_HALF_PX else None
 
 
 class FakeVision:
@@ -290,10 +302,23 @@ class FakeVision:
         return self.w.marker(self.w.zone, kind="CZ", distance=round(distance - self.w.radius))
 
     def hq_marker(self, frame):
-        error, _ = self.w.bearing(self.w.base)
-        if self.w.inside() or abs(error) > FOV_HALF:
+        error, distance = self.w.bearing(self.w.base)
+        if self.w.inside() or abs(error) > FOV_HALF or distance < self.w.hq_hidden:
             return None
-        return self.w.marker(self.w.base, distance=round(self.w.bearing(self.w.base)[1]))
+        spike = self.w.hq_spikes.pop(0) if self.w.hq_spikes else 0
+        return self.w.marker(self.w.base, distance=round(distance) + spike)
+
+    def minimap_heading(self, frame):
+        return self.w.heading if self.w.lakota else None
+
+    def minimap_position(self, frame):
+        return (0.0, 0.0) if self.w.lakota else None
+
+    def minimap_hq(self, frame):
+        return self.w.minimap(self.w.base)
+
+    def minimap_helis(self, frame):
+        return [spot for spot in map(self.w.minimap, self.w.parked) if spot is not None]
 
     def minimap_over_base(self, frame):
         return self.minimap_in_zone(frame)
@@ -564,9 +589,6 @@ def test_leave_skips_turnaround_when_already_outside(loop, world, config):
     assert "q" not in world.pressed and "e" not in world.pressed
 
 
-@pytest.mark.xfail(
-    reason="Landung in der kalibrierten Simulation noch nicht zuverlässig, im Spiel ungetestet"
-)
 def test_land_brakes_descends_and_checks_prompt(loop, world, config, caplog):
     airborne(loop, world, 100, 150, 180, pos=(0, 1500))
     with caplog.at_level("INFO"):
@@ -781,3 +803,70 @@ def test_turn_counter_steers_when_marker_runs_off_center(loop, world, config):
     assert first_yaw(world) == "q"
     assert_aimed(world, world.base, config)
     assert world.now < 5
+
+
+def test_turn_back_keeps_leave_direction(loop, world, config):
+    airborne(loop, world, 100, 120, 0, pos=(0, 1800))
+    world.zone = (150.0, 2000.0)
+    loop._flight["turnaround_s"] = 60
+    start = world.heading
+    loop.step("leave")
+    turned = (start - world.heading) % 360
+    assert first_yaw(world) == "q" and 150 < turned < 220
+    world.pressed.clear()
+    loop.step("turn")
+    assert first_yaw(world) == "q"
+    assert_aimed(world, world.base, config)
+
+
+def test_land_in_base_follows_minimap_to_parked_helis(loop, world, caplog):
+    world.pad = (60.0, -40.0)
+    world.parked = [(70.0, -40.0), (80.0, -40.0)]
+    world.hq_hidden = 150.0
+    airborne(loop, world, 60, 80, 180, pos=(0, 600))
+    with caplog.at_level("INFO"):
+        loop.step("land")
+    assert any("HQ auf der Minimap" in r.msg for r in caplog.records)
+    assert world.agl <= 1 and world.buy_prompt()
+    assert math.dist(world.pos, world.pad) < BASE_RADIUS
+
+
+def test_land_ignores_single_distance_spikes(loop, world, caplog):
+    world.hq_spikes = [0] * 40 + [200, 200]
+    airborne(loop, world, 60, 100, 180, pos=(0, 1100))
+    with caplog.at_level("INFO"):
+        loop.step("land")
+    assert not any("überflogen" in r.msg for r in caplog.records)
+    assert world.agl <= 1 and world.buy_prompt()
+
+
+def test_land_hq_lost_far_away_is_no_overshoot(loop, world, caplog):
+    world.hq_hidden = 2000.0
+    airborne(loop, world, 100, 150, 180, pos=(0, 1900))
+    with caplog.at_level("INFO"), pytest.raises(StepFailed):
+        loop.step("land")
+    assert not any("überflogen" in r.msg for r in caplog.records)
+    assert any("HQ-Marker weg" in r.msg for r in caplog.records)
+
+
+def test_parked_helis_stand_still_relative_to_hq():
+    pads = Pads(match_px=4, still_s=2)
+    for step in range(30):
+        shift = step * 2.0
+        hq = (10.0 - shift, -20.0)
+        parked = pads.update(step * 0.1, hq, [(30.0 - shift, -20.0), (40.0, 5.0 + step)])
+    assert parked == [(30.0 - shift, -20.0)]
+
+
+def test_backward_flight_from_hq_motion_on_minimap(loop, config):
+    motion = config["flight"]["minimap_motion_s"]
+    results = []
+    for step in range(20):
+        t = step * motion / 10
+        results.append(loop._backward(t, (0.0, -30.0 + 10 * t), 0.0))
+    assert results[-1] is False
+    loop._backward(0, None, 0.0)
+    for step in range(20):
+        t = step * motion / 10
+        result = loop._backward(t, (0.0, -30.0 - 10 * t), 0.0)
+    assert result is True

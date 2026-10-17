@@ -132,13 +132,17 @@ Die wichtigsten Einstellungen:
 | `maps.<map>.drop_min_agl` | G wird nur gedrückt, wenn der Heli mindestens so hoch ist (m). Keine Obergrenze | 30 |
 | `flight.drop_delay_s` | Wartezeit nach dem Erreichen der Zone (HZ-Marker oder Heli auf der Minimap im Zonenkreis) bis G | 3 |
 | `flight.leave_margin_s` | So lange (s) fliegt der Bot nach dem Verlassen der Zone noch geradeaus, bevor er die Base sucht | 3 |
-| `flight.turnaround_s` | So lange (s) dreht der Bot nach dem Abwurf, bevor er aus der Zone fliegt. Mehr = weiter umdrehen | 6 |
+| `flight.leave_turn_deg` | So weit (Grad) dreht der Bot nach dem Abwurf um, gemessen an der Flugrichtung auf der Minimap | 170 |
+| `flight.turnaround_s` | Höchstens so lange (s) dreht der Bot nach dem Abwurf um (auch, wenn die Minimap keine Richtung liefert) | 14 |
 | `maps.<map>.land_distance` | Ab dieser Entfernung zur Base (m, Zahl neben dem HQ-Marker) beginnt der Landeanflug: bremsen und sinken. Größer = früher | 1200 |
 | `flight.approach_speed_per_m` | Im Landeanflug wird das Soll-Tempo mit der Entfernung kleiner: so viele km/h pro Meter, mindestens `approach_speed`. Kleiner = früher langsam | 0.15 |
 | `maps.<map>.hq_approach_y` | Ersatz, falls die Entfernung nicht lesbar ist: Landeanflug, wenn der HQ-Marker so weit unten im Bild ist | 560 |
 | `maps.<map>.approach_agl` / `approach_speed` | Höhe (m) und Tempo (km/h) im Landeanflug, bis die Base auf der Minimap unter dem Heli ist | 40 / 40 |
 | `flight.hq_overhead_distance` | Ab dieser Entfernung zum HQ (m) über der Base: senkrecht runter | 60 |
-| `flight.hq_overshoot_m` | Wird die Entfernung zum HQ im Landeanflug um so viel (m) größer als der kleinste Wert, gilt die Base als überflogen: umdrehen und neu anfliegen | 50 |
+| `flight.hq_overshoot_m` | Wird die Entfernung zum HQ im Landeanflug dreimal hintereinander um so viel (m) größer als der kleinste Wert, gilt die Base als überflogen: umdrehen und neu anfliegen | 50 |
+| `flight.pad_still_s` | So lange (s) muss ein anderer Heli auf der Minimap stillstehen, damit der Bot ihn als Landezone nimmt | 2 |
+| `flight.pad_radius_px` | So nah (Minimap-Pixel) muss der Bot am Ziel auf der Minimap sein, bevor er sinkt | 8 |
+| `flight.pad_wait_s` | Sieht der Bot über dem HQ keine stehenden Helis, wartet er so lange (s), bevor er dort sinkt | 5 |
 | `flight.descend_speed` | Im Sinkflug geht es erst nach unten, wenn der Heli langsamer als das ist (km/h) | 30 |
 | `flight.land_timeout_s` | Höchstdauer ab Beginn des Landeanflugs (s), danach sicherer Stopp | 120 |
 | `flight.approach_sink_rate` / `drop_sink_rate` | Höchste Sinkrate (m/s) im Landeanflug / vor und in der Zone | 3 / 2 |
