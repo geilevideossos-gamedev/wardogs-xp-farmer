@@ -36,7 +36,7 @@ Alle arbeiten auf einem 1920×1080-BGR-Frame. Koordinaten, Templates und Schwell
 | `roll` | `int \| None` (Grad, + = nach rechts geneigt) | Lageanzeige unten mittig: Top-Hat um `roll.center`, je Winkel −`max_deg`…`max_deg` (1°) Mittelwert auf zwei gegenüberliegenden Radialstücken `radius` (die beiden Horizont-Striche); Score = Minimum beider Seiten, bester Winkel. `None`, wenn Score < `min_score` (HUD weg, Strich auf hellem Grund unsichtbar) |
 | `zone_marker`, `hq_marker` | `Marker(x, y, score, kind, distance) \| None` | Template im Band `band`, Maske als Alpha-Kanal im PNG, außerhalb der Maske mit Mittelwert gefüllt, TM_CCOEFF_NORMED. `anchor` = Markerpunkt im Template. Zone: `kind` `"CZ"`/`"HZ"` (Buchstabenfeld `letter` gegen CZ- und HZ-Template). `distance` in m (Zone und HQ) |
 | `_distance(frame, marker, strip, centered)` | `int \| None` | Text im Streifen `strip` relativ zum Marker; Zone: `distance.strip` über dem Marker, zentriert; HQ: `hq_marker.distance_strip` rechts daneben, linksbündig ab Streifenanfang. Je Format aus `formats` (`d` = Ziffer) Glyphen aus `distance_glyphs.png` an festen, zentrierten Positionen (`advance`, ±`shift`, ±`slack`) per TM_CCOEFF_NORMED. Bestes Format = größte Summe `score − min_gain`; `None`, wenn die schwächste Glyphe < `min_score`. CZ: Abstand zum Zonenrand, HZ: zur Zonenmitte |
-| `minimap_in_zone` | bool | Median-BGR im Ring `ring` um `center` der Minimap, `max − min ≥ min_chroma` (Zonen-Färbung). Färbt auch in Base und fremden Zonen → nur zusammen mit HZ nutzen |
+| `minimap_in_zone` | bool | Median-BGR im Ring `ring` um `center` der Minimap, `max − min ≥ min_chroma` (Zonen-Färbung). Färbt auch in Base und fremden Zonen → zählt in `drop` erst ab dem Bremspunkt. Weißer Zonenkreis ist nicht bunt und wird nicht erkannt (dann HZ) |
 | `score(frame, name)`, `seen(frame, name)` | float / bool | Template-Vergleich im Fenster `x±search, y±search` |
 
 Template-Fenster liegen außerhalb der Overlay-Fläche der OBS-Videos (x 600–1500, y 0–370). Ausnahme sind die Marker: Sie werden im ganzen Band gesucht, im Spiel gibt es kein Overlay.
@@ -85,13 +85,13 @@ stateDiagram-v2
     buy --> climb: G-Feld sichtbar
     climb --> turn: AGL >= turn_agl
     turn --> drop: Zonen-Marker mittig und ruhig, Heli langsam, yaw_settle_s lang
-    drop --> leave: HZ + Minimap, drop_delay_s gewartet (gerade, sanft sinken), AGL <= drop_max_agl, G, G-Feld weg
+    drop --> leave: HZ oder (ab Bremspunkt) Minimap, drop_delay_s gewartet (gerade, sanft sinken), AGL >= drop_min_agl, G, G-Feld weg
     leave --> turn2: schon draußen (outside_check_s) oder turnaround_s gedreht und raus
     turn2 --> land: HQ-Marker mittig und ruhig
     land --> buy: gelandet, Kauf-Hinweis sichtbar
     buy --> StepFailed: kein Kauf-Hinweis / Kauf erfolglos
     climb --> StepFailed: Timeout
-    drop --> StepFailed: Timeout / zu hoch in der Zone / G-Feld bleibt
+    drop --> StepFailed: Timeout / zu tief in der Zone / G-Feld bleibt
     leave --> StepFailed: Timeout
     land --> StepFailed: Timeout / kein Kauf-Hinweis
 ```
@@ -112,7 +112,7 @@ stateDiagram-v2
 | `buy` | Kiste schon geladen → fertig. Menü zu: Kauf-Hinweis nötig → B. Warten auf Menü (`main` oder `logistics`). `main` mit `slots_full` → nur bestätigen. Sonst ggf. Klick `logistics` (kommt das Menü nicht → nur bestätigen) → `pallets` → `ammo_pallet` → warten auf `main`. Bestätigen: Klick `confirm`, bis `garage_menu` `None` ist, höchstens `buy.confirm_attempts`-mal, sonst `StepFailed`. Dann warten auf G-Feld. `buy.attempts` Versuche, dann `StepFailed`. Klick = `moveTo`, `hover_s` warten, Maustaste `press_s` halten, danach `pause_s` |
 | `climb` | `Pilot.fly` mit Tempo 0 bis AGL ≥ `turn_agl` („ein paar Meter“, am Boden wirkt Gieren nicht) |
 | `turn` | Hinflug (Kiste geladen): Ziel Zonen-Marker, Höhe `turn_agl`. Rückflug: Ziel HQ-Marker, Höhe `cruise_agl`. Pro Tick `_align(frame, marker, agl)`: Tempo-Soll 0; kein Marker → `Pilot.search(Seite)`, Seite = wo der Marker zuletzt war (Start rechts); sonst `_fly(..., x=marker.x)`. Fertig, wenn `Pilot.on_target` und Tempo ≤ `hover_speed` ununterbrochen `yaw_settle_s` lang. Timeout `turn_timeout_s` |
-| `drop` | Bis zum Eintritt: zum Zonen-Marker gieren und bei Tempo neigen (`_fly` mit `x`). Reiseflug (`_cruise`: `cruise_agl`, `cruise_speed`, `floor = min_agl`), bis der Median der letzten `distance_history` CZ-Entfernungen ≤ `brake_distance` → Anflug (`_approach`: `drop_agl`, `drop_speed`, `floor = drop_agl − agl_band`, `sink_rate = drop_sink_rate`). Zone erreicht = `kind == "HZ"` und `minimap_in_zone` in `vision.confirm` Bildern in Folge, `entered` wird nur einmal gesetzt. Danach `_hold_level`: kein Gieren, Querneigung → 0, keine W/S-Tipps außer Sicherheitsregeln, sanft (≤ `drop_sink_rate`) auf `drop_agl`. Nach `drop_delay_s` G, sobald AGL ≤ `drop_max_agl` (sonst einmal Log `Warte auf Abwurfhöhe`); nach `drop_wait_s` `StepFailed` mit AGL. G-Druck: warten bis G-Feld `vision.confirm`-mal weg, dann bis `delivered_wait_s` auf „SUPPLIES DELIVERED“; dabei `_hold_level` |
+| `drop` | Bis zum Eintritt: zum Zonen-Marker gieren und bei Tempo neigen (`_fly` mit `x`). Reiseflug (`_cruise`: `cruise_agl`, `cruise_speed`, `floor = min_agl`), bis der Median der letzten `distance_history` CZ-Entfernungen ≤ `brake_distance` → Anflug (`_approach`: `drop_agl`, `drop_speed`, `floor = drop_agl − agl_band`, `sink_rate = drop_sink_rate`). Zone erreicht = `kind == "HZ"` oder (`approach` und `minimap_in_zone`) in `vision.confirm` Bildern in Folge (Log nennt HZ oder Minimap), `entered` wird nur einmal gesetzt. Danach `_hold_level`: kein Gieren, Querneigung → 0, keine W/S-Tipps außer Sicherheitsregeln, sanft (≤ `drop_sink_rate`) auf `drop_agl`. Nach `drop_delay_s` G, sobald AGL ≥ `drop_min_agl` (keine Obergrenze; sonst einmal Log `Warte auf Abwurfhöhe`); nach `drop_wait_s` `StepFailed` mit AGL. G-Druck: warten bis G-Feld `vision.confirm`-mal weg, dann bis `delivered_wait_s` auf „SUPPLIES DELIVERED“; dabei `_hold_level` |
 | `leave` | Zuerst bis `outside_check_s` prüfen, ob schon draußen (`_outside` `vision.confirm`-mal: Marker sichtbar → `kind == "CZ"`, sonst Minimap ohne Färbung) → fertig (Schwung nach G). Sonst Drehrichtung weg vom Marker (Marker rechts → Q, sonst E), `turnaround_s` lang `Pilot.search(Richtung)` bei Tempo 0, Höhe `cruise_agl`. Dann Reiseflug geradeaus bis draußen, danach noch `leave_margin_s` geradeaus |
 | `land` | HQ-Entfernung: Median der letzten `distance_history` gelesenen Werte. **Reiseflug** zum HQ-Marker (gieren + neigen) bis Entfernung ≤ `land_distance` oder Marker `y ≥ hq_approach_y` oder Kauf-Hinweis → **Anflug** (`approach_agl`, `approach_speed`, `sink_rate = approach_sink_rate`, S bremst über die Tempo-Regelung; gieren nur, solange Entfernung > `hq_overhead_distance`) bis Kauf-Hinweis oder (Minimap eingefärbt = über der Base und (Entfernung ≤ `hq_overhead_distance` oder HQ-Marker `hq_lost_s` weg)) → **Sinkflug** `Pilot.descend` + `bank` (gerade) bis AGL ≤ `landed_agl` und Tempo ≤ `landed_speed` für `landed_hold_s` → Kauf-Hinweis prüfen |
 
@@ -166,7 +166,7 @@ Exit-Codes: 0 Stopp/fertig, 1 unerwarteter Fehler, 2 Watchdog (unbekannter Zusta
 | `vision` | `Vision`; `confirm` = gleiche Messungen in Folge für Zustandswechsel der Kiste |
 | `buy` | Klickpunkte und Wartezeiten des Kaufs |
 | `flight` | `Pilot` und Schritt-Timeouts, `tick_s` = Takt in Layer 1 |
-| `maps.default` + `maps.<name>` | Flugparameter pro Map: `turn_agl, min_agl, cruise_agl, cruise_speed, brake_distance, drop_agl, drop_max_agl, drop_speed, approach_agl, approach_speed, land_distance, hq_approach_y` |
+| `maps.default` + `maps.<name>` | Flugparameter pro Map: `turn_agl, min_agl, cruise_agl, cruise_speed, brake_distance, drop_agl, drop_min_agl, drop_speed, approach_agl, approach_speed, land_distance, hq_approach_y` |
 | `overlay` | nur `tools/overlay_inputs.py` |
 | `recording`, `hold_test`, `logging` | Aufnahme, Hold-Test, Logs |
 
@@ -212,7 +212,7 @@ Exit-Codes: 0 Stopp/fertig, 1 unerwarteter Fehler, 2 Watchdog (unbekannter Zusta
 | `LANDED_BASE` / `LANDED` | AGL ≤ `landed_agl` und Tempo ≤ `landed_speed`, mit/ohne Kauf-Hinweis |
 | `TO_ZONE` / `TO_BASE` | in der Luft mit/ohne Kiste |
 
-`segments(rows, min_rows)` fasst gleiche Situationen zusammen und schluckt kürzere Abschnitte. `drops(rows, confirm)` = Abwurfzeitpunkte. `zone_visits(rows, confirm)` = (Eintritt, Austritt) nach den Regeln von `CrateLoop.drop`/`leave` (rein: HZ + Minimap, raus: CZ oder kein Marker und Minimap ohne Färbung, je `confirm` Marker-Zeilen in Folge). `brake_times(rows, history, brake_distance)` = erster Zeitpunkt pro Hinflug (Kiste geladen), an dem der Median der letzten `history` CZ-Entfernungen ≤ `brake_distance` ist. CSV nach `debug/replay/<ordner>_<stem>.csv`. `tests/test_replay_videos.py` (Marker `videos`, nur lokal mit Videos) vergleicht Abwürfe, Kaufmenüs, Schaden und Tod mit `docs/ANALYSIS.md` und prüft für jeden Abwurf: Zonen-Besuch erkannt, Bremspunkt vor dem Eintritt, kein HQ-Marker in der Zone, HQ-Marker kurz nach dem Verlassen.
+`segments(rows, min_rows)` fasst gleiche Situationen zusammen und schluckt kürzere Abschnitte. `drops(rows, confirm)` = Abwurfzeitpunkte. `zone_visits(rows, confirm, history, brake_distance)` = (Eintritt, Austritt) nach den Regeln von `CrateLoop.drop`/`leave` (rein: HZ oder Minimap, Minimap nur wenn der Median der letzten `history` CZ-Entfernungen ≤ `brake_distance`, Entfernungen ohne Kiste verworfen; raus: CZ oder kein Marker und Minimap ohne Färbung, je `confirm` Marker-Zeilen in Folge). `brake_times(rows, history, brake_distance)` = erster Zeitpunkt pro Hinflug (Kiste geladen), an dem der Median der letzten `history` CZ-Entfernungen ≤ `brake_distance` ist. CSV nach `debug/replay/<ordner>_<stem>.csv`. `tests/test_replay_videos.py` (Marker `videos`, nur lokal mit Videos) vergleicht Abwürfe, Kaufmenüs, Schaden und Tod mit `docs/ANALYSIS.md` und prüft für jeden Abwurf: Zonen-Besuch erkannt, Bremspunkt vor dem Eintritt, kein HQ-Marker in der Zone, HQ-Marker kurz nach dem Verlassen.
 
 ## Tests
 

@@ -48,6 +48,7 @@ class World:
         self.zone = (0.0, 2000.0)
         self.radius = 250.0
         self.tint = True
+        self.hz = True
         self.base = (0.0, 0.0)
         self.crate = False
         self.menu = None
@@ -228,7 +229,7 @@ class FakeVision:
 
     def zone_marker(self, frame):
         distance = self.w.bearing(self.w.zone)[1]
-        if self.w.inside():
+        if self.w.inside() and self.w.hz:
             return self.w.marker(self.w.zone, kind="HZ", distance=round(distance))
         return self.w.marker(self.w.zone, kind="CZ", distance=round(distance - self.w.radius))
 
@@ -404,12 +405,12 @@ def test_turn_searches_hq_when_not_visible(loop, world, config):
     assert_aimed(world, world.base, config)
 
 
-def test_drop_waits_three_seconds_inside_and_drops_low(loop, world, config):
+def test_drop_waits_three_seconds_inside(loop, world, config):
     world.crate = True
     airborne(loop, world, 100, 0, 0)
     loop.step("drop")
     (drop,) = world.drops
-    assert drop["inside"] and drop["agl"] <= config["maps"]["default"]["drop_max_agl"]
+    assert drop["inside"] and drop["agl"] >= config["maps"]["default"]["drop_min_agl"]
     assert drop["t"] - world.entered >= config["flight"]["drop_delay_s"]
     assert loop.stats["dropped"] == 1 and loop.stats["delivered"] == 1
     assert_never_low_and_fast(world, config)
@@ -449,13 +450,38 @@ def test_drop_brakes_before_zone(loop, world, config):
     assert world.entry_speed <= drop_speed + 2 * config["flight"]["speed_band"]
 
 
-def test_drop_needs_minimap_and_hz(loop, world, config):
-    config["flight"]["leg_timeout_s"] = 90
+def test_drop_with_hz_when_minimap_circle_is_white(loop, world, config):
     world.crate, world.tint = True, False
     airborne(loop, world, 100, 0, 0)
-    with pytest.raises(StepFailed):
-        loop.step("drop")
-    assert world.crate and not world.drops
+    loop.step("drop")
+    (drop,) = world.drops
+    assert drop["inside"]
+    assert drop["t"] - world.entered < config["flight"]["drop_delay_s"] + 1
+
+
+def test_drop_with_minimap_when_marker_shows_no_hz(loop, world, config):
+    world.crate, world.hz = True, False
+    airborne(loop, world, 100, 0, 0)
+    loop.step("drop")
+    (drop,) = world.drops
+    assert drop["inside"]
+    assert drop["t"] - world.entered < config["flight"]["drop_delay_s"] + 1
+
+
+def test_drop_ignores_tinted_minimap_over_base(loop, world):
+    world.crate, world.hz = True, False
+    airborne(loop, world, 30, 0, 0)
+    loop.step("drop")
+    assert world.drops[0]["inside"]
+
+
+def test_drop_has_no_upper_height_limit(loop, world, config):
+    world.crate = True
+    airborne(loop, world, 130, 0, 0, pos=(0, 1800))
+    loop.step("drop")
+    (drop,) = world.drops
+    assert drop["inside"] and drop["agl"] > 100
+    assert drop["t"] < config["flight"]["drop_delay_s"] + 1
 
 
 def test_leave_turns_around_and_flies_out(loop, world):

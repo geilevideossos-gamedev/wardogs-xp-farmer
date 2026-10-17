@@ -43,6 +43,7 @@ Alle wichtigen Änderungen an diesem Projekt. Format nach [Keep a Changelog](htt
 
 ### Behoben
 
+- Abwurf: Die Zone gilt jetzt als erreicht, wenn der Marker HZ zeigt **oder** das Heli-Symbol auf der Minimap im Zonenkreis liegt. Bei weißem Kreis kam die Erkennung vorher 25 Sekunden zu spät. Außerdem wartet der Bot nicht mehr, bis er unter 85 m ist (nur noch mindestens 30 m), damit er nicht durch die Zone durchfliegt
 - Bremsen: Driftet der Heli nach dem Abbremsen rückwärts, merkt der Bot das jetzt (er wird trotz S schneller) und bremst mit W. Vorher konnte er sich in der Simulation rückwärts immer schneller machen, weil das Tempo im HUD kein Vorzeichen hat
 - Drehen zum Ziel: Der Heli dreht nach Q/E noch eine Weile nach. Der Bot rechnet das jetzt voraus, tippt rechtzeitig die Gegentaste zum Abbremsen und ist erst fertig, wenn der Marker ruhig in der Mitte steht. Vorher pendelte er um den Marker und brach nach 25 Sekunden ab. Im Flug lenkt er genauso vorausschauend, auch mit A/D, damit er nicht mehr links-rechts pendelt
 - Das Video `join+Zestafona.mp4` wird jetzt richtig als Zestafona geführt (Doku und Testbilder). Der Ladebildschirm hatte fälschlich Ozeti gezeigt, weil der Server nach Rundenende noch die alte Map anzeigt

@@ -204,17 +204,20 @@ class CrateLoop:
         inside_hits = 0
         entered: float | None = None
         waiting = False
-        max_agl = self._map["drop_max_agl"]
+        min_agl = self._map["drop_min_agl"]
         while self._clock() < deadline:
             frame = self.observe()
             marker = self._vision.zone_marker(frame)
-            inside = (
-                marker is not None and marker.kind == "HZ" and self._vision.minimap_in_zone(frame)
-            )
+            hz = marker is not None and marker.kind == "HZ"
+            inside = hz or (approach and self._vision.minimap_in_zone(frame))
             inside_hits = inside_hits + 1 if inside else 0
             if entered is None and inside_hits >= self._confirm:
                 entered = self._clock()
-                log.info("In der Zone (HZ + Minimap), Abwurf in %s s", self._flight["drop_delay_s"])
+                log.info(
+                    "In der Zone (%s), Abwurf in %s s",
+                    "HZ" if hz else "Minimap",
+                    self._flight["drop_delay_s"],
+                )
             if entered is None:
                 x = marker.x if marker is not None else None
                 if marker is not None and marker.kind == "CZ" and marker.distance is not None:
@@ -233,15 +236,15 @@ class CrateLoop:
             waited = self._clock() - entered
             if waited < self._flight["drop_delay_s"]:
                 continue
-            if agl is not None and agl <= max_agl:
+            if agl is not None and agl >= min_agl:
                 log.info("Abwurf bei AGL %d m", agl)
                 self._release_crate()
                 return
             if not waiting:
                 waiting = True
-                log.info("Warte auf Abwurfhöhe: AGL %s m, Grenze %s m", agl, max_agl)
+                log.info("Warte auf Abwurfhöhe: AGL %s m, mindestens %s m", agl, min_agl)
             if waited > self._flight["drop_wait_s"]:
-                raise StepFailed(f"In der Zone nicht unter {max_agl} m (AGL {agl})")
+                raise StepFailed(f"In der Zone nicht über {min_agl} m (AGL {agl})")
         raise StepFailed("Zone nicht rechtzeitig erreicht")
 
     def leave(self) -> None:

@@ -130,18 +130,35 @@ def marker_rows(spec: str, distances: list | None = None) -> list[dict]:
     return rows
 
 
-def test_zone_visits_need_hz_and_minimap_to_enter():
-    rows = marker_rows("CchhHHHHHmmHHCCC--")
-    assert replay.zone_visits(rows, confirm=2) == [(5.0, 14.0)]
+def visits(rows):
+    return replay.zone_visits(rows, confirm=2, history=3, brake_distance=400)
+
+
+def test_zone_visits_enter_on_hz_alone():
+    assert visits(marker_rows("CChhCC")) == [(3.0, 5.0)]
+
+
+def test_zone_visits_enter_on_minimap_only_near_the_zone():
+    far = marker_rows("ccmmCC", [900, 900, None, None, 900, 900])
+    assert visits(far) == []
+    near = marker_rows("cccmmCC", [500, 300, 200, None, None, 300, 300])
+    assert visits(near) == [(3.0, 6.0)]
+
+
+def test_zone_visits_ignore_minimap_without_crate():
+    rows = marker_rows("cccmm", [300, 200, 100, None, None])
+    for row in rows[3:]:
+        row["crate"] = False
+    assert visits(rows) == []
 
 
 def test_zone_visits_leave_on_untinted_minimap_without_marker():
     rows = marker_rows("HHH----") + [{"t": 9.0, "zone": None, "minimap": None, "distance": None}]
-    assert replay.zone_visits(rows, confirm=2) == [(1.0, 4.0)]
+    assert visits(rows) == [(1.0, 4.0)]
 
 
 def test_zone_visits_open_at_end():
-    assert replay.zone_visits(marker_rows("CHHH"), confirm=2) == [(2.0, None)]
+    assert visits(marker_rows("CHHH")) == [(2.0, None)]
 
 
 def test_brake_times_use_median_once_per_leg():

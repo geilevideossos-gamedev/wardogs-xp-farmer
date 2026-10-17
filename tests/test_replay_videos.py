@@ -26,7 +26,7 @@ EXPECTED = {
         "menus": [103.1, 247.7, 370.0],
         "damaged": 321,
         "dead": 341,
-        "zones": [170.0, 305.5, 436.0],
+        "zones": [165.5, 305.5, 436.0],
         "brakes": [164.0],
     },
 }
@@ -37,6 +37,15 @@ pytestmark = pytest.mark.videos
 @pytest.fixture(scope="module")
 def config():
     return load_config("config.yaml")
+
+
+def visits(rows, config):
+    return replay.zone_visits(
+        rows,
+        config["vision"]["confirm"],
+        config["flight"]["distance_history"],
+        config["maps"]["default"]["brake_distance"],
+    )
 
 
 @pytest.fixture(scope="module", params=EXPECTED)
@@ -65,10 +74,10 @@ def test_timeline_matches_analysis(video, config):
 
 def test_every_drop_inside_detected_zone(video, config):
     expected, rows, _ = video
-    visits = replay.zone_visits(rows, config["vision"]["confirm"])
-    assert [enter for enter, _ in visits] == pytest.approx(expected["zones"], abs=1.0)
+    found = visits(rows, config)
+    assert [enter for enter, _ in found] == pytest.approx(expected["zones"], abs=1.0)
     for drop in expected["drops"]:
-        assert any(enter - 5 <= drop <= leave for enter, leave in visits if leave), drop
+        assert any(enter - 5 <= drop <= leave for enter, leave in found if leave), drop
 
 
 def test_brakes_before_zone_entry(video, config):
@@ -86,7 +95,7 @@ def test_brakes_before_zone_entry(video, config):
 def test_hq_hidden_in_zone_and_seen_after_leaving(video, config):
     _, rows, _ = video
     assert not [row["t"] for row in rows if row["zone"] == "HZ" and row["hq"]]
-    for _, leave in replay.zone_visits(rows, config["vision"]["confirm"]):
+    for _, leave in visits(rows, config):
         seen = [row["t"] for row in rows if row["hq"] and row["t"] >= leave]
         assert seen and seen[0] - leave <= 10, leave
 

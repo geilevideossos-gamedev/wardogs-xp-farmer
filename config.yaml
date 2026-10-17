@@ -266,7 +266,7 @@ maps:
     cruise_speed: 180
     brake_distance: 400
     drop_agl: 70
-    drop_max_agl: 85
+    drop_min_agl: 30
     drop_speed: 120
     approach_agl: 40
     approach_speed: 40

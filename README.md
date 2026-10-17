@@ -124,11 +124,11 @@ Die wichtigsten Einstellungen:
 | `maps.<map>.cruise_agl` | Reiseflughöhe über Grund (m) | 100 |
 | `maps.<map>.cruise_speed` | Reisetempo (km/h). Bestimmt, wie weit der Bot die Nase im Reiseflug nach vorne nimmt | 180 |
 | `maps.<map>.min_agl` | Mindesthöhe im Reiseflug (m). Darunter steigt der Bot erst mit Shift und nimmt die Nase hoch, bevor er weiter beschleunigt | 80 |
-| `maps.<map>.drop_agl` / `drop_speed` | Zielhöhe (m) und Tempo (km/h) beim Abwurf. Über ca. 90 m zerbricht die Palette | 70 / 120 |
+| `maps.<map>.drop_agl` / `drop_speed` | Zielhöhe (m) und Tempo (km/h) vor und in der Zone. Der Bot sinkt sanft dorthin, wirft aber nach 3 s auch höher ab (laut Spieltext zerbricht die Palette ab ca. 90 m freiem Fall) | 70 / 120 |
 | `maps.<map>.turn_agl` | So hoch (m) steigt der Bot vor dem Drehen | 15 |
 | `maps.<map>.brake_distance` | Ab dieser Entfernung zum Zonenrand (m, Zahl am CZ-Marker) bremst der Bot auf Abwurf-Tempo und sinkt sanft auf Abwurfhöhe | 400 |
-| `maps.<map>.drop_max_agl` | G wird nur gedrückt, wenn der Heli höchstens so hoch ist (m) | 85 |
-| `flight.drop_delay_s` | Wartezeit nach dem Erreichen der Zone (Minimap + HZ) bis G | 3 |
+| `maps.<map>.drop_min_agl` | G wird nur gedrückt, wenn der Heli mindestens so hoch ist (m). Keine Obergrenze | 30 |
+| `flight.drop_delay_s` | Wartezeit nach dem Erreichen der Zone (HZ-Marker oder Heli auf der Minimap im Zonenkreis) bis G | 3 |
 | `flight.leave_margin_s` | So lange (s) fliegt der Bot nach dem Verlassen der Zone noch geradeaus, bevor er die Base sucht | 3 |
 | `flight.turnaround_s` | So lange (s) dreht der Bot nach dem Abwurf, bevor er aus der Zone fliegt. Mehr = weiter umdrehen | 6 |
 | `maps.<map>.land_distance` | Ab dieser Entfernung zur Base (m, Zahl neben dem HQ-Marker) beginnt der Landeanflug: bremsen und sinken. Größer = früher | 700 |

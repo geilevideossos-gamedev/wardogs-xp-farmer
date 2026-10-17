@@ -62,7 +62,7 @@ Positionen sind bildschirmfest (geprüft über alle 1.420 Sekundenbilder). Templ
 | Gelandet | SPD „00“ und AGL „0“ | SPD rechts x≈862, AGL rechts x≈1126, Zeile y 923–933 | Ziffernleser (siehe unten) |
 | Heli beschädigt | Heli-Silhouette in der Lageanzeige rot statt grau | Bereich x 955–966, y 908–932 | Median `R − max(G,B)` ≥ 60 (normal < 20, rot > 120) |
 | Spieler tot | Erste-Hilfe-Stern im roten Ring, „GIVE UP [F]“, „[E] CALL FOR HELP“, „TOTAL BRIBE“ | Stern x 926, y 938 (68×68) | `first_aid.png` ≥ 0,65 (Treffer ≥ 0,8) |
-| In der Zielzone | Zonen-Marker zeigt „HZ“ statt „CZ“ **und** Minimap um das Heli-Symbol eingefärbt (Kreis blau, grün, rot oder weiß) | Marker: Buchstabenfeld x 6–15, y 9–22 im Template. Minimap: Ring r 12–30 px um x 160, y 862 | HZ/CZ: TM_CCOEFF_NORMED des Buchstabenfelds gegen `marker_zone_hz.png` und `marker_zone.png`, höherer gewinnt (1.940/1.940 Marker richtig, Abstand ≥ 0,28). Minimap: Median-Farbe im Ring, Buntheit `max − min` ≥ 14 (innen 15–47, außen ohne Zone ≤ 10) |
+| In der Zielzone | Zonen-Marker zeigt „HZ“ statt „CZ“ **oder** Minimap um das Heli-Symbol eingefärbt (Kreis blau, grün, rot oder weiß), eines reicht (Daniel, 17.10.) | Marker: Buchstabenfeld x 6–15, y 9–22 im Template. Minimap: Ring r 12–30 px um x 160, y 862 | HZ/CZ: TM_CCOEFF_NORMED des Buchstabenfelds gegen `marker_zone_hz.png` und `marker_zone.png`, höherer gewinnt (1.940/1.940 Marker richtig, Abstand ≥ 0,28). Minimap: Median-Farbe im Ring, Buntheit `max − min` ≥ 14 (innen 15–47, außen ohne Zone ≤ 10) |
 | In einer Kontrollzone (Banner) | Banner „CONTROL ZONE“ oben mittig, Leiste „CONTROL: <Fraktion>“ unter der Minimap, „CONTROL ZONE ENTERED +$250“ oben rechts | – | nicht verwendet: Banner kurzlebig und unter dem Overlay, Leiste bleibt auch außerhalb stehen |
 | Höhe über Meer | ASL unter AGL | rechts x≈1126, Zeile y 945–955 | Ziffernleser wie AGL (9/9 Fixtures, 93 % lesbar im Video). Steig-/Sinkrate unabhängig vom Gelände |
 | Lageanzeige unten mittig | Heli-Silhouette fest; zwei kurze Horizont-Striche links/rechts kippen mit der **Querneigung**; die Bögen links/rechts sind weiß oben bei Shift, weiß unten bei Strg (= **Kollektiv**) | x 880–1040, y 880–975 | nicht verwendet: Mittelwert der Horizont-Striche bleibt bei 0, 300 km/h und Vollbremsung gleich (y ≈ 65 im Ausschnitt) → **Nickwinkel ist nicht ablesbar** |
@@ -154,7 +154,9 @@ Marker und Minimap mit 2 Bildern/s, Bestätigung 3 Bilder in Folge, Bremsen bei 
 |---|---|---|---|
 | Bakurani | 173,7 · 316,4 | 173,5–195,0 · 321,0–340,5 | 169,5 (4 s vor Eintritt) · keiner |
 | Ozeti | 216,2 · 434,8 | 213,0–225,5 · 428,0–442,0 | keiner · keiner |
-| Zestafona | 172,3 · 307,0 · 439,4 | 170,0–194,5 · 305,5–327,0 · 436,0–456,0 | 164,0 (6 s vor Eintritt) · keiner · keiner |
+| Zestafona | 172,3 · 307,0 · 439,4 | 165,5–194,5 · 305,5–327,0 · 436,0–456,0 | 164,0 (6 s vor Eintritt) · keiner · keiner |
+
+Seit 17.10. gilt „HZ **oder** Minimap ab Bremspunkt“: Zestafona 165,5 statt 170,0 s (Heli schon im blauen Kreis, HZ kam später), alle anderen Eintritte unverändert (±0,5 s)
 
 - Alle 7 Abwürfe liegen in einem erkannten Besuch. Bakurani 316,4: Daniel warf 0,1 s nach dem HZ-Wechsel ab, die Erkennung kam 4,6 s später (Marker unter dem Overlay)
 - HQ-Marker nie zusammen mit HZ, nach dem Verlassen 0–7,5 s bis zum ersten HQ-Treffer
@@ -199,14 +201,14 @@ Für spätere Layer (nur vermerkt): chat 07 Team-Auswahl, Blau links (Layer 3); 
 - Ziel Zone = Zonen-Marker, Ziel Base = HQ-Marker; Drehen nur mit Q/E (nach ein paar Metern Steigen), bis der Marker mittig ist
 - Höhe nur über die Shift-Dauer regeln (Strg nur bei der Landung). Tempo mit W/S-Tipps nach Beschleunigung. Neigungsgrenze: sinkt der Heli trotz Shift (ASL-Rate), Nase hoch (S)
 - Sicherheit: Mindesthöhe im Reiseflug (Standard 80 m), Höchsttempo abhängig von der AGL. Darunter erst Shift und Nase hoch, nie weiter beschleunigen
-- Bremsen vor der Zone über die CZ-Entfernung (Abstand zum Rand), Abwurf 3 s nach „Minimap + HZ“, unter 90 m AGL; Erfolg = G-Feld weg, Bestätigung „SUPPLIES DELIVERED“
+- Bremsen vor der Zone über die CZ-Entfernung (Abstand zum Rand), Abwurf 3 s nach „HZ oder Minimap“ (Minimap erst ab Bremspunkt), keine Höchsthöhe (Daniel, 17.10.), Mindesthöhe 30 m; Erfolg = G-Feld weg, Bestätigung „SUPPLIES DELIVERED“
 - Danach umdrehen, raus aus der Zone (CZ oder Minimap ohne Färbung), erst dann HQ suchen
 - Landung im Kaufbereich: Hinweis „BUY AMMO / SUPPLIES“ = nahe genug, dann bremsen und sinken
 - Sicherheitsfälle mit Bildmerkmal: Erste-Hilfe-Stern, rotes Heli-Symbol, HUD weg (aus dem Heli geworfen)
 
 ## Offene Punkte
 
-- Weißer Zonenkreis: Minimap-Färbung ist dort kaum bunt (Bakurani 172 s: Buntheit 8). In den Videos wurde der Kreis nach ≤ 1 s blau, dann klappt die Erkennung. Bleibt er weiß, wirft der Bot nicht ab und stoppt nach dem Zeitlimit
+- Weißer Zonenkreis: Minimap-Färbung ist dort kaum bunt (Bakurani 172 s: Buntheit 8). Im Spiel (Test 17.10.) blieb er weiß, die Erkennung kam erst 25 s später. Helligkeit taugt nicht als Ersatz: Ring-Grauwert halb im weißen Kreis 75 (Bakurani 172 s, Zestafona 164 s: 63), außerhalb von Zonen auf Ozeti bis 86 (helle Felder, 2 Bilder/s über das ganze Video), Kontrast und Sättigung ebenso überlappend. Daher reicht seit 17.10. HZ allein; der weiße Kreis selbst wird nicht erkannt
 - Wie viel Grad ein W-Tipp (0,2 s) Nicklage ergibt, ist unbekannt. Annahme 4–5°, `flight.max_tilt` 3 Tipps ≈ 12–15°
 - Drehrate von Q/E gemessen (Abschnitt „Nachdrehen nach Q/E“); im Spiel mit dem Bot noch zu bestätigen
 - Wie viele W-Tipps „20°“ sind, ist unbekannt; der Regler misst stattdessen Beschleunigung und Sinkrate

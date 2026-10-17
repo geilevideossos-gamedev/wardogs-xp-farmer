@@ -127,22 +127,31 @@ def drops(rows: list[dict], confirm: int) -> list[float]:
     return times
 
 
-def zone_visits(rows: list[dict], confirm: int) -> list[tuple[float, float | None]]:
+def zone_visits(
+    rows: list[dict], confirm: int, history: int, brake_distance: int
+) -> list[tuple[float, float | None]]:
     visits: list[tuple[float, float | None]] = []
     inside, hits, entered = False, 0, 0.0
+    recent: deque[int] = deque(maxlen=history)
     for row in rows:
         if row["minimap"] is None:
             continue
+        if row.get("crate") is False:
+            recent.clear()
+        elif row["zone"] == "CZ" and row["distance"] is not None:
+            recent.append(row["distance"])
+        near = len(recent) == history and statistics.median(recent) <= brake_distance
         if inside:
             ok = row["zone"] == "CZ" or (not row["zone"] and not row["minimap"])
         else:
-            ok = row["zone"] == "HZ" and row["minimap"]
+            ok = row["zone"] == "HZ" or (near and row["minimap"])
         hits = hits + 1 if ok else 0
         if hits < confirm:
             continue
         hits = 0
         if inside:
             visits.append((entered, row["t"]))
+            recent.clear()
         else:
             entered = row["t"]
         inside = not inside
@@ -200,11 +209,12 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{start:9.2f}s - {end:9.2f}s  {name:<12}  {count} Frames")
     dropped = drops(rows, config["vision"]["confirm"])
     print("Abwürfe bei:", ", ".join(f"{t:.1f}s" for t in dropped) or "keine")
-    visits = zone_visits(rows, config["vision"]["confirm"])
+    brake = config["maps"]["default"]["brake_distance"]
+    history = config["flight"]["distance_history"]
+    visits = zone_visits(rows, config["vision"]["confirm"], history, brake)
     shown = [f"{a:.1f}s-{b:.1f}s" if b is not None else f"{a:.1f}s-Ende" for a, b in visits]
     print("In der Zone:", ", ".join(shown) or "nie")
-    brake = config["maps"]["default"]["brake_distance"]
-    brakes = brake_times(rows, config["flight"]["distance_history"], brake)
+    brakes = brake_times(rows, history, brake)
     print(f"Bremsen ({brake} m vor der Zone) bei:", ", ".join(f"{t:.1f}s" for t in brakes) or "nie")
     print(f"Timeline gespeichert: {out}")
     return 0
