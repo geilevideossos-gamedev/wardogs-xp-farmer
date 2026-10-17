@@ -179,6 +179,15 @@ Marker-x mit 10 Bildern/s nach isolierten Q/E-Tipps (Overlay-Zeiten):
 
 Modell (Ausgleichsrechnung auf Zestafona, mittlere Abweichung 2,3 px bei 16,8 px/°): Totzeit 0,3 s, Anlauf (Tiefpass) 0,2 s, Auslauf 0,5 s, Enddrehrate 40°/s. Gesamtdrehung ≈ 40° pro Sekunde Tastendruck, nach dem Loslassen dreht der Heli noch ~1 s weiter. Angeheftete Marker: Liegt das Ziel außerhalb des Bildes, klebt der Zonen-Marker am Rand (x ≈ 120 bzw. 1800, Screenshots 015014, 015543). Bildtakt des Bots mit Marker-Suche ~7 Bilder/s (Marker-Suche ~71 ms).
 
+## Flugdaten aus dem 4. Test (17.10., Log-Zeilen `Flug:` je Sekunde)
+
+- **HUD-Tempo enthält die Steiggeschwindigkeit:** beim senkrechten Steigen nur mit Shift (bot_041914) AGL 5 → 12 → 22 m je Sekunde bei 20/33/36 km/h; direkt nach `Abgehoben: 25 m` noch 30–35 km/h, kurz danach im Schweben 9–10 km/h
+- **Shift-Steigrate** nach dem Abheben ~7–10 m/s
+- **Sturzflug in der Kurve:** Schräglage 25–56° mit Q/E bei 60–160 km/h, danach Tempo +15–18 km/h pro Sekunde ohne W, AGL −5 bis −10 m/s (bot_041956, 042110, 042924); bei 21–24° Schräglage ohne starke Q/E-Eingaben blieb das Tempo bei 90–115 km/h und die Höhe stabil (bot_042428)
+- **Marker hinter dem Heli:** Suchrand springt zwischen x = 0 und 1920, angeheftete Randmarker 120/1800
+- **Reiseflug:** 230–240 km/h, AGL stieg dabei ohne Shift von 86 auf 156 m (mehr Auftrieb bei Fahrt)
+- **Längsneigung im Bild:** am Heli sichtbar (Zestafona 150 s bei 278 km/h flach und klein, 177–179 s beim Bremsen groß mit Heck nach unten), die Lageanzeige zeigt sie nicht. Nicht ausgewertet
+
 ## Regen und Nebel (Test 17.10., 3. Durchgang)
 
 Screenshots 031444, 031533, 031555 (starker Regen, Nebel) und 031755 (zu Fuß in der Base). Testbilder `*_rain_*` in `tests/fixtures/`.

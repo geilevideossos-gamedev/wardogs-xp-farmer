@@ -53,7 +53,7 @@ class CrateLoop:
         self._clock = clock
         self._pilot = Pilot(inp, self._keys, self._flight, clock)
         self._heli_lost_since: float | None = None
-        self._side = "yaw_right"
+        self._side: str | None = None
         self._settled: float | None = None
         self._curving: bool | None = None
         self._traced = -1e9
@@ -180,7 +180,7 @@ class CrateLoop:
         target = self._map["turn_agl"]
         deadline = self._clock() + self._flight["climb_timeout_s"]
         while self._clock() < deadline:
-            agl, _ = self._fly(self.observe(), target, 0)
+            agl, _ = self._fly(self.observe(), target + self._flight["agl_band"], None)
             if agl is not None and agl >= target:
                 log.info("Abgehoben: %s m", agl)
                 return
@@ -190,7 +190,7 @@ class CrateLoop:
         outbound = self._vision.crate_loaded(self.observe())
         target = self._map["turn_agl"] if outbound else self._map["cruise_agl"]
         deadline = self._clock() + self._flight["turn_timeout_s"]
-        self._side, self._settled = "yaw_right", None
+        self._side, self._settled, self._curving = None, None, None
         while self._clock() < deadline:
             frame = self.observe()
             marker = self._vision.zone_marker(frame) if outbound else self._vision.hq_marker(frame)
@@ -268,7 +268,7 @@ class CrateLoop:
             if self._clock() < turned:
                 speed = self._vision.speed(frame)
                 if speed is not None and speed > self._flight["curve_min_speed"]:
-                    self._curve(frame, self._map["cruise_agl"], 0, self._edge(away))
+                    self._curve(frame, self._map["cruise_agl"], self._edge(away), 0)
                 else:
                     self._fly(frame, self._map["cruise_agl"], 0)
                     self._pilot.search(away)
@@ -380,7 +380,7 @@ class CrateLoop:
         speed = self._vision.speed(frame)
         self._pilot.descend(agl, self._vision.asl(frame), speed)
         roll = self._vision.roll(frame)
-        self._pilot.bank(roll, speed)
+        self._pilot.bank(roll)
         self._trace(agl, speed, roll, None)
         on_ground = agl is not None and agl <= self._flight["landed_agl"]
         return on_ground and speed is not None and speed <= self._flight["landed_speed"]
@@ -407,35 +407,40 @@ class CrateLoop:
     def _align(self, frame: np.ndarray, marker: Marker | None, agl: float) -> bool:
         center = self._flight["center_x"]
         if marker is not None:
-            self._side = "yaw_right" if marker.x > center else "yaw_left"
-        speed = self._vision.speed(frame)
-        threshold = self._flight["curve_min_speed"]
+            central = abs(marker.x - center) < self._flight["side_band"]
+            if self._side is None or central:
+                self._side = "yaw_right" if marker.x > center else "yaw_left"
+        side = self._side or "yaw_right"
+        ground = self._pilot.ground
+        if ground is not None:
+            edge = "curve_exit_speed" if self._curving else "curve_min_speed"
+            curve = ground > self._flight[edge]
+            if curve != self._curving:
+                self._curving = curve
+                mode = "im Kurvenflug" if curve else "auf der Stelle"
+                log.info("Drehen %s (%.0f km/h über Grund)", mode, ground)
         if self._curving:
-            threshold -= self._flight["speed_band"]
-        curve = speed is not None and speed > threshold
-        if curve != self._curving:
-            self._curving = curve
-            log.info("Drehen %s (%s km/h)", "im Kurvenflug" if curve else "auf der Stelle", speed)
-        if curve:
-            x = marker.x if marker is not None else self._edge(self._side)
-            floor = min(self._map["min_agl"], agl - self._flight["agl_band"])
-            self._curve(frame, agl, floor, x)
+            self._curve(frame, agl, marker.x if marker is not None else self._edge(side))
             done = marker is not None and self._pilot.on_target
-        elif marker is None:
-            self._fly(frame, agl, 0)
-            self._pilot.search(self._side)
-            done = False
         else:
-            _, speed = self._fly(frame, agl, 0, x=marker.x)
-            slow = speed is not None and speed <= self._flight["hover_speed"]
-            done = self._pilot.on_target and slow
+            fast = ground is not None and ground > self._flight["turn_hover_speed"]
+            x = marker.x if marker is not None and not fast else None
+            self._fly(frame, agl, 0 if fast else None, x=x, lean=False)
+            if marker is None and not fast:
+                self._pilot.search(side)
+            slow = ground is not None and not fast
+            done = marker is not None and self._pilot.on_target and slow
         if not done:
             self._settled = None
             return False
         self._settled = self._settled or self._clock()
         return self._clock() - self._settled >= self._flight["yaw_settle_s"]
 
-    def _curve(self, frame: np.ndarray, agl: float, floor: float, x: float) -> None:
+    def _curve(self, frame: np.ndarray, agl: float, x: float, floor: float | None = None) -> None:
+        band = self._flight["agl_band"]
+        agl = max(agl, self._flight["safe_agl"] + band)
+        if floor is None:
+            floor = min(self._map["min_agl"], agl - band)
         speed, bank = self._flight["turn_speed"], self._flight["turn_bank"]
         self._fly(frame, agl, speed, floor, x=x, bank=bank)
 
@@ -479,6 +484,7 @@ class CrateLoop:
         sink_rate: float = 0,
         x: float | None = None,
         bank: float = 0,
+        lean: bool = True,
     ) -> tuple[int | None, int | None]:
         current_agl = self._vision.agl(frame)
         current_speed = self._vision.speed(frame)
@@ -488,26 +494,34 @@ class CrateLoop:
         lead = None
         if x is not None:
             self._pilot.yaw(x)
-            lead = self._pilot.lead
+            lead = self._pilot.lead if lean else None
         roll = self._vision.roll(frame)
-        self._pilot.bank(roll, current_speed, lead, bank)
+        band = 0 if lean else self._flight["hover_roll_band"]
+        self._pilot.bank(roll, lead, bank, band)
         self._trace(current_agl, current_speed, roll, x)
         return current_agl, current_speed
 
     def _trace(self, agl: int | None, speed: int | None, roll: int | None, x: float | None) -> None:
         now = self._clock()
+        pilot = self._pilot
+        ground = "-" if pilot.ground is None else f"{pilot.ground:.0f}"
+        keys = ",".join(self._inp.held()) or "-"
+        marker = "-" if x is None else round(x)
         if now - self._traced < self._flight["trace_s"]:
             return
         self._traced = now
         log.info(
-            "Flug: AGL %s m, %s km/h, Schräglage %s°, Neigung %+.1f Tipps, Marker %s, Tasten %s%s",
+            "Flug: AGL %s m, %s km/h (Boden %s, Steigen %+.1f m/s, Beschl. %+.0f km/h/s), "
+            "Schräglage %s°, Marker %s, Tasten %s%s",
             agl,
             speed,
+            ground,
+            pilot.climb,
+            pilot.accel,
             roll,
-            self._pilot.tilt,
-            "-" if x is None else round(x),
-            ",".join(self._inp.held()) or "-",
-            ", Sicherheit: steigen" if self._pilot.recovering else "",
+            marker,
+            keys,
+            ", Sicherheit: Lage und Höhe zuerst" if pilot.recovering else "",
         )
 
     def _at_edge(self, marker: Marker) -> bool:

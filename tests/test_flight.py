@@ -66,26 +66,48 @@ def test_fly_ignores_missing_reading(setup):
     assert not any(inp.is_down(key) for key in ("shift", "ctrl", "w", "s"))
 
 
+def feed(pilot, clock, samples, dt=0.1, start=0.0, **kwargs):
+    for step, (agl, asl, speed) in enumerate(samples):
+        clock.now = start + step * dt
+        pilot.update()
+        pilot.fly(agl, asl, speed, kwargs.get("target_agl", 100), kwargs.get("target_speed"))
+
+
+def level(agl, speeds):
+    return [(agl, 100 + agl, speed) for speed in speeds]
+
+
+def pressed(inp):
+    return [call.args[0] for call in inp._backend.keyDown.call_args_list]
+
+
+def test_ground_speed_leaves_out_climb_rate(setup):
+    pilot, _, clock, _ = setup
+    feed(pilot, clock, [(10 * i, 110 + 9 * i, 33) for i in range(12)], dt=0.1)
+    assert pilot.climb == pytest.approx(90, rel=0.05)
+    assert pilot.ground is None or pilot.ground < 10
+
+
+def test_ground_speed_needs_settled_trends(setup):
+    pilot, _, _, _ = setup
+    fly(pilot, 30, 30)
+    assert pilot.ground is None
+
+
 def test_fly_taps_forward_then_waits_interval(setup):
     pilot, inp, clock, flight = setup
-    fly(pilot, 100, 0, target_speed=200)
-    assert inp.is_down("w")
-    clock.now = flight["pitch_tap_s"] + 0.01
-    pilot.update()
-    assert not inp.is_down("w")
-    fly(pilot, 100, 0, target_speed=200)
-    assert not inp.is_down("w")
-    clock.now = flight["pitch_interval_s"] + 0.01
-    fly(pilot, 100, 0, target_speed=200)
-    assert inp.is_down("w")
+    feed(pilot, clock, level(100, [0] * 14), target_speed=200, dt=0.05)
+    assert pressed(inp).count("w") == 1
+    feed(pilot, clock, level(100, [0] * 6), target_speed=200, dt=0.05, start=clock.now + 0.05)
+    assert pressed(inp).count("w") == 1
+    feed(pilot, clock, level(100, [0] * 6), target_speed=200, dt=0.05, start=clock.now + 0.4)
+    assert pressed(inp).count("w") == 2
 
 
 def test_fly_brakes_when_too_fast(setup):
     pilot, inp, clock, _ = setup
-    fly(pilot, 100, 240)
-    clock.now = 0.5
-    fly(pilot, 100, 240)
-    assert inp.is_down("s")
+    feed(pilot, clock, level(100, [260] * 12), target_speed=200)
+    assert "s" in pressed(inp)
 
 
 def test_speed_limit_depends_on_height(setup):
@@ -95,86 +117,101 @@ def test_speed_limit_depends_on_height(setup):
     assert pilot.speed_limit(0) == pilot.speed_limit(heights[0])
 
 
-def test_fly_low_and_fast_noses_up_with_shift(setup):
+def test_no_pitch_taps_while_climbing_fast(setup):
     pilot, inp, clock, _ = setup
-    pilot.tilt = 3
-    braked = 0
+    pressed = set()
     for step in range(20):
         clock.now = step * 0.1
         pilot.update()
-        fly(pilot, 28, 215, target_agl=100, target_speed=250, floor=80)
-        assert inp.is_down("shift") and not inp.is_down("w")
-        braked += inp.is_down("s")
-    assert braked
+        pilot.fly(step, 100 + step, 30, 25, 0)
+        pressed |= {key for key in ("w", "s") if inp.is_down(key)}
+    assert not pressed
 
 
-def test_fly_below_floor_stops_accelerating(setup):
+def test_dive_means_level_wings_shift_and_nose_up(setup):
     pilot, inp, clock, _ = setup
-    pilot.tilt = 3
-    for step, speed in enumerate((60, 70, 80)):
-        clock.now = step * 0.4
-        fly(pilot, 50, speed, target_speed=200, floor=80)
-    assert inp.is_down("shift") and inp.is_down("s") and not inp.is_down("w")
+    samples = [(120 - 3 * i, 220 - 3 * i, 150 + 2 * i) for i in range(15)]
+    feed(pilot, clock, samples, target_agl=60, target_speed=200)
+    assert pilot.recovering and inp.is_down("shift") and "s" in pressed(inp)
+    pilot.bank(20, 840)
+    assert inp.is_down("a")
 
 
-def test_fly_below_floor_never_pitches_up_from_level(setup):
+def test_fly_safety_climb_when_low_and_fast(setup):
+    pilot, inp, clock, flight = setup
+    agl = flight["safe_agl"] - 5
+    feed(pilot, clock, level(agl, [flight["safe_speed"] + 20] * 8), target_agl=10)
+    assert pilot.recovering and inp.is_down("shift")
+    pilot.yaw(1500)
+    pilot.bank(0, 600)
+    assert not inp.is_down("e") and not inp.is_down("d")
+
+
+def test_no_nose_up_below_floor_when_slow(setup):
     pilot, inp, clock, _ = setup
-    for step, speed in enumerate((5, 10, 15)):
+    for step, speed in enumerate((5, 10, 15, 20, 25, 30)):
         clock.now = step * 0.4
-        fly(pilot, 50, speed, target_speed=200, floor=80)
-    assert inp.is_down("shift") and not inp.is_down("s") and not inp.is_down("w")
+        pilot.update()
+        pilot.fly(50, 150, speed, 100, 200, 80)
+    assert pilot.recovering and inp.is_down("shift") and not inp.is_down("s")
+
+
+def test_lean_back_stops_once_braking_hard(setup):
+    pilot, inp, clock, flight = setup
+    speeds = [200 - 1.5 * i for i in range(20)]
+    feed(pilot, clock, level(100, speeds), target_speed=0)
+    before = pressed(inp).count("s")
+    assert pilot.accel < -flight["lean_accel"]
+    feed(pilot, clock, level(100, [170 - 1.5 * i for i in range(10)]), 0.1, clock.now + 0.1)
+    assert pressed(inp).count("s") == before
+
+
+def test_forward_taps_limited_per_window(setup):
+    pilot, inp, clock, flight = setup
+    taps = 0
+    for step in range(int(flight["tap_window_s"] / 0.05)):
+        clock.now = step * 0.05
+        pilot.update()
+        was = inp.is_down("w")
+        fly(pilot, 100, 50, target_speed=200)
+        taps += inp.is_down("w") and not was
+    assert taps <= flight["window_taps"]
 
 
 def test_fly_hovers_without_pitch_taps_while_still(setup):
     pilot, inp, clock, _ = setup
-    pilot.tilt = -2
-    for step in range(3):
-        clock.now = step * 0.5
-        fly(pilot, 100, 3, target_speed=0)
+    feed(pilot, clock, level(100, [3] * 15), target_speed=0)
     assert not inp.is_down("w") and not inp.is_down("s")
-
-
-def test_fly_levels_out_when_drifting_after_braking(setup):
-    pilot, inp, clock, _ = setup
-    pilot.tilt = -2
-    for step in range(3):
-        clock.now = step * 0.5
-        fly(pilot, 100, 5 + 2 * step, target_speed=0)
-    assert inp.is_down("w") and pilot.tilt == -1
 
 
 def test_fly_brakes_with_s_until_slow(setup):
     pilot, inp, clock, _ = setup
-    for step in range(3):
-        clock.now = step * 0.5
-        fly(pilot, 100, 60 - step, target_speed=0)
-    assert inp.is_down("s")
+    feed(pilot, clock, level(100, [60] * 12), target_speed=0)
+    assert "s" in pressed(inp)
 
 
-def test_fly_brakes_with_w_when_s_makes_it_faster(setup):
+def test_brakes_with_w_after_braking_through_zero(setup):
     pilot, inp, clock, flight = setup
-    speeds = (20, 22, 24, 27, 26, 24)
-    pressed = []
+    speeds = [40, 40, 40, 36, 32, 28, 24, 20, 16, 12, 8, 4, 3, 2, 4, 8, 12, 14, 14, 12, 10]
+    keys = []
     for step, speed in enumerate(speeds):
-        clock.now = step * flight["pitch_interval_s"]
+        clock.now = step * 0.4
         pilot.update()
-        fly(pilot, 30, speed, target_speed=0)
-        pressed.append("w" if inp.is_down("w") else "s" if inp.is_down("s") else "")
-    assert pressed[0] == "s" and pressed[-1] == "w"
+        fly(pilot, 100, speed, target_speed=0)
+        keys = pressed(inp)
+    assert keys[0] == "s" and keys[-1] == "w"
     assert pilot.reverse
 
 
-def test_fly_counts_pitch_taps(setup):
-    pilot, _, _, _ = setup
-    fly(pilot, 100, 0, target_speed=200)
-    assert pilot.tilt == 1
-
-
-def test_tilt_resets_on_ground(setup):
-    pilot, inp, _, _ = setup
-    pilot.tilt = 3
-    fly(pilot, 0, 0, target_agl=0)
-    assert pilot.tilt == 0 and not inp.is_down("w") and not inp.is_down("s")
+def test_fly_brakes_with_w_when_s_keeps_speeding_up(setup):
+    pilot, inp, clock, flight = setup
+    speeds = [20 + 3 * step for step in range(40)]
+    for step, speed in enumerate(speeds):
+        clock.now = step * 0.2
+        pilot.update()
+        fly(pilot, 30, speed, target_speed=0)
+    keys = [key for key in pressed(inp) if key in ("w", "s")]
+    assert keys[0] == "s" and "w" in keys
 
 
 def test_fly_uses_ctrl_only_in_sink_mode(setup):
@@ -198,119 +235,69 @@ def test_fly_sinks_no_faster_than_sink_rate(setup):
 
 def test_fly_without_target_speed_keeps_pitch(setup):
     pilot, inp, clock, _ = setup
-    for step in range(5):
-        clock.now = step * 0.5
-        pilot.update()
-        pilot.fly(70, 170, 120 - 5 * step, 70, None)
-    assert not inp.is_down("w") and not inp.is_down("s") and pilot.tilt == 0
-
-
-def test_fly_stops_tilting_forward_at_max_tilt(setup):
-    pilot, inp, clock, flight = setup
-    for step in range(100):
-        clock.now = step * 0.05
-        pilot.update()
-        fly(pilot, 100, 50 + step // 4, target_speed=200)
-    assert flight["max_tilt"] <= pilot.tilt <= flight["max_tilt"] + 1
-
-
-def test_fly_counts_longer_taps_as_more_tilt(setup):
-    pilot, inp, clock, flight = setup
-    fly(pilot, 100, 0, target_speed=200)
-    clock.now = 2 * flight["pitch_tap_s"]
-    pilot.update()
-    assert pilot.tilt == pytest.approx(2)
-
-
-def test_fly_never_leans_back_more_than_allowed(setup):
-    pilot, inp, clock, flight = setup
-    leans = 0
-    for step in range(200):
-        clock.now = step * 0.05
-        pilot.update()
-        was = inp.is_down("s")
-        fly(pilot, 100, 150, target_speed=0)
-        leans += inp.is_down("s") and not was
-    assert pilot.taps >= -flight["max_back_tilt"]
-    assert leans <= flight["max_back_tilt"] + 1
-
-
-def test_fly_levels_nose_when_sinking_slowly_despite_shift(setup):
-    pilot, inp, clock, _ = setup
-    pressed = set()
-    for step in range(6):
-        clock.now = step * 0.4
-        pilot.update()
-        fly(pilot, 60 - 2 * step, 5, target_agl=100, target_speed=0, asl=160 - 2 * step)
-        pressed |= {key for key in ("w", "s") if inp.is_down(key)}
-    assert inp.is_down("shift") and pressed == {"w"}
-
-
-def test_fly_safety_climb_when_low_and_fast(setup):
-    pilot, inp, _, flight = setup
-    fly(pilot, flight["safe_agl"] - 5, flight["safe_speed"] + 20, target_agl=10, target_speed=100)
-    assert pilot.recovering and inp.is_down("shift")
-    pilot.yaw(1500)
-    pilot.bank(0, 100, 600)
-    assert not inp.is_down("e") and not inp.is_down("d")
-
-
-def test_fly_trims_forward_when_speed_stalls_at_max_tilt(setup):
-    pilot, inp, clock, flight = setup
-    pilot.tilt = flight["max_tilt"]
-    for step in range(3):
-        clock.now = step * 0.5
-        fly(pilot, 100, 100, target_speed=200)
-    assert inp.is_down("w") and pilot.tilt == flight["max_tilt"]
-
-
-def test_fly_trims_backward_drift_with_crate(setup):
-    pilot, inp, clock, flight = setup
-    for step in range(3):
-        clock.now = step * 0.5
-        pilot.fly(15, 115, 5 + 2 * step, 15, 0, loaded=True)
-    assert inp.is_down("w") and pilot.tilt == 0
+    feed(pilot, clock, level(70, [120 - step for step in range(12)]), target_agl=70)
+    assert not inp.is_down("w") and not inp.is_down("s")
 
 
 def test_bank_into_turn_grows_with_speed(setup):
     pilot, inp, clock, flight = setup
-    pilot.bank(0, 0, 840)
+    pilot.bank(0, 840)
     assert not inp.is_down("d")
-    pilot.bank(0, flight["bank_speed"], 840)
+    feed(pilot, clock, level(100, [flight["bank_speed"]] * 8))
+    pilot.bank(0, 840)
     assert inp.is_down("d") and not inp.is_down("a")
 
 
 def test_bank_levels_out(setup):
     pilot, inp, clock, flight = setup
-    pilot.bank(flight["roll_band"], 150)
+    pilot.bank(flight["roll_band"])
     assert not inp.is_down("a") and not inp.is_down("d")
-    pilot.bank(12, 150)
+    pilot.bank(12)
     assert inp.is_down("a")
     clock.now = flight["roll_max_s"] + 0.01
     pilot.update()
-    pilot.bank(-12, 150)
+    pilot.bank(-12)
     assert not inp.is_down("d")
     clock.now = flight["roll_interval_s"] + 0.01
-    pilot.bank(-12, 150)
+    pilot.bank(-12)
     assert inp.is_down("d")
-    pilot.bank(None, 150)
+    pilot.bank(None)
 
 
-def test_fly_noses_up_when_sinking_despite_shift(setup):
+def test_bank_corrects_steep_roll_at_once(setup):
+    pilot, inp, clock, flight = setup
+    pilot.bank(10)
+    clock.now = flight["roll_max_s"] + 0.01
+    pilot.update()
+    pilot.bank(flight["roll_limit"] + 10, 840, flight["turn_bank"])
+    assert inp.is_down("a")
+
+
+def test_no_yaw_in_steep_bank(setup):
+    pilot, inp, _, flight = setup
+    pilot.bank(flight["roll_limit"] + 5)
+    pilot.yaw(1500)
+    assert not inp.is_down("e") and not inp.is_down("q")
+
+
+def test_hover_band_allows_small_roll(setup):
+    pilot, inp, _, flight = setup
+    pilot.bank(flight["hover_roll_band"] - 1, None, 0, flight["hover_roll_band"])
+    assert not inp.is_down("a") and not inp.is_down("d")
+
+
+def test_fly_noses_up_when_sinking_fast_despite_shift(setup):
     pilot, inp, clock, _ = setup
-    for step in range(3):
-        clock.now = step * 0.5
-        fly(pilot, 60, 200, target_speed=200, asl=300 - 3 * step)
-    assert inp.is_down("shift") and inp.is_down("s")
+    samples = [(100 - 3 * i, 200 - 3 * i, 200 + 2 * i) for i in range(15)]
+    feed(pilot, clock, samples, target_agl=150, target_speed=200)
+    assert inp.is_down("shift") and "s" in pressed(inp)
 
 
 def test_fly_does_not_accelerate_while_sinking(setup):
     pilot, inp, clock, _ = setup
-    for step in range(4):
-        clock.now = step * 0.5
-        pilot.update()
-        fly(pilot, 150, 100, target_speed=200, asl=300 - 3 * step)
-    assert not inp.is_down("shift") and not inp.is_down("w")
+    samples = [(150, 300 - 3 * i, 100) for i in range(12)]
+    feed(pilot, clock, samples, target_agl=100, target_speed=200)
+    assert not inp.is_down("w")
 
 
 def aim(pilot, clock, *xs, start=10.0):
@@ -396,6 +383,6 @@ def test_release_lets_go_of_all_flight_keys(setup):
     pilot, inp, _, _ = setup
     fly(pilot, 10, 0, target_speed=200)
     pilot.yaw(1800)
-    pilot.bank(0, 200, 840)
+    pilot.bank(0, 840)
     pilot.release()
     assert not any(inp.is_down(key) for key in ("shift", "ctrl", "w", "s", "q", "e", "a", "d"))

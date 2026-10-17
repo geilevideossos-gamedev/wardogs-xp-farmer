@@ -141,8 +141,6 @@ Die wichtigsten Einstellungen:
 | `flight.land_timeout_s` | Höchstdauer ab Beginn des Landeanflugs (s), danach sicherer Stopp | 120 |
 | `flight.approach_sink_rate` / `drop_sink_rate` | Höchste Sinkrate (m/s) im Landeanflug / vor und in der Zone | 3 / 2 |
 | `flight.touchdown_speed` | Unter 10 m sinkt der Bot erst weiter, wenn er langsamer als das ist (km/h) | 15 |
-| `flight.max_tilt` | So viele W-Tipps nimmt der Bot die Nase höchstens nach vorne (ein Tipp geschätzt 3–5°). Neigt er zu stark: kleiner | 5 |
-| `flight.trim_speed` / `trim_accel` / `trim_tap_s` | Ausgleich, wenn die Palette die Nase hochzieht: kurzer W-Tipp (s), wenn der Heli beim Schweben schneller als `trim_speed` km/h wird bzw. im Reiseflug kaum noch beschleunigt | 4 / 4 / 0.1 |
 | `flight.bank_speed` / `max_bank` | Ab diesem Tempo (km/h) lenkt der Bot zusätzlich mit A/D, höchstens so schräg (Grad) | 80 / 15 |
 | `flight.roll_band` | So viel Schräglage (Grad) gilt noch als gerade | 3 |
 | `flight.outside_check_s` | So lange (s) prüft der Bot nach dem Abwurf, ob er schon aus der Zone raus ist | 1 |
@@ -155,13 +153,18 @@ Die wichtigsten Einstellungen:
 | `flight.yaw_lookahead_s` | So weit (s) rechnet der Bot das Nachdrehen voraus. Schießt der Marker über die Mitte: größer; bremst er zu früh und kriecht: kleiner | 0.7 |
 | `flight.yaw_wait_s` | Pause nach jedem Q/E-Tipp, bis die Wirkung sichtbar ist (s) | 0.5 |
 | `flight.yaw_settle_s` | So lange (s) muss der Marker ruhig in der Mitte stehen, bis das Drehen fertig ist | 1.0 |
-| `flight.turn_timeout_s` | Danach bricht das Drehen mit sicherem Stopp ab (s) | 45 |
-| `flight.curve_min_speed` | Ab diesem Tempo (km/h) dreht der Bot im Kurvenflug (A/D + Q/E), darunter auf der Stelle | 30 |
+| `flight.turn_timeout_s` | Danach bricht das Drehen mit sicherem Stopp ab (s) | 60 |
+| `flight.curve_min_speed` / `curve_exit_speed` | Ab diesem Tempo über Grund (km/h) dreht der Bot im Kurvenflug, erst unter dem zweiten Wert wieder auf der Stelle | 40 / 20 |
+| `flight.turn_hover_speed` | Auf der Stelle: wird der Heli schneller (km/h), bremst er erst, bevor er weiterdreht | 15 |
 | `flight.turn_speed` / `turn_bank` | Tempo (km/h) und größte Schräglage (Grad) im Kurvenflug | 60 / 20 |
 | `flight.safe_agl` / `safe_speed` | Unter dieser Höhe (m) mit mehr als diesem Tempo (km/h) nur noch steigen und gerade halten | 40 / 50 |
-| `flight.max_back_tilt` | So viele S-Tipps darf der Bot die Nase höchstens hinter die Mitte nehmen | 2 |
-| `flight.back_taps` / `back_window_s` | Höchstens so viele solche S-Tipps in so vielen Sekunden | 2 / 4 |
-| `flight.sink_rate` | Sinkrate bei der Landung (m/s) | 4 |
+| `flight.dive_sink` / `dive_accel` | Sturzflug: sinkt schneller als das (m/s) und wird schneller als das (km/h/s) → Flügel gerade, Shift, Nase dosiert hoch | 2 / 3 |
+| `flight.lean_accel` | Wird der Heli schon stärker als das langsamer (km/h/s), kein weiteres S (nicht weiter zurücklehnen) | 6 |
+| `flight.window_taps` / `tap_window_s` | Höchstens so viele W- bzw. S-Tipps in so vielen Sekunden | 3 / 4 |
+| `flight.roll_limit` | Größte Schräglage (Grad): darüber sofort gegensteuern, kein Q/E | 25 |
+| `flight.hover_roll_band` | Auf der Stelle erst ab dieser Schräglage (Grad) mit A/D ausgleichen | 8 |
+| `flight.vertical_limit` | Beim Steigen/Sinken schneller als das (m/s) keine W/S-Tipps (Tempo dann nicht genau messbar) | 3 |
+| `flight.sink_rate` | Sinkrate bei der Landung (m/s) | 2.5 |
 | `flight.speed_limits` | Höchsttempo je Höhe über Grund als Paare `[Höhe m, km/h]`, dazwischen wird gemittelt. Schützt vor Baum-Crashs wie bei 215 km/h in 28 m Höhe | 20 m → 40, 40 → 100, 60 → 160, 80 → 220, 120 → 280 |
 | `flight.sink_guard` | Sinkt der Heli trotz Shift schneller als das (m/s), ist die Nase zu weit unten und der Bot tippt S | 1.5 |
 | `flight.pitch_tap_s` / `pitch_interval_s` | Dauer eines W/S-Tipps und Mindestabstand zwischen zwei Tipps (Sekunden) | 0.2 / 0.7 |
@@ -175,7 +178,7 @@ Alle Werte mit Erklärung: `docs/ARCHITECTURE.md` (Abschnitt „Config-Abschnitt
 
 ## Logs
 
-Jeder Start schreibt eine Log-Datei nach `logs/<Datum>/`. Im Flug steht dort jede Sekunde eine Zeile `Flug: AGL … m, … km/h, Schräglage …°, Neigung … Tipps, Marker …, Tasten …` (mit „Sicherheit: steigen“, wenn die Höhe Vorrang hat). Stoppt das Programm von selbst, liegt dort zusätzlich ein Screenshot unter `screenshots/`.
+Jeder Start schreibt eine Log-Datei nach `logs/<Datum>/`. Im Flug steht dort jede Sekunde eine Zeile `Flug: AGL … m, … km/h (Boden …, Steigen …, Beschl. …), Schräglage …°, Marker …, Tasten …` (mit „Sicherheit: Lage und Höhe zuerst“, wenn die Sicherheit Vorrang hat). Stoppt das Programm von selbst, liegt dort zusätzlich ein Screenshot unter `screenshots/`.
 
 ## Für Entwickler
 

@@ -27,11 +27,17 @@ class Trend:
     def ready(self) -> bool:
         return len(self._samples) >= 2
 
+    @property
+    def span(self) -> float:
+        return self._samples[-1][0] - self._samples[0][0] if self._samples else 0.0
+
     def rate(self) -> float:
         if len(self._samples) < 2:
             return 0.0
-        (t0, v0), (t1, v1) = self._samples[0], self._samples[-1]
-        return (v1 - v0) / (t1 - t0) if t1 > t0 else 0.0
+        times, values = np.array(self._samples).T
+        times = times - times.mean()
+        spread = float((times * times).sum())
+        return float((times * (values - values.mean())).sum() / spread) if spread else 0.0
 
 
 def clamp(value: float, low: float, high: float) -> float:
@@ -46,25 +52,35 @@ class Pilot:
         self._clock = clock
         self._agl = Trend(flight["history_s"])
         self._asl = Trend(flight["history_s"])
-        self._speed = Trend(flight["history_s"])
+        self._ground = Trend(flight["history_s"])
         self._aim = Trend(flight["yaw_history_s"])
         self._pulses: dict[str, float] = {}
-        self._backs: deque[float] = deque()
-        self._counted: tuple[str, float, float] | None = None
+        self._taps: dict[str, deque[float]] = {"forward": deque(), "back": deque()}
         self._last_pitch = -1e9
         self._yaw_free_at = -1e9
         self._last_roll = -1e9
-        self.tilt = 0.0
+        self._roll = 0
         self.reverse = False
-        self._brake_accel: float | None = None
-        self._flips = 0
+        self._tapped: tuple[bool, float, float] | None = None
+        self._suspect = 0
+        self._learn_after = -1e9
+        self._last_brake = -1e9
+        self._slowing = False
+        self.ground: float | None = None
         self.lead: float | None = None
         self.on_target = False
         self.recovering = False
+        self._sinking = False
 
     @property
-    def taps(self) -> int:
-        return round(self.tilt)
+    def climb(self) -> float:
+        return self._asl.rate() if self._asl.ready else self._agl.rate()
+
+    @property
+    def accel(self) -> float:
+        if self._ground.span < self._cfg["history_s"] / 2:
+            return 0.0
+        return self._ground.rate()
 
     @property
     def yawing(self) -> bool:
@@ -76,7 +92,6 @@ class Pilot:
             if now >= until:
                 self._inp.key_up(key)
                 del self._pulses[key]
-                self._count_overrun(key, now)
 
     def release(self) -> None:
         for key in FLIGHT_KEYS:
@@ -101,59 +116,63 @@ class Pilot:
         self._track(agl, asl, speed)
         if agl is None:
             return
-        fast = speed is not None and speed > self._cfg["safe_speed"]
+        ground, accel, climb = self.ground, self.accel, self.climb
+        fast = ground is not None and ground > self._cfg["safe_speed"]
+        diving = climb < -self._cfg["dive_sink"] and accel > self._cfg["dive_accel"]
         low = agl < floor or (agl < self._cfg["safe_agl"] and fast)
-        self.recovering = low
-        rate = self._asl.rate()
-        sinking_fast = sink_rate > 0 and rate < -sink_rate - self._cfg["sink_band"]
-        lift = low or sinking_fast or self._lift(agl, target_agl)
+        self.recovering = low or diving
+        sinking_fast = sink_rate > 0 and climb < -sink_rate - self._cfg["sink_band"]
+        lift = self.recovering or sinking_fast or self._lift(agl, target_agl)
         predicted = agl + self._agl.rate() * self._cfg["agl_lookahead_s"]
         above = predicted > target_agl + self._cfg["agl_band"]
         self._inp.hold(self._keys["up"], lift)
         self._inp.hold(
-            self._keys["down"], sink_rate > 0 and above and not lift and rate > -sink_rate
+            self._keys["down"], sink_rate > 0 and above and not lift and climb > -sink_rate
         )
-        if speed is None:
+        if ground is None:
             return
-        limit = self.speed_limit(agl)
-        sinking = rate < -self._cfg["sink_guard"]
-        accel = self._speed.rate()
-        too_fast = speed > limit + self._cfg["speed_band"]
+        self._watch_direction(speed, ground, accel, loaded)
+        band = self._cfg["accel_band"]
+        sinking = climb < -self._cfg["sink_guard"]
         sagging = lift and sinking and not sink_rate
-        nose_low = sagging and self.taps > 0 and speed >= self._cfg["bank_speed"]
-        if self.taps > 0 and (too_fast or nose_low or (low and accel > 0)):
-            self._pitch("back")
-        elif (sagging and self.taps <= 0 and speed < self._cfg["bank_speed"]) or (
-            low and self.taps < 0
-        ):
-            self._pitch("forward")
-        elif not low and target_speed is not None:
-            self._pitch_for(speed, min(target_speed, limit), accel, sinking, loaded)
+        too_fast = ground > self.speed_limit(agl) + self._cfg["speed_band"]
+        if self.recovering or sagging:
+            if accel > 0 and (fast or diving or sagging):
+                self._tap(brake=True)
+            elif accel < -band and sinking:
+                self._tap(brake=False)
+        elif too_fast:
+            self._tap(brake=True)
+        elif target_speed is not None and abs(climb) <= self._cfg["vertical_limit"]:
+            target = min(target_speed, self.speed_limit(agl))
+            self._pitch_for(ground, target, accel, sinking, loaded)
 
     def descend(self, agl: int | None, asl: int | None, speed: int | None) -> None:
         self._track(agl, asl, speed)
         if agl is None:
             return
+        ground, accel, climb = self.ground, self.accel, self.climb
         slow_agl = agl <= self._cfg["sink_slow_agl"]
-        if speed is not None and speed > self._cfg["descend_speed"]:
-            target = 0.0
-        elif slow_agl and speed is not None and speed > self._cfg["touchdown_speed"]:
-            target = 0.0
-        elif not slow_agl:
-            target = -self._cfg["sink_rate"]
-        else:
-            target = -self._cfg["sink_rate_min"]
-        rate = self._asl.rate()
+        allowed = self._cfg["touchdown_speed" if slow_agl else "descend_speed"]
+        if self._sinking:
+            allowed += self._cfg["speed_band"]
+        calm = ground is not None and ground <= allowed
+        self._sinking = calm
+        target = 0.0
+        if calm:
+            target = -self._cfg["sink_rate_min" if slow_agl else "sink_rate"]
         band = self._cfg["sink_band"]
-        self._inp.hold(self._keys["up"], rate < target - band)
-        self._inp.hold(self._keys["down"], rate > target + band)
-        if speed is not None:
-            self._pitch_for(speed, 0, self._speed.rate(), False)
+        self._inp.hold(self._keys["up"], climb < target - band)
+        self._inp.hold(self._keys["down"], climb > target + band)
+        if ground is None or abs(climb) > self._cfg["vertical_limit"]:
+            return
+        self._watch_direction(speed, ground, accel, False)
+        self._pitch_for(ground, 0, accel, False)
 
     def yaw(self, x: float) -> None:
         now = self._clock()
         error = x - self._cfg["center_x"]
-        if self.recovering:
+        if self.recovering or abs(self._roll) > self._cfg["roll_limit"]:
             self._aim.reset()
             self.lead, self.on_target = None, False
             return
@@ -186,23 +205,25 @@ class Pilot:
         self._yaw_pulse(direction, self._cfg["yaw_max_s"])
 
     def bank(
-        self, roll: int | None, speed: int | None, lead: float | None = None, limit: float = 0
+        self, roll: int | None, lead: float | None = None, limit: float = 0, band: float = 0
     ) -> None:
         if roll is None:
             return
+        self._roll = roll
         target = 0.0
-        if lead is not None and not self.recovering and speed is not None:
-            share = min(1.0, speed / self._cfg["bank_speed"])
-            limit = limit or self._cfg["max_bank"] * share
+        ground = self.ground or 0.0
+        if lead is not None and not self.recovering:
+            limit = limit or self._cfg["max_bank"] * min(1.0, ground / self._cfg["bank_speed"])
             target = clamp(lead * self._cfg["bank_per_px"], -limit, limit)
         error = target - roll
         now = self._clock()
         rolling = (
             self._keys["roll_left"] in self._pulses or self._keys["roll_right"] in self._pulses
         )
-        if abs(error) <= self._cfg["roll_band"] or rolling:
+        steep = abs(roll) > self._cfg["roll_limit"] and roll * error < 0
+        if abs(error) <= (band or self._cfg["roll_band"]) or rolling:
             return
-        if now - self._last_roll < self._cfg["roll_interval_s"]:
+        if now - self._last_roll < self._cfg["roll_interval_s"] and not steep:
             return
         seconds = clamp(
             abs(error) * self._cfg["roll_s_per_deg"],
@@ -216,10 +237,13 @@ class Pilot:
         now = self._clock()
         self._agl.add(now, agl)
         self._asl.add(now, asl)
-        self._speed.add(now, speed)
-        if agl is not None and speed is not None:
-            if agl <= self._cfg["landed_agl"] and speed <= self._cfg["landed_speed"]:
-                self.tilt = 0.0
+        settled = max(self._asl.span, self._agl.span) >= self._cfg["history_s"] / 2
+        if speed is None or not settled:
+            self.ground = None
+            return
+        vertical = self.climb * 3.6
+        self.ground = float(np.sqrt(max(speed * speed - vertical * vertical, 0.0)))
+        self._ground.add(now, self.ground)
 
     def _lift(self, agl: int, target: float) -> bool:
         predicted = agl + self._agl.rate() * self._cfg["agl_lookahead_s"]
@@ -230,81 +254,86 @@ class Pilot:
         return self._inp.is_down(self._keys["up"])
 
     def _pitch_for(
-        self, speed: int, target: float, accel: float, sinking: bool, loaded: bool = False
+        self, ground: float, target: float, accel: float, sinking: bool, loaded: bool = False
     ) -> None:
         hover = self._cfg["hover_speed"]
+        trim = self._cfg["trim_speed"]
         band = self._cfg["accel_band"]
-        if target <= hover:
-            if speed <= self._cfg["trim_speed"]:
-                self.reverse, self._brake_accel, self._flips = False, None, 0
-            if speed <= hover:
-                if speed > self._cfg["trim_speed"] and accel > 0:
-                    self._drift(loaded)
-            elif accel > -self._cfg["brake_accel"] and self._pitch_ready():
-                last = self._brake_accel
-                worse = last is not None and accel > max(last, self._cfg["reverse_accel"])
-                if worse and speed <= self._cfg["reverse_max_speed"]:
-                    self.reverse = not self.reverse
-                    self._flips += 1
-                if self._flips > 1:
-                    self._level()
-                else:
-                    self._pitch("forward" if self.reverse else "back")
-                self._brake_accel = accel
+        if target <= hover or self.reverse:
+            drifting = trim < ground <= hover and accel > 0
+            braking = ground > hover and accel > -self._cfg["brake_gain"] * ground
+            if drifting or braking:
+                self._tap(brake=True, seconds=self._cfg["hover_tap_s"])
             return
         limit = self._cfg["accel_max"]
-        wanted = clamp(self._cfg["speed_gain"] * (target - speed), -limit, limit)
-        lagging = speed < target - self._cfg["speed_band"] and accel <= 0
+        wanted = clamp(self._cfg["speed_gain"] * (target - ground), -limit, limit)
+        lagging = ground < target - self._cfg["speed_band"] and accel <= 0
+        leading = ground > target + self._cfg["speed_band"] and accel >= 0
         if (accel < wanted - band or lagging) and not sinking:
-            if self.taps < self._cfg["max_tilt"]:
-                self._pitch("forward")
-            elif accel < self._cfg["trim_accel"]:
-                self._pitch("forward", self._cfg["trim_tap_s"], counted=False)
-        elif accel > wanted + band:
-            self._pitch("back")
+            self._tap(brake=False)
+        elif accel > wanted + band or leading:
+            self._tap(brake=True)
 
-    def _level(self) -> None:
-        if self.taps:
-            self._pitch("back" if self.taps > 0 else "forward")
+    def _watch_direction(self, speed: int, ground: float, accel: float, loaded: bool) -> None:
+        now = self._clock()
+        band = self._cfg["reverse_accel"]
+        braked = now - self._last_brake < self._cfg["tap_window_s"]
+        if speed <= self._cfg["trim_speed"]:
+            recent = [(t, key) for key, taps in self._taps.items() for t in taps]
+            last = max(recent)[1] if recent else None
+            self.reverse = last == "back" if last else loaded
+            self._suspect, self._learn_after = 0, now + self._cfg["history_s"]
+        elif ground < self._cfg["crossing_speed"] and braked:
+            if self._slowing and accel > band and now >= self._learn_after:
+                self.reverse = not self.reverse
+                self._suspect, self._learn_after = 0, now + self._cfg["history_s"]
+                self._slowing = False
+        if accel < -band:
+            self._slowing = True
+        elif accel > band:
+            self._slowing = False
+        self._learn_direction(ground, accel)
 
-    def _drift(self, loaded: bool) -> None:
-        if self.taps > 0:
-            self._pitch("back")
-        elif self.taps < 0 or self.reverse:
-            self._pitch("forward")
-        elif loaded:
-            self._pitch("forward", self._cfg["trim_tap_s"], counted=False)
+    def _learn_direction(self, ground: float, accel: float) -> None:
+        if self._tapped is None or not self._pitch_ready():
+            return
+        brake, before, _ = self._tapped
+        self._tapped = None
+        if self._clock() < self._learn_after:
+            return
+        clear = ground > self._cfg["hover_speed"] and 3.6 * abs(self.climb) < ground / 2
+        worse = accel > self._cfg["reverse_accel"] and accel > before - self._cfg["brake_effect"]
+        self._suspect = self._suspect + 1 if brake and worse and clear else 0
+        if self._suspect >= 2:
+            self.reverse, self._suspect = not self.reverse, 0
 
     def _pitch_ready(self) -> bool:
         return self._clock() - self._last_pitch >= self._cfg["pitch_interval_s"]
 
-    def _pitch(self, key: str, seconds: float | None = None, counted: bool = True) -> None:
-        if not self._pitch_ready() or (key == "back" and not self._may_lean_back()):
+    def _tap(self, brake: bool, seconds: float = 0) -> None:
+        backward = brake != self.reverse
+        key = "back" if backward else "forward"
+        if not self._pitch_ready() or not self._may_tap(key, brake):
             return
         now = self._clock()
         self._pulse(self._keys[key], seconds or self._cfg["pitch_tap_s"])
         self._last_pitch = now
-        if key == "back" and self.taps <= 0:
-            self._backs.append(now)
-        if counted:
-            self.tilt += 1 if key == "forward" else -1
-            self._counted = (self._keys[key], now, seconds or self._cfg["pitch_tap_s"])
+        self._taps[key].append(now)
+        self._tapped = (brake, self.accel, now)
+        if brake:
+            self._last_brake = now
 
-    def _count_overrun(self, key: str, now: float) -> None:
-        if self._counted is None or self._counted[0] != key:
-            return
-        _, start, nominal = self._counted
-        extra = (now - start) / nominal - 1
-        self.tilt += extra if key == self._keys["forward"] else -extra
-        self._counted = None
-
-    def _may_lean_back(self) -> bool:
+    def _may_tap(self, key: str, brake: bool) -> bool:
         now = self._clock()
-        while self._backs and now - self._backs[0] > self._cfg["back_window_s"]:
-            self._backs.popleft()
-        if self.taps > 0:
-            return True
-        return self.taps > -self._cfg["max_back_tilt"] and len(self._backs) < self._cfg["back_taps"]
+        taps = self._taps[key]
+        while taps and now - taps[0] > self._cfg["tap_window_s"]:
+            taps.popleft()
+        accel = self.accel
+        if brake:
+            if accel < -self._cfg["lean_accel"]:
+                return False
+            return self.recovering or len(taps) < self._cfg["window_taps"]
+        return accel < self._cfg["lean_accel"] and len(taps) < self._cfg["window_taps"]
 
     def _yaw_pulse(self, direction: str, seconds: float) -> None:
         now = self._clock()
