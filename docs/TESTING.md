@@ -57,9 +57,9 @@ Wenn die Figur nicht läuft: melden. Dann ignoriert das Spiel die simulierten Ta
 
 ## Layer 1 – Crate-Schleife
 
-Erst die Erkennung ohne Tastendrücke, dann die einzelnen Schritte, dann eine Runde. Nach jedem Test kurz notieren, was passiert ist, und bei Problemen die Log-Datei aus `logs/<Datum>/` (und den Screenshot aus `screenshots/`) in den Planungschat geben. Ergebnisse der ersten vier Tests: `docs/test-runs/2026-10-17-layer1.md`. Im Log steht im Flug jede Sekunde eine Zeile `Flug: AGL …, km/h (Boden …, Steigen …, Beschl. …), Schräglage, Marker, Tasten`, dazu pro Lauf die Tabelle `logs/<Datum>/flight_<Uhrzeit>.csv`. Bitte bei Problemen beides mitschicken.
+Erst die Erkennung ohne Tastendrücke, dann die einzelnen Schritte, dann eine Runde. Nach jedem Test kurz notieren, was passiert ist, und bei Problemen die Log-Datei aus `logs/<Datum>/` (und den Screenshot aus `screenshots/`) in den Planungschat geben. Ergebnisse der ersten fünf Tests: `docs/test-runs/2026-10-17-layer1.md`. Im Log steht im Flug jede Sekunde eine Zeile `Flug: AGL …, km/h (Boden …, Steigen …, Beschl. …), Schräglage, Marker, Tasten`, dazu pro Lauf die Tabelle `logs/<Datum>/flight_<Uhrzeit>.csv`. Bitte bei Problemen beides mitschicken.
 
-**Reihenfolge für den nächsten Test:** (1) `bot --step climb` + `bot --step turn` mehrmals (Schritt 2 und 3), (2) `bot --step drop`, `bot --step leave`, dann `bot --step turn` (Schritt 4–6), (3) `bot --step land`, (4) `bot --once`. Erst weitermachen, wenn der vorige Teil klappt.
+**Reihenfolge für den nächsten Test:** (1) `bot --step climb` + `bot --step turn` mehrmals (Schritt 2 und 3), (2) `bot --step drop` **ohne einzugreifen** (Schritt 4, nur F2 im Notfall), (3) `bot --step leave` + `bot --step turn` (Schritt 5 und 6), (4) `bot --step land`, (5) `bot --once`. Erst weitermachen, wenn der vorige Teil klappt.
 
 **Vorbereitung**
 
@@ -97,7 +97,7 @@ Erst die Erkennung ohne Tastendrücke, dann die einzelnen Schritte, dann eine Ru
 **Schritt 3 – Zur Zone drehen**
 
 1. Schwebend mit Palette (direkt nach Schritt 2): `bot --step turn`
-2. **Erwartet:** Log `Drehen auf der Stelle (… km/h über Grund)`. Heli dreht **nur mit Q/E** auf der Stelle, in kurzen Tipps mit Pausen dazwischen, **kein W, S, A oder D** (A/D höchstens, wenn er mehr als 8° schief hängt). Kein Wechsel in den Kurvenflug. Er bleibt ungefähr auf 25–35 m und nimmt keine Fahrt auf (in den `Flug:`-Zeilen „Boden“ unter 15 km/h). Wird er doch schneller als 15 km/h, hört er kurz mit dem Drehen auf und bremst, dann dreht er weiter. Läuft der Marker schnell auf die Mitte zu, tippt der Bot **vorher die Gegentaste** (z. B. E nach Q) und bremst die Drehung ab. Kein Hin- und Herpendeln um den Marker. Er hört erst auf, wenn der goldene CZ-Marker ruhig in der Mitte steht und sich 1 Sekunde nicht mehr bewegt (Log `Zielrichtung erreicht: Marker bei x=…`, x zwischen 880 und 1040). Dauer: meist unter 15 Sekunden, Abbruch erst nach 45 Sekunden
+2. **Erwartet:** Log `Drehen auf der Stelle (… km/h über Grund)`. Heli dreht mit Q/E auf der Stelle, in kurzen Tipps mit Pausen dazwischen. **Neu:** Wird er dabei ohne Taste schneller (Drift), tippt der Bot kurz **W** (Tasten-Spalte `w`) und gleicht eine Schräglage schon ab ca. 3° mit A/D aus. Ohne Drift kein W/S und A/D erst ab 8°. **Kein S** beim Drehen auf der Stelle (beim letzten `--once` driftete er hier ohne Gegenmaßnahme auf 40 km/h und crashte später im Kurvenflug). Kein Wechsel in den Kurvenflug. Er bleibt ungefähr auf 25–35 m und nimmt keine Fahrt auf (in den `Flug:`-Zeilen „Boden“ unter 15 km/h). Wird er doch schneller als 15 km/h, hört er kurz mit dem Drehen auf und bremst, dann dreht er weiter. Läuft der Marker schnell auf die Mitte zu, tippt der Bot **vorher die Gegentaste** (z. B. E nach Q) und bremst die Drehung ab. Kein Hin- und Herpendeln um den Marker. Er hört erst auf, wenn der goldene CZ-Marker ruhig in der Mitte steht und sich 1 Sekunde nicht mehr bewegt (Log `Zielrichtung erreicht: Marker bei x=…`, x zwischen 880 und 1040). Dauer: meist unter 15 Sekunden, Abbruch erst nach 45 Sekunden
 3. Zusatztest: Vor dem Start so drehen, dass der CZ-Marker ganz am linken Rand klebt. **Erwartet:** er dreht nach links (Q), bremst vor der Mitte ab und bleibt stehen
 4. Bitte diesen Test mehrmals machen, auch direkt nach `bot --step climb` mit frisch gekaufter Palette und mit dem CZ-Marker hinter dem Heli (beim letzten Test ist er hier 3-mal gecrasht). Sofort F2, wenn er Fahrt aufnimmt und sinkt
 5. Melden: Pendelt er trotzdem (wie oft schießt der Marker über die Mitte)? Bremst er zu früh und kriecht dann langsam heran? Wie lange hat es gedauert? Zum Nachjustieren in `config.local.yaml`: pendelt er → `flight.yaw_s_per_px` kleiner (z. B. 0.0004) oder `flight.yaw_lookahead_s` größer (z. B. 0.9); kriecht er → `yaw_lookahead_s` kleiner (z. B. 0.5)
@@ -106,12 +106,13 @@ Erst die Erkennung ohne Tastendrücke, dann die einzelnen Schritte, dann eine Ru
 
 1. Schwebend, Nase zum CZ-Marker (direkt nach Schritt 3): `bot --step drop`
 2. **Erwartet:**
-   - Zuerst steigt er senkrecht (nur Shift, kein W) bis ca. 80 m
-   - Dann nimmt er die Nase ca. 2° weiter nach vorne als beim letzten Test (höchstens 5 W-Tipps hintereinander, dann nur noch kurze Ausgleichs-Tipps) und fliegt ca. 230–250 km/h in ca. 100 m Höhe. Die Höhe soll dabei konstant bleiben (Shift). Du solltest nicht mit S gegenhalten müssen
+   - Zuerst steigt er senkrecht (nur Shift, kein W) bis ca. 80–100 m
+   - **Dann fliegt er von selbst los** (beim letzten Test schwebte er hier 12 s still): W-Tipps, höchstens einer pro Sekunde, danach kurze Ausgleichs-Tipps. Bitte **nicht selbst W drücken**, auch wenn es ein paar Sekunden dauert. Er fliegt ca. 230–250 km/h in ca. 100 m Höhe, die Höhe bleibt konstant (Shift). Du solltest nicht mit S gegenhalten müssen
+   - Sinkt er doch schnell (in den `Flug:`-Zeilen „Steigen“ unter −5 m/s) oder fällt die Höhe bei steigendem Tempo: Log `Sicherheit: Sturzflug abfangen`, Flügel gerade, Shift und **nur S-Tipps, kein einziges W**, bis er kaum noch sinkt
    - Weicht der Marker bei Tempo zur Seite ab, lenkt er mit Q/E **und** A/D, nimmt die Lenkung aber zurück, bevor der Marker die Mitte erreicht. Er pendelt nicht mehr links-rechts. Kein Kreisfliegen
    - Log `Zone in … m: bremsen und sanft sinken` → er wird langsamer (ca. 120 km/h) und sinkt langsam (höchstens 2 m/s) Richtung 70 m
    - Log `In der Zone (HZ)` oder `In der Zone (Minimap)` gleich beim Einflug, auch bei weißem Kreis: er fliegt gerade weiter, sinkt nicht schnell, kippt nicht zur Seite. Nach 3 Sekunden `Abwurf bei AGL … m` (auch über 85 m), G, `Crate abgeworfen`, `Lieferung bestätigt`
-3. Melden: Welches Tempo hat er im Reiseflug erreicht (Log-Zeilen `Flug: …`)? Hält er dabei die Höhe? Zu viel Neigung → `flight.max_tilt` 4, zu wenig → 6. Pendelt er noch im Flug? War er in der Zone gerade und ruhig? Wie hoch war er beim Abwurf, und kam `Lieferung bestätigt` (oder oben rechts „SUPPLIES DESTROYED ON IMPACT“)?
+3. Melden: Welches Tempo hat er im Reiseflug erreicht (Log-Zeilen `Flug: …`)? Hält er dabei die Höhe? Pendelt er noch im Flug? War er in der Zone gerade und ruhig? Wie hoch war er beim Abwurf, und kam `Lieferung bestätigt` (oder oben rechts „SUPPLIES DESTROYED ON IMPACT“)?
 
 **Schritt 5 – Raus aus der Zone**
 
@@ -155,6 +156,6 @@ Erst die Erkennung ohne Tastendrücke, dann die einzelnen Schritte, dann eine Ru
 **Sicherheit (bei Gelegenheit, nicht absichtlich crashen)**
 
 - Wird der Heli beschädigt (Heli-Symbol unten mittig rot) oder stirbst du: Bot lässt alle Tasten los und stoppt mit Screenshot, Log `Layer 1 verlassen` und `Layer VEHICLE ist noch nicht gebaut`
-- Nie tief und schnell, kein Sturzflug: Unter 40 m mit mehr als 50 km/h, unter der Mindesthöhe oder wenn die Höhe fällt und das Tempo steigt, greift die Sicherheit ein (Log `Flug: … Sicherheit: Lage und Höhe zuerst`): Flügel gerade, Shift, Nase dosiert hoch, bis das Tempo nicht mehr steigt; gedreht wird erst danach. Bitte melden, wenn er sich trotzdem weit nach hinten lehnt oder sinkt, während er Shift hält
+- Nie tief und schnell, kein Sturzflug: Unter 40 m mit mehr als 50 km/h oder unter der Mindesthöhe greift die Sicherheit ein (Log `Flug: … Sicherheit: Lage und Höhe zuerst`): Flügel gerade, Shift, Nase dosiert hoch, bis das Tempo nicht mehr steigt; gedreht wird erst danach. Sturzflug (über 60 km/h und sinkt schneller als 5 m/s, oder Höhe fällt bei steigendem Tempo): Log `Sicherheit: Sturzflug abfangen`, nur S (je schneller er sinkt, desto länger), **nie W**, bis er langsamer als 1 m/s sinkt. Bitte melden, wenn er sich trotzdem weit nach hinten lehnt oder sinkt, während er Shift hält
 - Runde vorbei (Bildschirm „NEXT ROUND IN“): Bot lässt alle Tasten los und stoppt sofort mit `Stopp (Runde vorbei (NEXT ROUND IN), kein Crash …)` und Screenshot, nicht erst nach 30 Sekunden
 - Steht im Log `Taste 'shift' länger als 20 s gedrückt`: normal, der Bot drückt sie gleich wieder
