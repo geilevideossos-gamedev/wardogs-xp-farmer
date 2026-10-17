@@ -663,6 +663,27 @@ def test_turn_with_speed_keeps_bank_and_speed_moderate(loop, world, config, bear
     assert world.max_ground < 160 and world.min_agl > 60
 
 
+def test_flight_data_written_to_csv(config, world, tmp_path):
+    backend = Mock()
+    backend.keyDown.side_effect = lambda key: world.press(key, True)
+    backend.keyUp.side_effect = lambda key: world.press(key, False)
+    inp = Input(threading.Event(), backend=backend, clock=lambda: world.now)
+    log = tmp_path / "flight.csv"
+    loop = CrateLoop(
+        FakeVision(world),
+        inp,
+        world.step,
+        threading.Event(),
+        config,
+        clock=lambda: world.now,
+        flight_log=log,
+    )
+    loop.step("climb")
+    rows = log.read_text(encoding="utf-8").splitlines()
+    assert rows[0].startswith("t,step,agl")
+    assert len(rows) > 5 and ",climb," in rows[-1]
+
+
 def test_first_aid_leaves_layer(loop, world):
     world.first_aid = True
     with pytest.raises(LeaveLayer):

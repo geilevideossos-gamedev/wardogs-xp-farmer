@@ -1,9 +1,11 @@
+import csv
 import logging
 import statistics
 import threading
 import time
 from collections import Counter, deque
 from collections.abc import Callable
+from pathlib import Path
 
 import numpy as np
 
@@ -18,6 +20,21 @@ log = logging.getLogger(__name__)
 
 STEPS = ("buy", "climb", "turn", "drop", "leave", "land")
 ROUND = ("buy", "climb", "turn", "drop", "leave", "turn", "land")
+FLIGHT_COLUMNS = [
+    "t",
+    "step",
+    "agl",
+    "asl",
+    "speed",
+    "ground",
+    "climb",
+    "accel",
+    "roll",
+    "marker",
+    "keys",
+    "safety",
+    "turn",
+]
 
 
 class LeaveLayer(Exception):
@@ -38,6 +55,7 @@ class CrateLoop:
         config: dict,
         map_name: str = "default",
         clock: Callable[[], float] = time.monotonic,
+        flight_log: Path | None = None,
     ):
         self._vision = vision
         self._inp = inp
@@ -56,7 +74,9 @@ class CrateLoop:
         self._side: str | None = None
         self._settled: float | None = None
         self._curving: bool | None = None
-        self._traced = -1e9
+        self._traced = self._recorded = -1e9
+        self._flight_log = flight_log
+        self._step = ""
         self.stats: Counter = Counter()
 
     def run(self, steps: tuple[str, ...] = (), once: bool = False) -> None:
@@ -77,6 +97,7 @@ class CrateLoop:
 
     def step(self, name: str) -> None:
         log.info("Schritt %s", name)
+        self._step = name
         try:
             getattr(self, name)()
         finally:
@@ -498,31 +519,63 @@ class CrateLoop:
         roll = self._vision.roll(frame)
         band = 0 if lean else self._flight["hover_roll_band"]
         self._pilot.bank(roll, lead, bank, band)
-        self._trace(current_agl, current_speed, roll, x)
+        self._trace(current_agl, current_speed, roll, x, asl)
         return current_agl, current_speed
 
-    def _trace(self, agl: int | None, speed: int | None, roll: int | None, x: float | None) -> None:
+    def _trace(
+        self,
+        agl: int | None,
+        speed: int | None,
+        roll: int | None,
+        x: float | None,
+        asl: int | None = None,
+    ) -> None:
         now = self._clock()
         pilot = self._pilot
         ground = "-" if pilot.ground is None else f"{pilot.ground:.0f}"
         keys = ",".join(self._inp.held()) or "-"
         marker = "-" if x is None else round(x)
-        if now - self._traced < self._flight["trace_s"]:
+        if now - self._traced >= self._flight["trace_s"]:
+            self._traced = now
+            log.info(
+                "Flug: AGL %s m, %s km/h (Boden %s, Steigen %+.1f m/s, Beschl. %+.0f km/h/s), "
+                "Schräglage %s°, Marker %s, Tasten %s%s",
+                agl,
+                speed,
+                ground,
+                pilot.climb,
+                pilot.accel,
+                roll,
+                marker,
+                keys,
+                ", Sicherheit: Lage und Höhe zuerst" if pilot.recovering else "",
+            )
+        if self._flight_log is None or now - self._recorded < self._flight["record_s"]:
             return
-        self._traced = now
-        log.info(
-            "Flug: AGL %s m, %s km/h (Boden %s, Steigen %+.1f m/s, Beschl. %+.0f km/h/s), "
-            "Schräglage %s°, Marker %s, Tasten %s%s",
-            agl,
-            speed,
-            ground,
-            pilot.climb,
-            pilot.accel,
-            roll,
-            marker,
-            keys,
-            ", Sicherheit: Lage und Höhe zuerst" if pilot.recovering else "",
-        )
+        self._recorded = now
+        mode = {True: "kurve", False: "stelle", None: ""}[self._curving]
+        new = not self._flight_log.exists()
+        with open(self._flight_log, "a", newline="", encoding="utf-8") as file:
+            writer = csv.writer(file)
+            if new:
+                writer.writerow(FLIGHT_COLUMNS)
+            writer.writerow(
+                [
+                    f"{now:.2f}",
+                    self._step,
+                    agl,
+                    asl,
+                    speed,
+                    ground,
+                    f"{pilot.climb:.1f}",
+                    f"{pilot.accel:.1f}",
+                    roll,
+                    marker,
+                    keys,
+                    int(pilot.recovering),
+                    mode,
+                ]
+            )
 
     def _at_edge(self, marker: Marker) -> bool:
         margin = self._flight["edge_margin"]

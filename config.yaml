@@ -196,6 +196,7 @@ buy:
 flight:
   tick_s: 0.05
   trace_s: 1.0
+  record_s: 0.25
   center_x: 960
   edge_margin: 200
   tap_s: 0.2

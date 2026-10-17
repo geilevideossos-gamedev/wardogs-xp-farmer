@@ -6,6 +6,7 @@ Alle wichtigen Änderungen an diesem Projekt. Format nach [Keep a Changelog](htt
 
 ### Hinzugefügt
 
+- Flugdaten als Tabelle: Pro Lauf schreibt der Bot `logs/<Datum>/flight_<Uhrzeit>.csv` mit 4 Zeilen pro Sekunde (Höhe, Tempo, Tempo über Grund, Steigrate, Beschleunigung, Schräglage, Marker, Tasten, Schritt). Damit lassen sich Tests im Spiel genauer auswerten
 - Flug-Protokoll: Im Log steht im Flug jede Sekunde eine Zeile mit Höhe, Tempo, Schräglage, geschätzter Neigung, Marker-Position und gedrückten Tasten. Damit lassen sich Crashs aus deinen Tests im Nachhinein auswerten
 - Bilderkennung liest die seitliche Neigung des Helis aus der Lageanzeige unten mittig (gegen deine A/D-Tasten in allen drei Videos geprüft) und die Entfernung zur Base neben dem HQ-Marker („759 m“, „1.3 km“)
 - Projekt-Grundgerüst: Python-Projekt mit Prüfwerkzeugen (Ruff) und automatischen Tests (Pytest)

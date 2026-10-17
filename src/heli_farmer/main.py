@@ -3,6 +3,7 @@ import logging
 import sys
 import threading
 import time
+from datetime import datetime
 from pathlib import Path
 
 from heli_farmer import detectors
@@ -108,7 +109,8 @@ def bot_loop(
     def clock() -> float:
         return time.monotonic() - inp.paused_s
 
-    loop = CrateLoop(vision, inp, capture.grab, stop, config, args.map, clock)
+    flight_log = run_dir / f"flight_{datetime.now():%H%M%S}.csv"
+    loop = CrateLoop(vision, inp, capture.grab, stop, config, args.map, clock, flight_log)
     machine = build_machine(config, args, vision, loop, inp)
     try:
         while True:
