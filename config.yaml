@@ -208,7 +208,7 @@ flight:
   reverse_accel: 2
   pitch_tap_s: 0.2
   pitch_interval_s: 0.7
-  max_tilt: 3
+  max_tilt: 4
   trim_speed: 4
   trim_accel: 4
   trim_tap_s: 0.1
@@ -262,7 +262,7 @@ flight:
 
 maps:
   default:
-    turn_agl: 15
+    turn_agl: 25
     min_agl: 80
     cruise_agl: 100
     cruise_speed: 180

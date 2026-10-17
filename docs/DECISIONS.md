@@ -195,3 +195,8 @@ Format je Eintrag: Datum, Entscheidung, Grund, verworfene Alternativen.
 - **Grund:** Daniel (Test 17.10., 2. Durchgang): einmal ins Nirgendwo geflogen (Marker nicht gefunden, Reiseflug geradeaus), beim Anflug über die Base hinaus, dann Landeversuch im Nichts ohne Ende. Log: Sinkflug 8 s nach Anflugbeginn bei 695 m, also mit hohem Tempo über der Base-Färbung; `descend` sank bei 40 m schon unter 100 km/h. Nach einer Kehrtwende fliegt der Heli mit altem Schwung rückwärts weiter, daher erst anhalten, dann neu anfliegen (Simulation: sonst „Base überflogen“ in Serie).
 - **Offen:** Der HQ-Marker verschwindet in den Videos oft schon 800 m vor der Base; die Landefläche liegt nahe dem HQ-Symbol auf der Minimap (Zestafona 495 s: ~45 px nördlich). Landet der Bot in der Base, aber neben der Fläche, stoppt er sicher (`Gelandet, aber kein Kauf-Hinweis`). Nächster Schritt wäre Navigation über das HQ-Symbol der Minimap.
 - **Verworfen:** Sinken nur mit Kauf-Hinweis (erscheint in Bakurani/Ozeti erst unter ~11 m), Landung abbrechen erst nach dem Aufsetzen.
+
+## 2026-10-17 – Abheben 25 m, Reiseflug-Neigung 4 Tipps
+
+- **Entscheidung:** `maps.default.turn_agl` 15 → 25, `flight.max_tilt` 3 → 4.
+- **Grund:** Daniel (Test 17.10., 2. Durchgang): beim Drehen nach dem Abheben fast gegen eine Stromleitung (Screenshot 014529: Mast neben dem Heli), Reiseflug-Neigung ca. 3° zu wenig.

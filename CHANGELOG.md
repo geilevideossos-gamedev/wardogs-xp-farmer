@@ -26,6 +26,7 @@ Alle wichtigen Änderungen an diesem Projekt. Format nach [Keep a Changelog](htt
 
 ### Geändert
 
+- Abheben auf 25 m statt 15 m (Stromleitungen in der Base) und im Reiseflug etwas mehr Neigung nach vorne (4 statt 3 W-Tipps)
 - Testprotokoll vom ersten Layer-1-Test im Spiel (`docs/test-runs/2026-10-17-layer1.md`) und neue Test-Checkliste für Layer 1 in `docs/TESTING.md` (Countdown, Kurzbefehl `bot`, neue Erwartungen für Kaufen, Drehen, Zone und Landen, Fensterwechsel, Rundenende)
 
 - Fliegen nach deinem ersten Test: Im Reiseflug nimmt der Bot die Nase nur noch ca. 10–15° nach vorne. Mit Palette gleicht er das langsame Kippen nach hinten mit kurzen W-Tipps aus. Bei Tempo lenkt er zusätzlich mit A/D und hält den Heli sonst gerade (liest dafür die Schräglage). Vor und in der Zone sinkt er nur noch sanft (höchstens 2 m/s), fliegt gerade weiter und wirft nach 3 Sekunden ab, sobald er unter 85 m ist. Ist er nach dem Abwurf schon aus der Zone raus, sucht er sofort die Base. Drehen auf der Stelle endet erst, wenn der Marker ruhig in der Mitte steht. Landen: Anflug ab ca. 700 m vor der Base (doppelt so früh), mit S bremsen, senkrecht runter, sobald die Base auf der Minimap unter dem Heli ist

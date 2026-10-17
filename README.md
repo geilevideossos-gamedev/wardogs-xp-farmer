@@ -125,7 +125,7 @@ Die wichtigsten Einstellungen:
 | `maps.<map>.cruise_speed` | Reisetempo (km/h). Bestimmt, wie weit der Bot die Nase im Reiseflug nach vorne nimmt | 180 |
 | `maps.<map>.min_agl` | Mindesthöhe im Reiseflug (m). Darunter steigt der Bot erst mit Shift und nimmt die Nase hoch, bevor er weiter beschleunigt | 80 |
 | `maps.<map>.drop_agl` / `drop_speed` | Zielhöhe (m) und Tempo (km/h) vor und in der Zone. Der Bot sinkt sanft dorthin, wirft aber nach 3 s auch höher ab (laut Spieltext zerbricht die Palette ab ca. 90 m freiem Fall) | 70 / 120 |
-| `maps.<map>.turn_agl` | So hoch (m) steigt der Bot vor dem Drehen | 15 |
+| `maps.<map>.turn_agl` | So hoch (m) steigt der Bot vor dem Drehen (über die Stromleitungen in der Base) | 25 |
 | `maps.<map>.brake_distance` | Ab dieser Entfernung zum Zonenrand (m, Zahl am CZ-Marker) bremst der Bot auf Abwurf-Tempo und sinkt sanft auf Abwurfhöhe | 400 |
 | `maps.<map>.drop_min_agl` | G wird nur gedrückt, wenn der Heli mindestens so hoch ist (m). Keine Obergrenze | 30 |
 | `flight.drop_delay_s` | Wartezeit nach dem Erreichen der Zone (HZ-Marker oder Heli auf der Minimap im Zonenkreis) bis G | 3 |
@@ -140,7 +140,7 @@ Die wichtigsten Einstellungen:
 | `flight.land_timeout_s` | Höchstdauer ab Beginn des Landeanflugs (s), danach sicherer Stopp | 120 |
 | `flight.approach_sink_rate` / `drop_sink_rate` | Höchste Sinkrate (m/s) im Landeanflug / vor und in der Zone | 3 / 2 |
 | `flight.touchdown_speed` | Unter 10 m sinkt der Bot erst weiter, wenn er langsamer als das ist (km/h) | 15 |
-| `flight.max_tilt` | So viele W-Tipps nimmt der Bot die Nase höchstens nach vorne (ein Tipp geschätzt 4–5°, 3 Tipps ≈ 12–15°). Neigt er zu stark: kleiner | 3 |
+| `flight.max_tilt` | So viele W-Tipps nimmt der Bot die Nase höchstens nach vorne (ein Tipp geschätzt 3–5°). Neigt er zu stark: kleiner | 4 |
 | `flight.trim_speed` / `trim_accel` / `trim_tap_s` | Ausgleich, wenn die Palette die Nase hochzieht: kurzer W-Tipp (s), wenn der Heli beim Schweben schneller als `trim_speed` km/h wird bzw. im Reiseflug kaum noch beschleunigt | 4 / 4 / 0.1 |
 | `flight.bank_speed` / `max_bank` | Ab diesem Tempo (km/h) lenkt der Bot zusätzlich mit A/D, höchstens so schräg (Grad) | 80 / 15 |
 | `flight.roll_band` | So viel Schräglage (Grad) gilt noch als gerade | 4 |
