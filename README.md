@@ -135,6 +135,9 @@ Die wichtigsten Einstellungen:
 | `maps.<map>.hq_approach_y` | Ersatz, falls die Entfernung nicht lesbar ist: Landeanflug, wenn der HQ-Marker so weit unten im Bild ist | 560 |
 | `maps.<map>.approach_agl` / `approach_speed` | Höhe (m) und Tempo (km/h) im Landeanflug, bis die Base auf der Minimap unter dem Heli ist | 40 / 40 |
 | `flight.hq_overhead_distance` | Ab dieser Entfernung zum HQ (m) über der Base: senkrecht runter | 60 |
+| `flight.hq_overshoot_m` | Wird die Entfernung zum HQ im Landeanflug um so viel (m) größer als der kleinste Wert, gilt die Base als überflogen: umdrehen und neu anfliegen | 50 |
+| `flight.descend_speed` | Im Sinkflug geht es erst nach unten, wenn der Heli langsamer als das ist (km/h) | 30 |
+| `flight.land_timeout_s` | Höchstdauer ab Beginn des Landeanflugs (s), danach sicherer Stopp | 120 |
 | `flight.approach_sink_rate` / `drop_sink_rate` | Höchste Sinkrate (m/s) im Landeanflug / vor und in der Zone | 3 / 2 |
 | `flight.touchdown_speed` | Unter 10 m sinkt der Bot erst weiter, wenn er langsamer als das ist (km/h) | 15 |
 | `flight.max_tilt` | So viele W-Tipps nimmt der Bot die Nase höchstens nach vorne (ein Tipp geschätzt 4–5°, 3 Tipps ≈ 12–15°). Neigt er zu stark: kleiner | 3 |

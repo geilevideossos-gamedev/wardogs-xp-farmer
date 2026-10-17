@@ -279,63 +279,100 @@ class CrateLoop:
         raise StepFailed("Zone nicht verlassen")
 
     def land(self) -> None:
-        deadline = self._clock() + self._flight["land_timeout_s"] + self._flight["leg_timeout_s"]
+        deadline = self._clock() + self._flight["leg_timeout_s"]
+        land_deadline: float | None = None
         phase = "cruise"
         distances: deque[int] = deque(maxlen=self._flight["distance_history"])
+        nearest: float | None = None
+        over_base = away = 0
         landed_since = None
         seen = self._clock()
+        self._side, self._settled = "yaw_right", None
         while self._clock() < deadline:
             frame = self.observe()
+            now = self._clock()
+            if land_deadline is not None and now > land_deadline:
+                raise StepFailed("Landeanflug dauert zu lange")
             marker = self._vision.hq_marker(frame)
             if marker is not None:
-                seen = self._clock()
+                seen = now
+                self._side = "yaw_right" if marker.x > self._flight["center_x"] else "yaw_left"
                 if marker.distance is not None:
                     distances.append(marker.distance)
             full = len(distances) == distances.maxlen
             distance = statistics.median(distances) if full else None
-            if phase == "cruise":
-                x = marker.x if marker is not None else None
-                self._cruise(frame, x)
+            lost = now - seen > self._flight["hq_lost_s"]
+            prompt = self._vision.buy_prompt(frame)
+            if phase == "turn":
+                agl = self._map["cruise_agl" if land_deadline is None else "approach_agl"]
+                if self._align(frame, marker, agl):
+                    log.info("HQ-Marker mittig, weiter Richtung Base")
+                    phase = "cruise" if land_deadline is None else "approach"
+                    distances.clear()
+                    nearest, over_base, seen = None, 0, now
+            elif phase == "cruise":
+                if lost:
+                    log.info("HQ-Marker weg: anhalten und suchen")
+                    phase, self._settled = "turn", None
+                    continue
+                self._cruise(frame, marker.x if marker is not None else None)
                 near = distance is not None and distance <= self._map["land_distance"]
                 low = (
                     marker and not self._at_edge(marker) and marker.y >= self._map["hq_approach_y"]
                 )
-                if near or low or self._vision.buy_prompt(frame):
+                if near or low or prompt:
                     log.info("Base in %s m: bremsen und sinken (Landeanflug)", distance)
                     phase = "approach"
+                    land_deadline = now + self._flight["land_timeout_s"]
             elif phase == "approach":
+                if distance is not None:
+                    nearest = distance if nearest is None else min(nearest, distance)
                 close = distance is not None and distance <= self._flight["hq_overhead_distance"]
-                x = marker.x if marker is not None and not close else None
                 self._fly(
                     frame,
                     self._map["approach_agl"],
                     self._map["approach_speed"],
                     sink_rate=self._flight["approach_sink_rate"],
-                    x=x,
+                    x=marker.x if marker is not None and not close else None,
                 )
-                prompt = self._vision.buy_prompt(frame)
-                lost = self._clock() - seen > self._flight["hq_lost_s"]
-                if prompt or (self._vision.minimap_in_zone(frame) and (close or lost)):
+                over_base = over_base + 1 if self._vision.minimap_in_zone(frame) else 0
+                farther = (
+                    distance is not None
+                    and nearest is not None
+                    and distance > nearest + self._flight["hq_overshoot_m"]
+                )
+                if farther or (lost and not over_base):
+                    log.info("Base überflogen (HQ %s m, vorher %s m): umdrehen", distance, nearest)
+                    phase, self._settled = "turn", None
+                elif prompt or (over_base >= self._confirm and (close or lost)):
                     log.info("Sinkflug (%s)", "Kauf-Hinweis" if prompt else "Base unter dem Heli")
-                    phase = "descend"
+                    phase, away = "descend", 0
             else:
-                agl = self._vision.agl(frame)
-                speed = self._vision.speed(frame)
-                self._pilot.descend(agl, self._vision.asl(frame), speed)
-                self._pilot.bank(self._vision.roll(frame), speed)
-                on_ground = agl is not None and agl <= self._flight["landed_agl"]
-                still = speed is not None and speed <= self._flight["landed_speed"]
-                if not (on_ground and still):
-                    landed_since = None
+                below = prompt or self._vision.minimap_in_zone(frame)
+                away = 0 if below else away + 1
+                if away >= self._confirm:
+                    log.info("Base nicht mehr unter dem Heli: steigen, umdrehen")
+                    phase, self._settled, landed_since = "turn", None, None
                     continue
-                landed_since = landed_since or self._clock()
-                if self._clock() - landed_since >= self._flight["landed_hold_s"]:
-                    self._pilot.release()
-                    if not self.wait_for(self._vision.buy_prompt, self._buy["menu_timeout_s"]):
-                        raise StepFailed("Gelandet, aber kein Kauf-Hinweis im Bild")
-                    log.info("Gelandet im Kaufbereich")
-                    return
+                if self._descend(frame):
+                    landed_since = landed_since or now
+                    if now - landed_since >= self._flight["landed_hold_s"]:
+                        self._pilot.release()
+                        if not self.wait_for(self._vision.buy_prompt, self._buy["menu_timeout_s"]):
+                            raise StepFailed("Gelandet, aber kein Kauf-Hinweis im Bild")
+                        log.info("Gelandet im Kaufbereich")
+                        return
+                else:
+                    landed_since = None
         raise StepFailed("Landung dauert zu lange")
+
+    def _descend(self, frame: np.ndarray) -> bool:
+        agl = self._vision.agl(frame)
+        speed = self._vision.speed(frame)
+        self._pilot.descend(agl, self._vision.asl(frame), speed)
+        self._pilot.bank(self._vision.roll(frame), speed)
+        on_ground = agl is not None and agl <= self._flight["landed_agl"]
+        return on_ground and speed is not None and speed <= self._flight["landed_speed"]
 
     def _release_crate(self) -> None:
         self._inp.tap(self._keys["drop"], self._flight["tap_s"])

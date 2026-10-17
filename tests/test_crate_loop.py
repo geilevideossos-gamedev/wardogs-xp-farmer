@@ -49,6 +49,7 @@ class World:
         self.radius = 250.0
         self.tint = True
         self.hz = True
+        self.base_tint_until = math.inf
         self.base = (0.0, 0.0)
         self.crate = False
         self.menu = None
@@ -241,6 +242,7 @@ class FakeVision:
 
     def minimap_in_zone(self, frame):
         over_base = self.w.bearing(self.w.base)[1] < BASE_AREA
+        over_base = over_base and self.w.now < self.w.base_tint_until
         return (self.w.inside() and self.w.tint) or over_base
 
 
@@ -507,6 +509,35 @@ def test_land_brakes_descends_and_checks_prompt(loop, world, config, caplog):
     assert land_distance - 100 <= approach <= land_distance
     assert world.agl <= 1 and abs(world.speed) <= 3
     assert world.buy_prompt()
+    assert not world.keys
+
+
+def test_land_turns_back_when_hq_distance_grows(loop, world, caplog):
+    airborne(loop, world, 40, -60, 180, pos=(0, 450))
+    with caplog.at_level("INFO"):
+        loop.step("land")
+    assert any("überflogen" in r.msg for r in caplog.records)
+    assert world.agl <= 1 and world.buy_prompt()
+
+
+def test_land_searches_hq_when_marker_lost(loop, world, caplog):
+    airborne(loop, world, 60, 0, 180, pos=(0, -900))
+    with caplog.at_level("INFO"):
+        loop.step("land")
+    assert any("HQ-Marker weg" in r.msg for r in caplog.records)
+    assert world.agl <= 1 and world.buy_prompt()
+
+
+def test_land_never_touches_down_outside_base(loop, world, config, caplog):
+    airborne(loop, world, 30, 0, 180, pos=(0, 100))
+    world.prompt, world.base_tint_until = False, 8.0
+    lowest = []
+    grab = loop._grab
+    loop._grab = lambda: (world.now > 8.0 and lowest.append(world.agl), grab())[1]
+    with caplog.at_level("INFO"), pytest.raises(StepFailed, match="Landeanflug"):
+        loop.step("land")
+    assert any("nicht mehr unter dem Heli" in r.msg for r in caplog.records)
+    assert min(lowest[40:]) > config["flight"]["landed_agl"]
     assert not world.keys
 
 

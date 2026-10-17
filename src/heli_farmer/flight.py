@@ -119,7 +119,7 @@ class Pilot:
         if agl is None:
             return
         slow_agl = agl <= self._cfg["sink_slow_agl"]
-        if speed is not None and speed > self.speed_limit(agl):
+        if speed is not None and speed > self._cfg["descend_speed"]:
             target = 0.0
         elif slow_agl and speed is not None and speed > self._cfg["touchdown_speed"]:
             target = 0.0

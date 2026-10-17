@@ -247,15 +247,17 @@ flight:
   landed_agl: 1
   landed_speed: 3
   landed_hold_s: 2
-  land_timeout_s: 90
+  land_timeout_s: 120
   hq_lost_s: 3
   hq_overhead_distance: 60
+  hq_overshoot_m: 50
   drop_sink_rate: 2
   approach_sink_rate: 3
   sink_rate: 4
   sink_rate_min: 1.5
   sink_slow_agl: 10
   sink_band: 1
+  descend_speed: 30
   touchdown_speed: 15
 
 maps:
