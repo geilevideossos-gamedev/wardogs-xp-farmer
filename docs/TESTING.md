@@ -57,9 +57,9 @@ Wenn die Figur nicht läuft: melden. Dann ignoriert das Spiel die simulierten Ta
 
 ## Layer 1 – Crate-Schleife
 
-Erst die Erkennung ohne Tastendrücke, dann die einzelnen Schritte, dann eine Runde. Nach jedem Test kurz notieren, was passiert ist, und bei Problemen die Log-Datei aus `logs/<Datum>/` (und den Screenshot aus `screenshots/`) in den Planungschat geben. Ergebnisse der ersten fünf Tests: `docs/test-runs/2026-10-17-layer1.md`. Im Log steht im Flug jede Sekunde eine Zeile `Flug: AGL …, km/h (Boden …, Steigen …, Beschl. …), Schräglage, Marker, Tasten`, dazu pro Lauf die Tabelle `logs/<Datum>/flight_<Uhrzeit>.csv`. Bitte bei Problemen beides mitschicken.
+Erst die Erkennung ohne Tastendrücke, dann die einzelnen Schritte, dann eine Runde. Nach jedem Test kurz notieren, was passiert ist, und bei Problemen die Log-Datei aus `logs/<Datum>/` (und den Screenshot aus `screenshots/`) in den Planungschat geben. Ergebnisse der ersten sechs Tests: `docs/test-runs/2026-10-17-layer1.md`. Im Log steht im Flug jede Sekunde eine Zeile `Flug: AGL …, km/h (Boden …, Steigen …, Beschl. …), Schräglage, Marker, Tasten`, dazu pro Lauf die Tabelle `logs/<Datum>/flight_<Uhrzeit>.csv`. Bitte bei Problemen beides mitschicken.
 
-**Reihenfolge für den nächsten Test:** (1) `bot --step climb` + `bot --step turn` mehrmals (Schritt 2 und 3), (2) `bot --step drop` **ohne einzugreifen** (Schritt 4, nur F2 im Notfall), (3) `bot --step leave` + `bot --step turn` (Schritt 5 und 6), (4) `bot --step land`, (5) `bot --once`. Erst weitermachen, wenn der vorige Teil klappt.
+**Reihenfolge für den nächsten Test:** (1) `bot --step climb` + `bot --step turn` mehrmals, auch wenn du **verkehrt herum gelandet** bist (CZ-Marker hinter dir), (2) `bot --once` und zuschauen **bis nach dem Drehen zur Base** (Log `Schritt land`), dann F2 oder weiterlaufen lassen, (3) `bot --step land` einzeln (Schritt 6). Raketenwarnung: bei Gelegenheit (Abschnitt „Flares“ unten).
 
 **Vorbereitung**
 
@@ -97,10 +97,9 @@ Erst die Erkennung ohne Tastendrücke, dann die einzelnen Schritte, dann eine Ru
 **Schritt 3 – Zur Zone drehen**
 
 1. Schwebend mit Palette (direkt nach Schritt 2): `bot --step turn`
-2. **Erwartet:** Log `Drehen auf der Stelle (… km/h über Grund)`. Heli dreht mit Q/E auf der Stelle, in kurzen Tipps mit Pausen dazwischen. **Neu:** Wird er dabei ohne Taste schneller (Drift), tippt der Bot kurz **W** (Tasten-Spalte `w`) und gleicht eine Schräglage schon ab ca. 3° mit A/D aus. Ohne Drift kein W/S und A/D erst ab 8°. **Kein S** beim Drehen auf der Stelle (beim letzten `--once` driftete er hier ohne Gegenmaßnahme auf 40 km/h und crashte später im Kurvenflug). Kein Wechsel in den Kurvenflug. Er bleibt ungefähr auf 25–35 m und nimmt keine Fahrt auf (in den `Flug:`-Zeilen „Boden“ unter 15 km/h). Wird er doch schneller als 15 km/h, hört er kurz mit dem Drehen auf und bremst, dann dreht er weiter. Läuft der Marker schnell auf die Mitte zu, tippt der Bot **vorher die Gegentaste** (z. B. E nach Q) und bremst die Drehung ab. Kein Hin- und Herpendeln um den Marker. Er hört erst auf, wenn der goldene CZ-Marker ruhig in der Mitte steht und sich 1 Sekunde nicht mehr bewegt (Log `Zielrichtung erreicht: Marker bei x=…`, x zwischen 880 und 1040). Dauer: meist unter 15 Sekunden, Abbruch erst nach 45 Sekunden
-3. Zusatztest: Vor dem Start so drehen, dass der CZ-Marker ganz am linken Rand klebt. **Erwartet:** er dreht nach links (Q), bremst vor der Mitte ab und bleibt stehen
-4. Bitte diesen Test mehrmals machen, auch direkt nach `bot --step climb` mit frisch gekaufter Palette und mit dem CZ-Marker hinter dem Heli (beim letzten Test ist er hier 3-mal gecrasht). Sofort F2, wenn er Fahrt aufnimmt und sinkt
-5. Melden: Pendelt er trotzdem (wie oft schießt der Marker über die Mitte)? Bremst er zu früh und kriecht dann langsam heran? Wie lange hat es gedauert? Zum Nachjustieren in `config.local.yaml`: pendelt er → `flight.yaw_s_per_px` kleiner (z. B. 0.0004) oder `flight.yaw_lookahead_s` größer (z. B. 0.9); kriecht er → `yaw_lookahead_s` kleiner (z. B. 0.5)
+2. **Erwartet (neu):** `turn` holt nur das Ziel ins Bild. Ist der CZ-Marker schon im Bild (nicht am Rand) und bewegt sich kaum, endet `turn` sofort mit `Ziel im Bild: Marker bei x=…` (meist nach 1–3 s). Sonst Log `Drehen auf der Stelle (… km/h über Grund, AGL … m)`, Q/E auf der Stelle in kurzen Tipps, **nie Kurvenflug** (keine Zeile `Drehen im Kurvenflug`), kein Zentrieren und kein Warten auf Stillstand. `drop` lenkt danach selbst nach
+3. **Verkehrt herum gelandet** (CZ-Marker hinter dir oder am Rand): er dreht in Richtung des Randmarkers weiter, bis der Marker im Bild ist. Läuft der Marker dabei aus der Mitte weg (Schwung), drückt er sofort die Gegentaste statt eine ganze Runde zu drehen. Nimmt er dabei Fahrt auf (über 15 km/h), bremst er erst und dreht dann weiter
+4. Melden: Wie lange hat es gedauert? Ist er nach dem Ende gleich in `drop` sauber losgeflogen (beim `--once`)? Hat er bei Drift die Höhe gehalten?
 
 **Schritt 4 – Zur Zone fliegen und abwerfen**
 
@@ -117,24 +116,27 @@ Erst die Erkennung ohne Tastendrücke, dann die einzelnen Schritte, dann eine Ru
 **Schritt 5 – Raus aus der Zone**
 
 1. Direkt nach Schritt 4: `bot --step leave`
-2. **Erwartet:** Ist der Heli durch den Schwung schon aus der Zone: Log `Schon aus der Zone raus (Schwung nach dem Abwurf)`, Programm endet nach ca. 1 Sekunde. Sonst: Log `Umdrehen mit Q` (oder E). Mit Fahrt fliegt er dabei eine Kurve: A/D in die Kurve und Q/E, er wird nur sanft langsamer, **kein starkes S, kein Zurücklehnen**. Nach ca. 6 Sekunden fliegt er geradeaus raus, Log `Zone verlassen, noch 3 s weiter`
-3. Melden: Welcher Fall kam?
+2. **Erwartet:** Ist der Heli durch den Schwung schon aus der Zone: Log `Schon aus der Zone raus (Schwung nach dem Abwurf)`. Sonst: Log `Umdrehen mit Q` (oder E), Kurve mit A/D und Q/E, **neu ca. 180°** statt 90–130°: Log `Umgedreht: …° laut Minimap` (ca. 170°). Kommt diese Zeile nicht, hat die Minimap keine Richtung geliefert, dann dreht er höchstens 14 s. Danach geradeaus raus, Log `Zone verlassen, noch 3 s weiter`
+3. Melden: Wie weit hat er gedreht (zeigt die Nase danach ungefähr Richtung Base)? Kam `Umgedreht: … laut Minimap`?
 
 **Schritt 6 – Base suchen und landen**
 
-1. Direkt nach Schritt 5: `bot --step turn`, danach `bot --step land`
-2. **Erwartet:**
-   - `turn` mit Fahrt: Log `Drehen im Kurvenflug (… km/h über Grund)`. Er fliegt eine Kurve mit A/D und Q/E, Schräglage in den `Flug:`-Zeilen **höchstens ca. 25°** (beim letzten Test bis 56°), wird dabei auf ca. 60 km/h langsamer, hält die Höhe mit Shift, das Tempo steigt in der Kurve **nicht** von selbst (kein Sturzflug). Die Drehrichtung bleibt gleich, bis der HQ-Marker in der Bildmitte ist (kein ständiges Umlenken). Ist der Marker nicht im Bild, kurvt er weiter, bis er auftaucht (eine ganze Runde kann bis ca. 60 s dauern). Fertig mit `Zielrichtung erreicht`, auch wenn er noch Fahrt hat. Steht in den `Flug:`-Zeilen `Sicherheit: Lage und Höhe zuerst`, richtet er sich gerade aus, gibt Shift und nimmt die Nase dosiert hoch, bevor er weiterdreht
-   - Hatte er schon fast keine Fahrt mehr: Log `Drehen auf der Stelle`, wie in Schritt 3
-   - `land` (noch nie mit diesen Änderungen getestet, und in der Simulation noch **nicht zuverlässig**: er kann über der Base vor und zurück pendeln oder neben der Fläche aufsetzen; F2 bereithalten): Reiseflug zum HQ-Marker. Schon ca. **1200 m** vor der Base Log `Base in … m: bremsen und sinken (Landeanflug)`. Er wird mit der Entfernung immer langsamer (weit weg noch schnell, nahe der Base ca. 40 km/h) und sinkt sanft auf ca. 40 m. Kein starkes Zurücklehnen beim Bremsen
-   - Sobald die Base auf der Minimap unter dem Heli ist (blaues Quadrat um das Heli-Symbol) und der HQ-Marker nah oder aus dem Bild ist, oder der Kauf-Hinweis kommt: Log `Sinkflug (…)`. Er bremst **erst unter 30 km/h ab** und sinkt dann senkrecht. Unter 10 m geht er erst weiter runter, wenn er langsamer als 15 km/h ist
+1. Direkt nach Schritt 5: `bot --step turn`, danach `bot --step land`. Im `--once` passiert beides automatisch
+2. **Erwartet beim Drehen zur Base:**
+   - Log `Drehrichtung wie beim Umdrehen: Q` (bzw. E): er dreht **in dieselbe Richtung wie `leave`** weiter (beim letzten Test drehte er in die Gegenrichtung und lief 4× ins Zeitlimit). Bei `--step turn` einzeln fehlt diese Zeile, dann dreht er zur Seite des Randmarkers
+   - Mit Fahrt und über 60 m: `Drehen im Kurvenflug (…)`, Schräglage höchstens ca. 25°. Unter 60 m nur auf der Stelle
+   - Fertig mit `Ziel im Bild: Marker bei x=…`, sobald der HQ-Marker im Bild ist und sich kaum bewegt. Er muss **nicht** in der Mitte stehen
+3. **Erwartet bei der Landung:**
+   - Reiseflug zum HQ-Marker, ab ca. 1200 m `Base in … m: bremsen und sinken (Landeanflug)`
+   - Im blauen Bereich um HQ verschwindet der HQ-Marker: Log `HQ-Marker weg, HQ auf der Minimap: danach fliegen`. Er fliegt jetzt nach dem HQ-Symbol auf der Minimap, dreht sich dazu mit Q/E und fliegt langsam (höchstens ca. 40 km/h)
+   - Stehen andere Helis auf der Minimap still, fliegt er zum nächsten davon. Log `Über der Landezone (Helis)` (oder nach 5 s Warten über dem HQ `Über der Landezone (HQ)`), dann `Sinkflug`. Kommt vorher der Kauf-Hinweis: sofort `Sinkflug (Kauf-Hinweis)`
+   - Rutscht er beim Sinken weg: Log `Landezone weggerutscht: nachfliegen (Minimap)`, er fliegt nach und sinkt erneut
    - Aufsetzen, Log `Gelandet im Kaufbereich`
-3. Wenn etwas schiefgeht, soll der Bot selbst zurückfinden (bitte nicht eingreifen, außer er fliegt tief und schnell auf Bäume zu):
-   - Fliegt er über die Base hinaus (Zahl am HQ-Marker wird wieder größer): Log `Base überflogen (HQ … m, vorher … m): umdrehen`, er bremst, dreht zum HQ-Marker und fliegt neu an
-   - Verschwindet die Base im Sinkflug von der Minimap: Log `Base nicht mehr unter dem Heli: steigen, umdrehen`. Er landet nie außerhalb des blauen Quadrats
-   - Ist der HQ-Marker im Reiseflug länger als 3 s weg: Log `HQ-Marker weg: anhalten und suchen`, er bleibt stehen und dreht, bis der Marker mittig ist
+4. Wenn etwas schiefgeht, soll der Bot selbst zurückfinden (bitte nur bei Gefahr eingreifen):
+   - `Base überflogen` kommt nur noch, wenn die HQ-Entfernung dreimal hintereinander deutlich steigt
+   - HQ-Marker weg und kein HQ auf der Minimap (z. B. noch weit weg): `HQ-Marker weg, kein HQ auf der Minimap: anhalten und suchen`
    - Dauert der Landeanflug länger als 2 Minuten: sicherer Stopp mit `Landeanflug dauert zu lange` und Screenshot
-4. Melden: Wo setzt er auf (Grasfläche mit „[B] BUY AMMO / SUPPLIES“, daneben, Dach)? Welche der Meldungen aus Punkt 3 kamen, und hat er danach selbst richtig weitergemacht?
+5. Melden: Kam `HQ auf der Minimap`? Ist er zu den stehenden Helis geflogen (oder zum HQ)? Wo hat er aufgesetzt? **Wichtig:** Fliegt er über der Base in die falsche Richtung oder dreht im Kreis, bitte sofort F2 und melden (Minimap-Maßstab und Lenkung sind noch geschätzt)
 
 **Schritt 7 – Eine Runde**
 
@@ -146,6 +148,12 @@ Erst die Erkennung ohne Tastendrücke, dann die einzelnen Schritte, dann eine Ru
 1. `bot` und zuschauen, mindestens 3 Runden
 2. **Erwartet:** Runden laufen ohne Eingriff, nach jeder Runde `Runde fertig` im Log
 3. F2 drücken: Heli bekommt sofort keine Eingaben mehr
+
+**Flares bei Raketenwarnung (bei Gelegenheit)**
+
+1. Spielton über das **Windows-Standard-Ausgabegerät** (sonst hört der Bot nichts). Beim Start steht im Log `Raketenwarnung hört mit auf: <Gerät>`
+2. Wird auf dich geschossen: Das langsame „bip bip bip“ (Anvisieren) löst noch nichts aus. Sobald der **Dauer-Piepton** 0,66 s läuft: Log `Raketenwarnung erkannt, Flares (Nr. …)`, V wird gedrückt, Flares fliegen. Frühestens 3 s später wieder
+3. Melden: Kamen die Flares rechtzeitig? Gab es Flares ohne Rakete (Fehlalarm)? Am Ende steht `flares` in der Zusammenfassung
 
 **Fenster wechseln (bei Gelegenheit, Heli schwebend)**
 

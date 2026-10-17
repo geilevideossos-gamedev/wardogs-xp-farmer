@@ -61,6 +61,7 @@ Im Heli ist die **Maus irrelevant**, nur Tastatur:
 | Strg | Höhe verlieren |
 | B | Kaufmenü im Heli → große Ammo-Palette kaufen |
 | G | Palette in der Luft über der Zone abwerfen |
+| V | Flares abwerfen (Raketenabwehr) |
 | Tab | irrelevant (in den Videos ignorieren) |
 
 ## Flugverhalten Z20 Lakota
@@ -85,6 +86,12 @@ Im Heli ist die **Maus irrelevant**, nur Tastatur:
 - **Goldener CZ-Marker** = Richtung zur Zone, mit Entfernung in m/km daneben
 - CZ-Marker nicht sichtbar beim Start: mit Shift ein paar Meter steigen, dann nur Q/E drehen, bis der CZ-Marker im Bild ist
 - **In der Zone:** Heli-Symbol auf der Minimap liegt im Zonen-Kreis (Kreis blau, grün, rot oder **weiß**) **oder** der CZ-Marker wird durch HZ ersetzt. Eines davon reicht → 3 s warten → G. Keine Obergrenze für die Abwurfhöhe, sonst fliegt er durch die Zone durch. Abwurf bei AGL 139 m mit Tempo hat funktioniert, die Palette blieb heil
+- **Ausrichten (turn) ist nur „Ziel ins Bild holen“:** Sobald der Marker im Bild ist (echt zwischen x=0 und x=1920, nicht am Rand klebend) und sich pro Messung um weniger als ca. 200 px bewegt, ist turn fertig. drop bzw. land lenken danach selbst fein nach
+- **Drehrichtung beibehalten:** Hat leave mit A/Q gedreht, mit Q weiter zum Marker drehen; hat leave mit D/E gedreht, mit E weiter. Nicht in die Gegenrichtung eine ganze Runde drehen
+- **Marker läuft aus der Mitte weg:** Sofort gegensteuern, statt eine ganze weitere Drehung zu machen
+- **Nach dem Abwurf (leave):** ca. **180°** umdrehen, nicht nur 90–130°
+- **In der Base verschwindet der HQ-Marker:** Sobald man im blauen, eckigen Bereich um HQ ist, ist der HQ-Marker im Bild weg. Dann nach dem **HQ-Symbol auf der Minimap** navigieren
+- **Landezone erkennen:** Andere Helis, die auf der Minimap still stehen, markieren die Landezone (dort wird neu gekauft)
 - **Base überflogen:** Wird die HQ-Entfernung beim Landeanflug wieder größer, umdrehen und neu anfliegen. Nie irgendwo außerhalb der Base landen
 - Heli-Symbol nicht im Kreis = noch nicht in der Zone, weiter Richtung CZ
 - Nach „SUPPLIES DELIVERED“ umdrehen. In der Zone ist der HQ-Marker (blauer Kreis) nicht sichtbar → erst aus der Zone rausfliegen, dann HQ-Marker suchen und zur Base fliegen
@@ -99,6 +106,7 @@ Im Heli ist die **Maus irrelevant**, nur Tastatur:
 - Beim Händler kann der falsche Heli gekauft werden → Kauf prüfen
 - Crash im Spawnbereich: man stirbt nicht, wird aber aus dem Heli geworfen → zurück zum Händler, neuen Heli kaufen
 - Abgeschossen oder zu schnell in Bäume gecrasht → Erste-Hilfe-Symbol erscheint → **F 7 s halten** → wieder in der Base ohne Heli
+- **Raketenwarnung:** Ein konstanter Piepton („bip bip bip“, Beispiel in `wardogs_daten/Audio/`) warnt vor einer Rakete. Nach ca. **0,66 s** konstantem Piepen mit **V** Flares abwerfen
 - Rakete zerstört den Rotor → nicht weiterfliegen, W halten, in den Boden crashen, wie Tod behandeln
 - Bäume sind die Hauptgefahr beim Fliegen → genug Höhe halten
 - **Wetter wechselt:** Es gibt starken Regen und Nebel. Die Bilderkennung muss auch dann funktionieren
@@ -109,6 +117,7 @@ Ordner `wardogs_daten/` (lokal, nie committen):
 
 - `Video/join+<Map>.mp4`: alle drei Videos sind auf der Map im Dateinamen. `join+Zestafona.mp4` ist Zestafona, obwohl der Ladebildschirm Ozeti zeigt (siehe Spielverhalten). OBS-Aufnahmen 1920×1080, 60 fps, 7–9 min pro Map, vom Joinen bis zu mehreren Crate-Runden. Oben links ist ein **Tasten-Overlay** eingeblendet (TAB Q W E R / SHIFT A S D F / CTRL + Maus): gedrückte Tasten leuchten **gelb**. B und G sind darin **nicht** sichtbar. Das Overlay gibt es nur in den Videos, nicht im echten Spiel
 - `Images/*.png`: Screenshots wichtiger Situationen, der **Dateiname ist Daniels Erklärung** dazu
+- `Audio/*.mp3`: Spielsounds, der Dateiname ist Daniels Erklärung (z. B. Raketenwarnung)
 
 ## Technischer Ansatz
 
